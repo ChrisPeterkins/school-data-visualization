@@ -1,67 +1,38 @@
-import Redis from 'ioredis';
-import { config } from '../config';
-import { logger } from '../utils/logger';
+// Simple in-memory cache for development
+// In production, consider using a proper caching solution
 
-export const redis = new Redis(config.REDIS_URL, {
-  maxRetriesPerRequest: 3,
-  retryStrategy: (times) => {
-    if (times > 3) {
-      logger.error('Redis connection failed after 3 retries');
-      return null;
-    }
-    const delay = Math.min(times * 100, 3000);
-    return delay;
-  },
-});
+interface CacheEntry {
+  data: any;
+  expires: number;
+}
 
-redis.on('connect', () => {
-  logger.info('Redis connected');
-});
-
-redis.on('error', (err) => {
-  logger.error('Redis error:', err);
-});
-
-export class CacheService {
-  private defaultTTL = 3600; // 1 hour
+class CacheService {
+  private cache: Map<string, CacheEntry> = new Map();
+  private defaultTTL = 3600; // 1 hour in seconds
 
   async get<T>(key: string): Promise<T | null> {
-    try {
-      const data = await redis.get(key);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      logger.error(`Cache get error for key ${key}:`, error);
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    if (Date.now() > entry.expires) {
+      this.cache.delete(key);
       return null;
     }
+    
+    return entry.data;
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    try {
-      await redis.set(
-        key,
-        JSON.stringify(value),
-        'EX',
-        ttl || this.defaultTTL
-      );
-    } catch (error) {
-      logger.error(`Cache set error for key ${key}:`, error);
-    }
+    const expires = Date.now() + ((ttl || this.defaultTTL) * 1000);
+    this.cache.set(key, { data: value, expires });
   }
 
   async del(key: string): Promise<void> {
-    try {
-      await redis.del(key);
-    } catch (error) {
-      logger.error(`Cache delete error for key ${key}:`, error);
-    }
+    this.cache.delete(key);
   }
 
   async flush(): Promise<void> {
-    try {
-      await redis.flushdb();
-    } catch (error) {
-      logger.error('Cache flush error:', error);
-    }
+    this.cache.clear();
   }
 
   generateKey(...parts: string[]): string {
@@ -70,3 +41,10 @@ export class CacheService {
 }
 
 export const cache = new CacheService();
+
+// Stub for compatibility
+export const redis = {
+  on: () => {},
+  connect: () => Promise.resolve(),
+  disconnect: () => Promise.resolve(),
+};

@@ -9,6 +9,7 @@ import schoolRoutes from './routes/schools';
 import districtRoutes from './routes/districts';
 import performanceRoutes from './routes/performance';
 import healthRoutes from './routes/health';
+import importRoutes from './routes/import';
 
 const buildApp = async () => {
   const fastify = Fastify({
@@ -36,6 +37,7 @@ const buildApp = async () => {
   await fastify.register(schoolRoutes, { prefix: '/api/schools' });
   await fastify.register(districtRoutes, { prefix: '/api/districts' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
+  await fastify.register(importRoutes, { prefix: '/api/import' });
 
   return fastify;
 };

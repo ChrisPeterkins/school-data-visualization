@@ -54,6 +54,22 @@ export const performanceApi = {
     const { data } = await api.get<SchoolPerformanceTrends>(`/api/performance/trends/${schoolId}`);
     return data;
   },
+
+  getStatePerformance: async (year?: number) => {
+    const params = year ? { year } : {};
+    const { data } = await api.get('/api/performance/state', { params });
+    return data;
+  },
+
+  compareEntities: async (params: {
+    entityIds: number[];
+    entityType: 'school' | 'district';
+    year?: number;
+    testType?: 'pssa' | 'keystone' | 'both';
+  }) => {
+    const { data } = await api.post('/api/performance/compare', params);
+    return data;
+  },
 };
 
 export default api;
