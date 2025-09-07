@@ -1,129 +1,227 @@
-# Pennsylvania School Data Visualization Platform
+# Pennsylvania School Data Visualization
 
-A comprehensive web application for visualizing and analyzing Pennsylvania public school performance data.
+A comprehensive web application for visualizing and analyzing Pennsylvania school performance data from PSSA and Keystone exams.
 
-## Features
+## 🚀 Live Features
 
-- 📊 Interactive visualizations of PSSA and Keystone exam results
-- 🏫 Search and filter schools by district, type, and performance
-- 📈 Trend analysis across years (2015-2024)
-- 🗺️ Geographic mapping of schools and districts
-- 📱 Mobile-responsive design
-- ⚡ Fast performance with Redis caching
+- **School Search & Browsing**: Search and filter schools by name, district, or county
+- **Performance Data Visualization**: View PSSA and Keystone exam results with interactive charts
+- **Historical Data**: Year selector to view performance trends from 2015-2024
+- **Comparison Tools**: Compare performance across schools and districts
+- **Real-time Import Progress**: Visual tracking of data import operations
+- **State-level Analytics**: Aggregate performance data at state level
 
-## Tech Stack
+## 🛠 Tech Stack
 
-- **Backend**: Node.js, Fastify, PostgreSQL, Drizzle ORM, Redis
-- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS
-- **Visualization**: Recharts, Leaflet, TanStack Table
-- **Infrastructure**: Docker, PM2, Nginx
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **TanStack Query** for data fetching and caching
+- **React Router v6** for navigation
+- **Tailwind CSS** for styling
+- **Recharts** for data visualization
+- **Axios** for API requests
 
-## Prerequisites
+### Backend
+- **Node.js** with TypeScript
+- **Fastify** web framework
+- **SQLite** database with Better-SQLite3
+- **Drizzle ORM** for database operations
+- **Zod** for schema validation
+- **XLSX** for Excel file parsing
+- **Server-Sent Events** for real-time updates
 
-- Node.js 20+
-- Docker and Docker Compose
-- npm 10+
+### Development Tools
+- **TSX** for TypeScript execution
+- **ESLint** for code quality
+- **Git** for version control
 
-## Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd school-data-visualization
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Start the database and cache**
-   ```bash
-   docker-compose up -d postgres redis
-   ```
-
-5. **Run database migrations**
-   ```bash
-   npm run db:migrate -w backend
-   ```
-
-6. **Import data**
-   ```bash
-   npm run data:import -w backend
-   ```
-
-7. **Start development servers**
-   ```bash
-   npm run dev
-   ```
-
-   - Backend API: http://localhost:3000
-   - Frontend: http://localhost:5173
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-├── backend/           # Fastify API server
+├── backend/
 │   ├── src/
-│   │   ├── db/       # Database schema and connections
-│   │   ├── routes/   # API endpoints
-│   │   ├── services/ # Business logic
-│   │   └── utils/    # Utilities
-├── frontend/          # React application
+│   │   ├── routes/         # API endpoints
+│   │   ├── services/       # Business logic
+│   │   ├── db/            # Database schemas
+│   │   ├── scripts/        # Import and utility scripts
+│   │   └── index.ts        # Server entry point
+│   └── *.db               # SQLite databases
+├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   └── services/
-├── shared/           # Shared types and utilities
-├── sources/          # Source data files
+│   │   ├── pages/          # Page components
+│   │   ├── components/     # Reusable components
+│   │   ├── services/       # API services
+│   │   └── App.tsx         # Main app component
+│   └── index.html
+├── sources/                # Excel data files
 │   ├── pssa/
 │   └── keystone/
-└── docs/            # Documentation
+└── shared/                 # Shared TypeScript types
 ```
 
-## Available Scripts
+## 🚀 Quick Start
 
-- `npm run dev` - Start both frontend and backend in development mode
-- `npm run build` - Build all packages for production
-- `npm run test` - Run tests
-- `npm run lint` - Lint code
-- `npm run typecheck` - Check TypeScript types
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Git
 
-## Data Sources
+### Installation
 
-- Pennsylvania Department of Education (PSSA & Keystone results)
-- Urban Institute Education Data Portal (supplementary data)
-- Data covers 2015-2024 (excluding 2020 due to COVID-19)
+1. **Clone the repository**
+```bash
+git clone https://github.com/ChrisPeterkins/school-data-visualization.git
+cd school-data-visualization
+```
 
-## API Documentation
+2. **Install dependencies**
+```bash
+# Install root dependencies
+npm install
 
-### Endpoints
+# Install backend dependencies
+cd backend
+npm install
 
-- `GET /api/health` - Health check
-- `GET /api/schools` - List schools with pagination and filters
-- `GET /api/schools/:id` - Get school details
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
+
+3. **Set up environment variables**
+```bash
+# In backend directory
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. **Import data**
+```bash
+cd backend
+npx tsx src/scripts/runNewImport.ts
+```
+
+5. **Start development servers**
+```bash
+# Terminal 1 - Backend
+cd backend
+npm run dev
+
+# Terminal 2 - Frontend
+cd frontend
+npm run dev
+```
+
+6. **Access the application**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+- Import Progress: http://localhost:5173/import
+
+## 📊 Data Sources
+
+Data is sourced from the Pennsylvania Department of Education:
+- PSSA Results (2015-2024) - Grades 3-8
+- Keystone Exam Results (2015-2024) - High School
+- School and District Information
+
+## 🔧 Available Scripts
+
+### Backend
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npx tsx src/scripts/runNewImport.ts` - Run full data import
+- `npx tsx src/scripts/importWithProgress.ts` - Import with progress tracking
+
+### Frontend
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## 📝 API Endpoints
+
+### Schools
+- `GET /api/schools` - List schools with filtering
+- `GET /api/schools/:id` - Get school details with performance data
+
+### Districts
 - `GET /api/districts` - List districts
+- `GET /api/districts/:id` - Get district details
+
+### Performance
 - `GET /api/performance/pssa` - PSSA results
 - `GET /api/performance/keystone` - Keystone results
-- `GET /api/performance/trends/:schoolId` - School performance trends
+- `GET /api/performance/trends/:schoolId` - Historical trends
+- `POST /api/performance/compare` - Compare entities
 
-## Contributing
+### Import
+- `GET /api/import/status` - Current import status
+- `GET /api/import/status/stream` - Real-time updates (SSE)
+- `POST /api/import/start` - Start import
+- `POST /api/import/cancel` - Cancel import
 
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+## 🌟 Key Features
 
-## License
+### Year Selector
+Navigate through historical data from 2015-2024 on school detail pages.
 
-MIT License - see LICENSE file for details
+### Import Progress Tracking
+Real-time visual feedback during data imports with:
+- Progress bars and percentages
+- Current file being processed
+- Database statistics
+- Error reporting
 
-## Acknowledgments
+### Performance Visualization
+- Color-coded proficiency levels
+- Trend charts over time
+- Demographic breakdowns
+- Subject-specific results
 
-- Pennsylvania Department of Education for providing public school data
-- Urban Institute for supplementary education data
-- Open source community for the amazing tools and libraries
+## 🚢 Deployment
+
+### Production Build
+```bash
+# Build frontend
+cd frontend
+npm run build
+
+# Build backend
+cd ../backend
+npm run build
+```
+
+### Environment Variables
+Configure these in production:
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Set to 'production'
+- `CORS_ORIGIN` - Frontend URL
+- `DATABASE_URL` - SQLite database path
+
+## 📄 License
+
+MIT
+
+## 👥 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 🐛 Known Issues
+
+- Large data imports may take 5-10 minutes
+- Database locks during active imports
+- Some schools may have incomplete historical data
+
+## 📞 Support
+
+For issues and questions, please use the GitHub issue tracker.
+
+---
+
+Built with ❤️ for Pennsylvania education data transparency
