@@ -24,8 +24,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Source data (too large)
-sources/
 
 # Temporary files
 *.tmp
