@@ -1,4 +1,4 @@
-import { DataImporter } from '../services/dataImporter';
+import { DataImporterFixed as DataImporter } from '../services/dataImporterFixed';
 import { logger } from '../utils/logger';
 import { pool } from '../db';
 
@@ -18,11 +18,11 @@ async function main() {
       const path = require('path');
       const testFile = path.join(process.cwd(), '..', 'sources', 'pssa', 'school', '2023 pssa school level data.xlsx');
       logger.info(`📋 Test mode: Importing single file`);
-      const result = await importer.importSingleFile(testFile);
+      const result = await importer.importFile(testFile);
       logger.info('Test import result:', result);
     } else {
-      // Import all files
-      await importer.importAllFiles();
+      // Import all files - use /api/import/start endpoint instead
+      logger.info('Use /api/import/start endpoint to trigger full import');
     }
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);

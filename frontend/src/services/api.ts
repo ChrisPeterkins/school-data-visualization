@@ -11,7 +11,7 @@ import type {
 } from '@shared/types';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: '/pa-school-data-visualization',
   timeout: 30000,
 });
 

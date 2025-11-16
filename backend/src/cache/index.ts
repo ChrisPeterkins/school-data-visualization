@@ -47,4 +47,5 @@ export const redis = {
   on: () => {},
   connect: () => Promise.resolve(),
   disconnect: () => Promise.resolve(),
+  ping: () => Promise.resolve('PONG'),
 };

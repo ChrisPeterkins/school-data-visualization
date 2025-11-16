@@ -10,10 +10,13 @@ import districtRoutes from './routes/districts';
 import performanceRoutes from './routes/performance';
 import healthRoutes from './routes/health';
 import importRoutes from './routes/import';
+import verifyRoutes from './routes/verify';
+import filesRoutes from './routes/files';
+import databaseRoutes from './routes/database';
 
 const buildApp = async () => {
   const fastify = Fastify({
-    logger: logger,
+    logger: logger as any, // Pino logger compatibility
     trustProxy: true,
   });
 
@@ -31,13 +34,16 @@ const buildApp = async () => {
     timeWindow: config.RATE_LIMIT_WINDOW,
   });
 
-  fastify.setErrorHandler(errorHandler);
+  fastify.setErrorHandler(errorHandler as any); // Type compatibility with Fastify error handler
 
   await fastify.register(healthRoutes, { prefix: '/api/health' });
   await fastify.register(schoolRoutes, { prefix: '/api/schools' });
   await fastify.register(districtRoutes, { prefix: '/api/districts' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
   await fastify.register(importRoutes, { prefix: '/api/import' });
+  await fastify.register(verifyRoutes, { prefix: '/api/verify' });
+  await fastify.register(filesRoutes, { prefix: '/api/files' });
+  await fastify.register(databaseRoutes, { prefix: '/api/database' });
 
   return fastify;
 };

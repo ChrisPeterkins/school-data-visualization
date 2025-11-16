@@ -43,7 +43,7 @@ export class SchoolProcessor {
       const workbook = XLSX.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       const uniqueDistricts = new Map();
       const uniqueSchools = new Map();

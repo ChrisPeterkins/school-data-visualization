@@ -15,7 +15,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "data:import": "tsx src/scripts/importData.ts",
-    "data:process-schools": "tsx src/scripts/processSchools.ts"
+    "data:process-schools": "tsx src/scripts/processSchools.ts",
+    "data:verify": "tsx src/scripts/verify-data.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

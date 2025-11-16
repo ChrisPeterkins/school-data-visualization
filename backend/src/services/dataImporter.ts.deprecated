@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { db } from '../db';
-import { pssaResults, keystoneResults, schools, districts, dataImports } from '../db/schema';
+import { pssaResults, keystoneResults, schools, districts, dataImports } from '../db/newSchema';
 import { logger } from '../utils/logger';
 import { getFileConfig, FileConfig } from './fileConfigs';
 import { eq } from 'drizzle-orm';

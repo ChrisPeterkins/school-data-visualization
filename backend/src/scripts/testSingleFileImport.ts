@@ -29,17 +29,17 @@ async function testImport() {
   console.log(`  Schools created: ${(importer as any).schoolMap.size}`);
   
   // Sample some districts
-  if ((importer as any).districtMap.size > 0) {
+  if ((importer as any).districtMap?.size > 0) {
     console.log('\n📚 Sample districts:');
-    const districts = Array.from((importer as any).districtMap.keys()).slice(0, 5);
-    districts.forEach((d: string) => console.log(`  - ${d}`));
+    const districts = Array.from((importer as any).districtMap.keys()).slice(0, 5) as string[];
+    districts.forEach((d) => console.log(`  - ${d}`));
   }
-  
+
   // Sample some schools
-  if ((importer as any).schoolMap.size > 0) {
+  if ((importer as any).schoolMap?.size > 0) {
     console.log('\n🏫 Sample schools:');
-    const schools = Array.from((importer as any).schoolMap.keys()).slice(0, 5);
-    schools.forEach((s: string) => console.log(`  - ${s}`));
+    const schools = Array.from((importer as any).schoolMap.keys()).slice(0, 5) as string[];
+    schools.forEach((s) => console.log(`  - ${s}`));
   }
 }
 

@@ -8,6 +8,8 @@ import StatePage from './pages/StatePage';
 import ComparePage from './pages/ComparePage';
 import TrendsPage from './pages/TrendsPage';
 import ImportProgressPage from './pages/ImportProgressPage';
+import VerifyPage from './pages/VerifyPage';
+import DatabasePage from './pages/DatabasePage';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Route path="compare" element={<ComparePage />} />
         <Route path="trends" element={<TrendsPage />} />
         <Route path="import" element={<ImportProgressPage />} />
+        <Route path="verify" element={<VerifyPage />} />
+        <Route path="database" element={<DatabasePage />} />
       </Route>
     </Routes>
   );
