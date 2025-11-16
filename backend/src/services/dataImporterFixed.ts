@@ -134,6 +134,14 @@ export class DataImporterFixed {
           schoolId = await this.getOrCreateSchool(row, config, districtId);
         }
 
+        // If we don't have county but we have district, get county from district
+        if (!countyId && districtId) {
+          const district = await db.select().from(districts).where(eq(districts.id, districtId)).limit(1);
+          if (district.length > 0 && district[0].countyId) {
+            countyId = district[0].countyId;
+          }
+        }
+
         const record = {
           level,
           schoolId,
@@ -227,6 +235,14 @@ export class DataImporterFixed {
         // Process school (if at school level)
         if (level === 'school' && config.schoolNumberColumn && row[config.schoolNumberColumn]) {
           schoolId = await this.getOrCreateSchool(row, config, districtId);
+        }
+
+        // If we don't have county but we have district, get county from district
+        if (!countyId && districtId) {
+          const district = await db.select().from(districts).where(eq(districts.id, districtId)).limit(1);
+          if (district.length > 0 && district[0].countyId) {
+            countyId = district[0].countyId;
+          }
         }
 
         const record = {
