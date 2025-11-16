@@ -142,6 +142,12 @@ export class DataImporterFixed {
           }
         }
 
+        // Parse percentages
+        const advancedPercent = config.advancedColumn ? this.parsePercent(row[config.advancedColumn]) : null;
+        const proficientPercent = config.proficientColumn ? this.parsePercent(row[config.proficientColumn]) : null;
+        const basicPercent = config.basicColumn ? this.parsePercent(row[config.basicColumn]) : null;
+        const belowBasicPercent = config.belowBasicColumn ? this.parsePercent(row[config.belowBasicColumn]) : null;
+
         const record = {
           level,
           schoolId,
@@ -152,16 +158,18 @@ export class DataImporterFixed {
           subject: this.normalizeSubject(row[config.subjectColumn]),
           demographicGroup: config.groupColumn ? row[config.groupColumn] : 'All Students',
           totalTested: numberScored || 0,
-          advancedPercent: config.advancedColumn ?
-                          this.parsePercent(row[config.advancedColumn]) : null,
-          proficientPercent: config.proficientColumn ?
-                            this.parsePercent(row[config.proficientColumn]) : null,
-          basicPercent: config.basicColumn ?
-                       this.parsePercent(row[config.basicColumn]) : null,
-          belowBasicPercent: config.belowBasicColumn ?
-                           this.parsePercent(row[config.belowBasicColumn]) : null,
+          // Percentages
+          advancedPercent,
+          proficientPercent,
+          basicPercent,
+          belowBasicPercent,
           proficientOrAbovePercent: config.proficientOrAboveColumn ?
                                    this.parsePercent(row[config.proficientOrAboveColumn]) : null,
+          // Calculate counts from percentages
+          advancedCount: advancedPercent && numberScored ? Math.round(numberScored * advancedPercent / 100) : null,
+          proficientCount: proficientPercent && numberScored ? Math.round(numberScored * proficientPercent / 100) : null,
+          basicCount: basicPercent && numberScored ? Math.round(numberScored * basicPercent / 100) : null,
+          belowBasicCount: belowBasicPercent && numberScored ? Math.round(numberScored * belowBasicPercent / 100) : null,
           sourceFile: fileName
         };
 
@@ -245,6 +253,12 @@ export class DataImporterFixed {
           }
         }
 
+        // Parse percentages
+        const advancedPercent = config.advancedColumn ? this.parsePercent(row[config.advancedColumn]) : null;
+        const proficientPercent = config.proficientColumn ? this.parsePercent(row[config.proficientColumn]) : null;
+        const basicPercent = config.basicColumn ? this.parsePercent(row[config.basicColumn]) : null;
+        const belowBasicPercent = config.belowBasicColumn ? this.parsePercent(row[config.belowBasicColumn]) : null;
+
         const record = {
           level,
           schoolId,
@@ -254,16 +268,18 @@ export class DataImporterFixed {
           subject: this.normalizeKeystoneSubject(row[config.subjectColumn]),
           demographicGroup: config.groupColumn ? row[config.groupColumn] : 'All Students',
           totalTested: numberScored || 0,
-          advancedPercent: config.advancedColumn ?
-                          this.parsePercent(row[config.advancedColumn]) : null,
-          proficientPercent: config.proficientColumn ?
-                            this.parsePercent(row[config.proficientColumn]) : null,
-          basicPercent: config.basicColumn ?
-                       this.parsePercent(row[config.basicColumn]) : null,
-          belowBasicPercent: config.belowBasicColumn ?
-                           this.parsePercent(row[config.belowBasicColumn]) : null,
+          // Percentages
+          advancedPercent,
+          proficientPercent,
+          basicPercent,
+          belowBasicPercent,
           proficientOrAbovePercent: config.proficientOrAboveColumn ?
                                    this.parsePercent(row[config.proficientOrAboveColumn]) : null,
+          // Calculate counts from percentages
+          advancedCount: advancedPercent && numberScored ? Math.round(numberScored * advancedPercent / 100) : null,
+          proficientCount: proficientPercent && numberScored ? Math.round(numberScored * proficientPercent / 100) : null,
+          basicCount: basicPercent && numberScored ? Math.round(numberScored * basicPercent / 100) : null,
+          belowBasicCount: belowBasicPercent && numberScored ? Math.round(numberScored * belowBasicPercent / 100) : null,
           sourceFile: fileName
         };
 
