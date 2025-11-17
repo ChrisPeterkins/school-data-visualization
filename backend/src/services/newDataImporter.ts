@@ -50,6 +50,15 @@ interface ParsedRow {
   proficientOrAbovePercent?: number;
 }
 
+interface PVAASData {
+  aun: string;
+  schoolNumber?: string;
+  year: number;
+  subject: string;
+  grade: number | string;
+  growthScore: number;
+}
+
 export class NewDataImporter {
   private db: ReturnType<typeof drizzle>;
   private sourcePath = path.join(process.cwd(), '..', 'sources');
@@ -57,6 +66,7 @@ export class NewDataImporter {
   private districtMap = new Map<string, number>();
   private schoolMap = new Map<string, number>();
   private fileConfigs = new Map<string, FileConfig>();
+  private pvaasMap = new Map<string, number>(); // key: "level|aun|schoolNumber|year|subject|grade" -> growthScore
 
   constructor() {
     const sqlite = new Database(path.join(process.cwd(), 'school-data.db'));
@@ -510,6 +520,9 @@ export class NewDataImporter {
     // Step 1: Load counties first (from county reference file if available, or extract from data)
     await this.loadCounties();
 
+    // Step 1.5: Load PVAAS growth data
+    await this.loadPVAASData();
+
     // Step 2: Process all files
     const directories = [
       'pssa/school', 'pssa/district', 'pssa/state',
@@ -552,6 +565,127 @@ export class NewDataImporter {
 
     // Verify Bucks County specifically
     await this.verifyBucksCounty();
+  }
+
+  private async loadPVAASData() {
+    console.log('\n📊 Loading PVAAS growth data...');
+    const pvaasPath = path.join(this.sourcePath, 'pvaas');
+
+    let totalLoaded = 0;
+
+    try {
+      // Load school-level PVAAS files
+      const schoolPath = path.join(pvaasPath, 'school');
+      const schoolFiles = await fs.readdir(schoolPath);
+      const xlsxSchoolFiles = schoolFiles.filter(f => f.endsWith('.xlsx') && f !== 'test.xlsx');
+
+      console.log(`  Found ${xlsxSchoolFiles.length} school-level PVAAS files`);
+
+      for (const file of xlsxSchoolFiles) {
+        const filePath = path.join(schoolPath, file);
+        const count = await this.loadPVAASFile(filePath, 'school');
+        totalLoaded += count;
+      }
+
+      // Load district-level PVAAS files
+      const districtPath = path.join(pvaasPath, 'district');
+      const districtFiles = await fs.readdir(districtPath);
+      const xlsxDistrictFiles = districtFiles.filter(f => f.endsWith('.xlsx'));
+
+      console.log(`  Found ${xlsxDistrictFiles.length} district-level PVAAS files`);
+
+      for (const file of xlsxDistrictFiles) {
+        const filePath = path.join(districtPath, file);
+        const count = await this.loadPVAASFile(filePath, 'district');
+        totalLoaded += count;
+      }
+
+      console.log(`  ✓ Loaded ${totalLoaded} PVAAS growth records into memory`);
+    } catch (error) {
+      console.error('  ⚠️  Error loading PVAAS data:', error);
+      console.log('  Continuing without PVAAS data...');
+    }
+  }
+
+  private async loadPVAASFile(filePath: string, level: 'school' | 'district'): Promise<number> {
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    let loaded = 0;
+
+    for (const row of data as any[]) {
+      try {
+        const pvaasRecord = this.parsePVAASRow(row, level);
+        if (pvaasRecord) {
+          // Build key: "level|aun|schoolNumber|year|subject|grade"
+          const schoolPart = level === 'school' && pvaasRecord.schoolNumber
+            ? `|${pvaasRecord.schoolNumber}`
+            : '';
+          const key = `${level}|${pvaasRecord.aun}${schoolPart}|${pvaasRecord.year}|${pvaasRecord.subject}|${pvaasRecord.grade}`;
+
+          this.pvaasMap.set(key, pvaasRecord.growthScore);
+          loaded++;
+        }
+      } catch (error) {
+        // Skip invalid rows
+      }
+    }
+
+    return loaded;
+  }
+
+  private parsePVAASRow(row: any, level: 'school' | 'district'): PVAASData | null {
+    // Extract year from "School Year" field (e.g., "2023-2024" -> 2024)
+    const schoolYear = row['School Year'] || row['school_year'];
+    const yearMatch = schoolYear?.toString().match(/(\d{4})-(\d{4})/);
+    const year = yearMatch ? parseInt(yearMatch[2]) : null;
+
+    if (!year) return null;
+
+    const aun = (row['District AUN'] || row['district_aun'])?.toString();
+    const rawSchoolNumber = level === 'school' ? (row['School Number'] || row['school_number'])?.toString() : undefined;
+    // Normalize school number to match database format (9 digits with leading zeros)
+    const schoolNumber = rawSchoolNumber ? rawSchoolNumber.padStart(9, '0') : undefined;
+    const subject = this.normalizePVAASSubject(row['Subject'] || row['subject']);
+    const grade = this.parsePVAASGrade(row['Grade'] || row['grade']);
+    const growthIndex = parseFloat(row['Growth Index'] || row['growth_index']);
+
+    if (!aun || !subject || grade === null || isNaN(growthIndex)) {
+      return null;
+    }
+
+    return {
+      aun,
+      schoolNumber,
+      year,
+      subject,
+      grade,
+      growthScore: growthIndex
+    };
+  }
+
+  private normalizePVAASSubject(subject: string): string {
+    const mapping: { [key: string]: string } = {
+      'English Language Arts': 'English Language Arts',
+      'ELA': 'English Language Arts',
+      'Math': 'Mathematics',
+      'Mathematics': 'Mathematics',
+      'Science': 'Science',
+      'Algebra I': 'Algebra I',
+      'Biology': 'Biology',
+      'Literature': 'Literature'
+    };
+    return mapping[subject] || subject;
+  }
+
+  private parsePVAASGrade(grade: any): string | number | null {
+    if (grade === 'Across Grades' || grade === 'All Grades') {
+      return 'Across Grades';
+    }
+    const num = parseInt(grade?.toString());
+    return isNaN(num) ? null : num;
   }
 
   private async loadCounties() {
@@ -918,6 +1052,24 @@ export class NewDataImporter {
     return null;
   }
 
+  private lookupGrowthScore(
+    row: ParsedRow,
+    level: string
+  ): number | undefined {
+    // Only look up growth scores for "All Students" demographic group
+    if (row.demographicGroup && row.demographicGroup !== 'All Students') {
+      return undefined;
+    }
+
+    // Build lookup key: "level|aun|schoolNumber|year|subject|grade"
+    const schoolPart = level === 'school' && row.schoolNumber
+      ? `|${row.schoolNumber}`
+      : '';
+    const key = `${level}|${row.aun}${schoolPart}|${row.year}|${row.subject}|${row.grade}`;
+
+    return this.pvaasMap.get(key);
+  }
+
   private async insertPSSAResult(
     row: ParsedRow,
     level: string,
@@ -928,6 +1080,9 @@ export class NewDataImporter {
   ) {
     const validSubjects = ['Mathematics', 'English Language Arts', 'Science'];
     if (!validSubjects.includes(row.subject || '')) return;
+
+    // Look up growth score from PVAAS data
+    const growthScore = this.lookupGrowthScore(row, level);
 
     this.db.insert(pssaResults)
       .values({
@@ -945,6 +1100,7 @@ export class NewDataImporter {
         basicPercent: row.basicPercent,
         belowBasicPercent: row.belowBasicPercent,
         proficientOrAbovePercent: row.proficientOrAbovePercent,
+        growthScore,
         sourceFile
       })
       .onConflictDoNothing()
@@ -962,6 +1118,9 @@ export class NewDataImporter {
     const validSubjects = ['Algebra I', 'Biology', 'Literature'];
     if (!validSubjects.includes(row.subject || '')) return;
 
+    // Look up growth score from PVAAS data
+    const growthScore = this.lookupGrowthScore(row, level);
+
     this.db.insert(keystoneResults)
       .values({
         level,
@@ -978,6 +1137,7 @@ export class NewDataImporter {
         basicPercent: row.basicPercent,
         belowBasicPercent: row.belowBasicPercent,
         proficientOrAbovePercent: row.proficientOrAbovePercent,
+        growthScore,
         sourceFile
       })
       .onConflictDoNothing()

@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
@@ -13,6 +14,7 @@ import importRoutes from './routes/import';
 import verifyRoutes from './routes/verify';
 import filesRoutes from './routes/files';
 import databaseRoutes from './routes/database';
+import uploadRoutes from './routes/upload';
 
 const buildApp = async () => {
   const fastify = Fastify({
@@ -34,6 +36,12 @@ const buildApp = async () => {
     timeWindow: config.RATE_LIMIT_WINDOW,
   });
 
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 100 * 1024 * 1024 // 100MB
+    }
+  });
+
   fastify.setErrorHandler(errorHandler as any); // Type compatibility with Fastify error handler
 
   await fastify.register(healthRoutes, { prefix: '/api/health' });
@@ -44,6 +52,7 @@ const buildApp = async () => {
   await fastify.register(verifyRoutes, { prefix: '/api/verify' });
   await fastify.register(filesRoutes, { prefix: '/api/files' });
   await fastify.register(databaseRoutes, { prefix: '/api/database' });
+  await fastify.register(uploadRoutes, { prefix: '/api/upload' });
 
   return fastify;
 };

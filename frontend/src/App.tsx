@@ -10,6 +10,7 @@ import TrendsPage from './pages/TrendsPage';
 import ImportProgressPage from './pages/ImportProgressPage';
 import VerifyPage from './pages/VerifyPage';
 import DatabasePage from './pages/DatabasePage';
+import UploadPage from './pages/UploadPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="import" element={<ImportProgressPage />} />
         <Route path="verify" element={<VerifyPage />} />
         <Route path="database" element={<DatabasePage />} />
+        <Route path="upload" element={<UploadPage />} />
       </Route>
     </Routes>
   );
