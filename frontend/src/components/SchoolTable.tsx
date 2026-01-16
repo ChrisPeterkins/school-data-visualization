@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { School } from '@shared/types';
+import type { School } from '@shared';
 
 interface SchoolTableProps {
   schools: School[];

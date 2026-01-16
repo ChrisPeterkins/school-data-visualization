@@ -49,9 +49,9 @@ export default function SchoolDetailPage() {
   const keystoneResults = school.keystoneResults || [];
 
   // Get unique years from both PSSA and Keystone data
-  const pssaYears = [...new Set(pssaResults.map((r: any) => r.year))].sort((a, b) => b - a);
-  const keystoneYears = [...new Set(keystoneResults.map((r: any) => r.year))].sort((a, b) => b - a);
-  const allYears = [...new Set([...pssaYears, ...keystoneYears])].sort((a, b) => b - a);
+  const pssaYears = [...new Set(pssaResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
+  const keystoneYears = [...new Set(keystoneResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
+  const allYears: number[] = [...new Set([...pssaYears, ...keystoneYears])].sort((a, b) => b - a);
 
   // Filter data by selected year
   const selectedPssa = pssaResults.filter((r: any) => r.year === selectedYear);

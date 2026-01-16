@@ -8,7 +8,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import type { SchoolPerformanceTrends } from '@shared/types';
+import type { SchoolPerformanceTrends } from '@shared';
 
 interface PerformanceChartProps {
   data: SchoolPerformanceTrends;
@@ -16,28 +16,28 @@ interface PerformanceChartProps {
 
 export default function PerformanceChart({ data }: PerformanceChartProps) {
   // Transform PSSA data for chart
-  const pssaByYear = data.pssaTrends.reduce((acc, item) => {
+  const pssaByYear = data.pssaTrends.reduce((acc: Record<string, { year: number; [key: string]: number }>, item) => {
     const key = `${item.year}`;
     if (!acc[key]) {
       acc[key] = { year: item.year };
     }
-    acc[key][`${item.subject}_${item.grade}`] = item.proficientOrAbove;
+    acc[key][`${item.subject}_${item.grade}`] = item.proficientOrAbove ?? 0;
     return acc;
   }, {} as Record<string, any>);
 
-  const pssaChartData = Object.values(pssaByYear).sort((a, b) => a.year - b.year);
+  const pssaChartData = Object.values(pssaByYear).sort((a, b) => (a.year as number) - (b.year as number));
 
   // Transform Keystone data for chart
-  const keystoneByYear = data.keystoneTrends.reduce((acc, item) => {
+  const keystoneByYear = data.keystoneTrends.reduce((acc: Record<string, { year: number; [key: string]: number }>, item) => {
     const key = `${item.year}`;
     if (!acc[key]) {
       acc[key] = { year: item.year };
     }
-    acc[key][item.subject] = item.proficientOrAbove;
+    acc[key][item.subject] = item.proficientOrAbove ?? 0;
     return acc;
   }, {} as Record<string, any>);
 
-  const keystoneChartData = Object.values(keystoneByYear).sort((a, b) => a.year - b.year);
+  const keystoneChartData = Object.values(keystoneByYear).sort((a, b) => (a.year as number) - (b.year as number));
 
   const colors = [
     '#3b82f6', // blue

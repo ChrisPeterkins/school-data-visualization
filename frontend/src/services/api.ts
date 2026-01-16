@@ -8,7 +8,7 @@ import type {
   SchoolSearchParams,
   DistrictSearchParams,
   SchoolPerformanceTrends
-} from '@shared/types';
+} from '@shared';
 
 const api = axios.create({
   baseURL: '/paschools',

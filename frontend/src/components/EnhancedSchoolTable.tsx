@@ -1,22 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUpIcon, ChevronDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
-
-interface School {
-  id: number;
-  schoolNumber: string;
-  name: string;
-  type: string;
-  districtId: number;
-  districtName: string;
-  districtAun: string;
-  countyId: number;
-  countyName: string;
-  countyCode: string;
-  address?: string;
-  city?: string;
-  zipCode?: string;
-}
+import type { School } from '@shared';
 
 interface EnhancedSchoolTableProps {
   schools: School[];
@@ -237,7 +222,7 @@ export default function EnhancedSchoolTable({
                     <div className="text-sm text-gray-900">{school.countyName}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSchoolTypeColor(school.type)}`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSchoolTypeColor(school.type || '')}`}>
                       {school.type || 'N/A'}
                     </span>
                   </td>

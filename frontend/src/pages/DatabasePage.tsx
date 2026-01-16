@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ReactGrid, Column, Row, Cell, CellChange } from '@silevis/reactgrid';
+import { ReactGrid, Column, Row, DefaultCellTypes } from '@silevis/reactgrid';
 import '@silevis/reactgrid/styles.css';
 
 interface TableInfo {
@@ -99,22 +99,22 @@ export default function DatabasePage() {
     }));
 
     // Create header row
-    const headerRow: Row = {
+    const headerRow: Row<DefaultCellTypes> = {
       rowId: 'header',
       cells: columnNames.map((name) => ({
-        type: 'header',
+        type: 'header' as const,
         text: name,
-      } as Cell)),
+      })),
     };
 
     // Create data rows
-    const dataRows: Row[] = dataSource.map((record: any, idx: number) => ({
+    const dataRows: Row<DefaultCellTypes>[] = dataSource.map((record: any, idx: number) => ({
       rowId: `row-${idx}`,
       cells: columnNames.map((colName) => ({
-        type: 'text',
+        type: 'text' as const,
         text: record[colName] !== null && record[colName] !== undefined ? String(record[colName]) : '',
         nonEditable: true,
-      } as Cell)),
+      })),
     }));
 
     return {
@@ -123,7 +123,7 @@ export default function DatabasePage() {
     };
   }, [tableData, queryResult, queryMode]);
 
-  const handleChanges = (changes: CellChange[]) => {
+  const handleChanges = () => {
     // Read-only grid
   };
 

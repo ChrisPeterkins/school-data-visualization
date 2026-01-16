@@ -10,13 +10,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
-import type { PSSAResult, KeystoneResult } from '@shared/types';
 
 export default function StatePage() {
   const [selectedYear, setSelectedYear] = useState(2023);

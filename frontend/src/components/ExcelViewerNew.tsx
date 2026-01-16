@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ReactGrid, Column, Row, Cell, CellChange } from '@silevis/reactgrid';
+import { ReactGrid, Column, Row, DefaultCellTypes } from '@silevis/reactgrid';
 import '@silevis/reactgrid/styles.css';
 
 interface ExcelFile {
@@ -74,30 +74,30 @@ export default function ExcelViewerNew() {
     const dataRows = excelData.data.slice(1);
 
     // Create columns from header
-    const cols: Column[] = headerRow.map((header, idx) => ({
+    const cols: Column[] = headerRow.map((_header, idx) => ({
       columnId: `col-${idx}`,
       width: 150,
       resizable: true,
     }));
 
     // Create header row
-    const headerGridRow: Row = {
+    const headerGridRow: Row<DefaultCellTypes> = {
       rowId: 'header',
       cells: headerRow.map((header, idx) => ({
-        type: 'header',
+        type: 'header' as const,
         text: header || `Column ${idx + 1}`,
-      } as Cell)),
+      })),
     };
 
     // Create data rows - calculate actual row numbers based on page
     const startRowNumber = (excelData.page - 1) * excelData.limit + 2; // +2 because header is row 1
-    const dataGridRows: Row[] = dataRows.map((row, rowIdx) => ({
+    const dataGridRows: Row<DefaultCellTypes>[] = dataRows.map((row, rowIdx) => ({
       rowId: `row-${startRowNumber + rowIdx}`,
-      cells: row.map((cell, colIdx) => ({
-        type: 'text',
+      cells: row.map((cell) => ({
+        type: 'text' as const,
         text: cell !== null && cell !== undefined ? String(cell) : '',
         nonEditable: true,
-      } as Cell)),
+      })),
     }));
 
     return {
@@ -106,7 +106,7 @@ export default function ExcelViewerNew() {
     };
   }, [excelData]);
 
-  const handleChanges = (changes: CellChange[]) => {
+  const handleChanges = () => {
     // Read-only grid, no changes allowed
   };
 

@@ -24,7 +24,6 @@ interface ImportStatus {
 
 export default function ImportProgressPage() {
   const [status, setStatus] = useState<ImportStatus>({ isRunning: false, progress: 0 });
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   // Get initial status
   const { data: initialStatus } = useQuery({
@@ -49,8 +48,6 @@ export default function ImportProgressPage() {
       console.error('SSE Error:', error);
       source.close();
     };
-
-    setEventSource(source);
 
     return () => {
       source.close();
