@@ -38,7 +38,7 @@ export default function DatabasePage() {
   const { data: tables } = useQuery({
     queryKey: ['database-tables'],
     queryFn: async () => {
-      const { data } = await axios.get<TableInfo[]>('/pa-school-data-visualization/api/database/tables');
+      const { data } = await axios.get<TableInfo[]>('/paschools/api/database/tables');
       return data;
     },
   });
@@ -48,7 +48,7 @@ export default function DatabasePage() {
     queryKey: ['database-schema', selectedTable],
     queryFn: async () => {
       const { data } = await axios.get<TableSchema[]>(
-        `/pa-school-data-visualization/api/database/schema/${selectedTable}`
+        `/paschools/api/database/schema/${selectedTable}`
       );
       return data;
     },
@@ -60,7 +60,7 @@ export default function DatabasePage() {
     queryKey: ['database-data', selectedTable, currentPage],
     queryFn: async () => {
       const { data } = await axios.get<TableData>(
-        `/pa-school-data-visualization/api/database/data/${selectedTable}?page=${currentPage}&limit=${pageSize}`
+        `/paschools/api/database/data/${selectedTable}?page=${currentPage}&limit=${pageSize}`
       );
       return data;
     },
@@ -72,7 +72,7 @@ export default function DatabasePage() {
   const { data: queryResult, isLoading: queryLoading, error: queryError, refetch: executeQuery } = useQuery({
     queryKey: ['database-query', customQuery],
     queryFn: async () => {
-      const { data } = await axios.post('/pa-school-data-visualization/api/database/query', {
+      const { data } = await axios.post('/paschools/api/database/query', {
         query: customQuery,
       });
       return data;

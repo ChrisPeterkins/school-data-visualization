@@ -34,7 +34,7 @@ export default function ExcelViewerNew() {
   const { data: fileList } = useQuery({
     queryKey: ['excel-files'],
     queryFn: async () => {
-      const { data } = await axios.get<ExcelFile[]>('/pa-school-data-visualization/api/files/list');
+      const { data } = await axios.get<ExcelFile[]>('/paschools/api/files/list');
       return data;
     },
   });
@@ -44,7 +44,7 @@ export default function ExcelViewerNew() {
     queryKey: ['excel-data', selectedFile, selectedSheet, currentPage],
     queryFn: async () => {
       if (!selectedFile) return null;
-      const endpoint = `/pa-school-data-visualization/api/files/data?file=${encodeURIComponent(selectedFile)}&page=${currentPage}&limit=${pageSize}`;
+      const endpoint = `/paschools/api/files/data?file=${encodeURIComponent(selectedFile)}&page=${currentPage}&limit=${pageSize}`;
       const { data } = await axios.get<ExcelData>(endpoint, {
         timeout: 30000,
       });

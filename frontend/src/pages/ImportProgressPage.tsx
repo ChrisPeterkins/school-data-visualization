@@ -30,7 +30,7 @@ export default function ImportProgressPage() {
   const { data: initialStatus } = useQuery({
     queryKey: ['import-status'],
     queryFn: async () => {
-      const { data } = await axios.get<ImportStatus>('/pa-school-data-visualization/api/import/status');
+      const { data } = await axios.get<ImportStatus>('/paschools/api/import/status');
       return data;
     },
     refetchInterval: status.isRunning ? 5000 : false,
@@ -38,7 +38,7 @@ export default function ImportProgressPage() {
 
   // Set up SSE connection for real-time updates
   useEffect(() => {
-    const source = new EventSource('/pa-school-data-visualization/api/import/status/stream');
+    const source = new EventSource('/paschools/api/import/status/stream');
     
     source.onmessage = (event) => {
       const data = JSON.parse(event.data) as ImportStatus;
@@ -65,7 +65,7 @@ export default function ImportProgressPage() {
 
   const handleStartImport = async () => {
     try {
-      await axios.post('/pa-school-data-visualization/api/import/start');
+      await axios.post('/paschools/api/import/start');
     } catch (error) {
       console.error('Failed to start import:', error);
     }
@@ -73,7 +73,7 @@ export default function ImportProgressPage() {
 
   const handleCancelImport = async () => {
     try {
-      await axios.post('/pa-school-data-visualization/api/import/cancel');
+      await axios.post('/paschools/api/import/cancel');
     } catch (error) {
       console.error('Failed to cancel import:', error);
     }

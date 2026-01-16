@@ -11,7 +11,7 @@ import type {
 } from '@shared/types';
 
 const api = axios.create({
-  baseURL: '/pa-school-data-visualization',
+  baseURL: '/paschools',
   timeout: 30000,
 });
 

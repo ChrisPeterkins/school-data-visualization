@@ -46,7 +46,7 @@ export default function VerifyPage() {
   const { data: initialStatus } = useQuery({
     queryKey: ['verification-status'],
     queryFn: async () => {
-      const { data } = await axios.get<VerificationStatus>('/pa-school-data-visualization/api/verify/status');
+      const { data } = await axios.get<VerificationStatus>('/paschools/api/verify/status');
       return data;
     },
     refetchInterval: status.isRunning ? 5000 : false,
@@ -54,7 +54,7 @@ export default function VerifyPage() {
 
   // Set up SSE connection for real-time updates
   useEffect(() => {
-    const source = new EventSource('/pa-school-data-visualization/api/verify/status/stream');
+    const source = new EventSource('/paschools/api/verify/status/stream');
 
     source.onmessage = (event) => {
       const data = JSON.parse(event.data) as VerificationStatus;
@@ -78,7 +78,7 @@ export default function VerifyPage() {
 
   const handleStartVerification = async () => {
     try {
-      await axios.post('/pa-school-data-visualization/api/verify/start');
+      await axios.post('/paschools/api/verify/start');
     } catch (error) {
       console.error('Failed to start verification:', error);
     }
@@ -86,7 +86,7 @@ export default function VerifyPage() {
 
   const handleCancelVerification = async () => {
     try {
-      await axios.post('/pa-school-data-visualization/api/verify/cancel');
+      await axios.post('/paschools/api/verify/cancel');
     } catch (error) {
       console.error('Failed to cancel verification:', error);
     }
@@ -94,7 +94,7 @@ export default function VerifyPage() {
 
   const handleDownloadReport = async () => {
     try {
-      const response = await axios.get('/pa-school-data-visualization/api/verify/report', {
+      const response = await axios.get('/paschools/api/verify/report', {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
