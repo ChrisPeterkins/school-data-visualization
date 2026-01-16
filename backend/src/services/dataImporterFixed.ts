@@ -148,6 +148,15 @@ export class DataImporterFixed {
         const basicPercent = config.basicColumn ? this.parsePercent(row[config.basicColumn]) : null;
         const belowBasicPercent = config.belowBasicColumn ? this.parsePercent(row[config.belowBasicColumn]) : null;
 
+        // Calculate proficient or above percent
+        let proficientOrAbovePercent = config.proficientOrAboveColumn ?
+          this.parsePercent(row[config.proficientOrAboveColumn]) : null;
+
+        // If not in source file, calculate from advanced + proficient
+        if (!proficientOrAbovePercent && advancedPercent !== null && proficientPercent !== null) {
+          proficientOrAbovePercent = Math.round((advancedPercent + proficientPercent) * 10) / 10;
+        }
+
         const record = {
           level,
           schoolId,
@@ -163,8 +172,7 @@ export class DataImporterFixed {
           proficientPercent,
           basicPercent,
           belowBasicPercent,
-          proficientOrAbovePercent: config.proficientOrAboveColumn ?
-                                   this.parsePercent(row[config.proficientOrAboveColumn]) : null,
+          proficientOrAbovePercent,
           // Calculate counts from percentages
           advancedCount: advancedPercent && numberScored ? Math.round(numberScored * advancedPercent / 100) : null,
           proficientCount: proficientPercent && numberScored ? Math.round(numberScored * proficientPercent / 100) : null,
@@ -259,6 +267,15 @@ export class DataImporterFixed {
         const basicPercent = config.basicColumn ? this.parsePercent(row[config.basicColumn]) : null;
         const belowBasicPercent = config.belowBasicColumn ? this.parsePercent(row[config.belowBasicColumn]) : null;
 
+        // Calculate proficient or above percent
+        let proficientOrAbovePercent = config.proficientOrAboveColumn ?
+          this.parsePercent(row[config.proficientOrAboveColumn]) : null;
+
+        // If not in source file, calculate from advanced + proficient
+        if (!proficientOrAbovePercent && advancedPercent !== null && proficientPercent !== null) {
+          proficientOrAbovePercent = Math.round((advancedPercent + proficientPercent) * 10) / 10;
+        }
+
         const record = {
           level,
           schoolId,
@@ -273,8 +290,7 @@ export class DataImporterFixed {
           proficientPercent,
           basicPercent,
           belowBasicPercent,
-          proficientOrAbovePercent: config.proficientOrAboveColumn ?
-                                   this.parsePercent(row[config.proficientOrAboveColumn]) : null,
+          proficientOrAbovePercent,
           // Calculate counts from percentages
           advancedCount: advancedPercent && numberScored ? Math.round(numberScored * advancedPercent / 100) : null,
           proficientCount: proficientPercent && numberScored ? Math.round(numberScored * proficientPercent / 100) : null,

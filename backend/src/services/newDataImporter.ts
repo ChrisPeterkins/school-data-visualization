@@ -95,7 +95,7 @@ export class NewDataImporter {
 
     // 2016-2023 PSSA School configs
     for (let year = 2016; year <= 2023; year++) {
-      if (year === 2020) continue; // No 2020 data
+      if (year === 2020 || year === 2021) continue; // No 2020 data, 2021 has different format
       const fileName = `${year} pssa school level data.xlsx`;
       this.fileConfigs.set(fileName, {
         headerRow: 4,
@@ -114,6 +114,24 @@ export class NewDataImporter {
         belowBasicColumn: '% Below Basic'
       });
     }
+
+    // 2021 PSSA School (COVID year - different header row)
+    this.fileConfigs.set('2021 pssa school level data.xlsx', {
+      headerRow: 6,
+      countyColumn: 'County',
+      districtColumn: 'District Name',
+      schoolColumn: 'School Name',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      gradeColumn: 'Grade',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: '% Advanced',
+      proficientColumn: '% Proficient',
+      basicColumn: '% Basic',
+      belowBasicColumn: '% Below Basic'
+    });
     
     // 2024 PSSA School config (different column names)
     this.fileConfigs.set('2024-pssa-school-data.xlsx', {
@@ -236,24 +254,56 @@ export class NewDataImporter {
       });
     }
 
-    // 2021-2023 standard format
-    for (let year = 2021; year <= 2023; year++) {
-      this.fileConfigs.set(`${year} keystone school level data.xlsx`, {
-        headerRow: 4,
-        countyColumn: 'County',
-        districtColumn: 'District Name',
-        schoolColumn: 'School Name',
-        aunColumn: 'AUN',
-        schoolNumberColumn: 'School Number',
-        subjectColumn: 'Subject',
-        groupColumn: 'Group',
-        numberScoredColumn: 'Number Scored',
-        advancedColumn: 'Percent Advanced',
-        proficientColumn: 'Percent Proficient',
-        basicColumn: 'Percent Basic',
-        belowBasicColumn: 'Percent Below Basic'
-      });
-    }
+    // 2021 Keystone School (COVID year - header row 5)
+    this.fileConfigs.set('2021 keystone school level data.xlsx', {
+      headerRow: 5,
+      countyColumn: 'County',
+      districtColumn: 'District Name',
+      schoolColumn: 'School Name',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: '% Advanced',
+      proficientColumn: '% Proficient',
+      basicColumn: '% Basic',
+      belowBasicColumn: '% Below Basic'
+    });
+
+    // 2022 Keystone standard format
+    this.fileConfigs.set('2022 keystone school level data.xlsx', {
+      headerRow: 4,
+      countyColumn: 'County',
+      districtColumn: 'District Name',
+      schoolColumn: 'School Name',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: 'Percent Advanced',
+      proficientColumn: 'Percent Proficient',
+      basicColumn: 'Percent Basic',
+      belowBasicColumn: 'Percent Below Basic'
+    });
+
+    // 2023 Keystone School (header row 3)
+    this.fileConfigs.set('2023 keystone school level data.xlsx', {
+      headerRow: 3,
+      countyColumn: 'County',
+      districtColumn: 'District Name',
+      schoolColumn: 'School Name',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: '% Advanced',
+      proficientColumn: '% Proficient',
+      basicColumn: '% Basic',
+      belowBasicColumn: '% Below Basic'
+    });
 
     // 2024 has different name format
     this.fileConfigs.set('2024-keystone-exams-school-grade-11-data.xlsx', {

@@ -15,6 +15,7 @@ dist/
 *.db
 *.db-journal
 *.sqlite
+*.db.backup-*
 
 # Logs
 logs/
