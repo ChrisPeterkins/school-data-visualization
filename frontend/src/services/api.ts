@@ -70,6 +70,47 @@ export const performanceApi = {
     const { data } = await api.post('/api/performance/compare', params);
     return data;
   },
+
+  getRankings: async (params: {
+    year: number;
+    examType: 'pssa' | 'keystone';
+    subject?: string;
+    grade?: number;
+    countyId?: number;
+    schoolType?: string;
+    demographicGroup?: string;
+    limit?: number;
+  }) => {
+    const { data } = await api.get('/api/performance/rankings', { params });
+    return data as {
+      filters: any;
+      top: Array<{
+        rank: number;
+        schoolId: number;
+        schoolName: string;
+        schoolType: string | null;
+        districtName: string;
+        countyName: string;
+        city: string | null;
+        avgProficiency: number;
+        totalTested: number;
+        subjectCount: number;
+      }>;
+      bottom: Array<{
+        rank: number;
+        schoolId: number;
+        schoolName: string;
+        schoolType: string | null;
+        districtName: string;
+        countyName: string;
+        city: string | null;
+        avgProficiency: number;
+        totalTested: number;
+        subjectCount: number;
+      }>;
+      stateAverage: number | null;
+    };
+  },
 };
 
 export default api;

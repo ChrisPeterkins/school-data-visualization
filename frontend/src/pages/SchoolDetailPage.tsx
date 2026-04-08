@@ -1,13 +1,20 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { schoolApi, performanceApi } from '../services/api';
 import PerformanceChart from '../components/PerformanceChart';
+import {
+  ChevronRightIcon,
+  MapPinIcon,
+  BuildingOffice2Icon,
+  AcademicCapIcon,
+} from '@heroicons/react/24/outline';
 
 export default function SchoolDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
-  
+
   const { data: school, isLoading: schoolLoading, error: schoolError } = useQuery({
     queryKey: ['school', id],
     queryFn: () => schoolApi.getSchool(id!),
@@ -22,11 +29,9 @@ export default function SchoolDetailPage() {
 
   if (schoolLoading || trendsLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-2 text-gray-600">Loading school details...</p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
+        <p className="mt-3 text-sm text-stone-500">Loading school details...</p>
       </div>
     );
   }
@@ -34,201 +39,177 @@ export default function SchoolDetailPage() {
   if (schoolError || !school) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">School not found.</p>
-          <Link to="/schools" className="mt-2 text-sm text-primary-600 hover:text-primary-800">
-            ← Back to schools list
+        <div className="card-philly border-brick-200 bg-brick-50 p-6">
+          <p className="text-brick-700 font-medium">School not found.</p>
+          <Link to="/schools" className="mt-2 inline-block text-sm text-navy-600 hover:text-navy-800">
+            &larr; Back to schools list
           </Link>
         </div>
       </div>
     );
   }
 
-  // Extract PSSA and Keystone data if available
   const pssaResults = school.pssaResults || [];
   const keystoneResults = school.keystoneResults || [];
-
-  // Get unique years from both PSSA and Keystone data
   const pssaYears = [...new Set(pssaResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
   const keystoneYears = [...new Set(keystoneResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
   const allYears: number[] = [...new Set([...pssaYears, ...keystoneYears])].sort((a, b) => b - a);
-
-  // Filter data by selected year
   const selectedPssa = pssaResults.filter((r: any) => r.year === selectedYear);
   const selectedKeystone = keystoneResults.filter((r: any) => r.year === selectedYear);
 
+  const getProficiencyColor = (value: number | null) => {
+    if (value == null) return 'text-stone-400';
+    if (value >= 70) return 'text-civic-700 font-semibold';
+    if (value >= 50) return 'text-gold-700 font-semibold';
+    return 'text-brick-600 font-semibold';
+  };
+
+  const ResultsTable = ({ results, showGrade }: { results: any[]; showGrade: boolean }) => (
+    <div className="card-philly overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead>
+            <tr className="bg-stone-50/80 border-b border-stone-200">
+              {showGrade && <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Grade</th>}
+              <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Subject</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">Tested</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Advanced</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Proficient</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Basic</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Below Basic</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Prof.+</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {results.map((result: any, idx: number) => (
+              <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
+                {showGrade && <td className="px-5 py-3 text-sm text-stone-700">{result.grade}</td>}
+                <td className="px-5 py-3 text-sm font-medium text-stone-900">{result.subject}</td>
+                <td className="px-5 py-3 text-sm text-stone-600 text-right">{result.numberScored || 'N/A'}</td>
+                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentAdvanced != null ? `${result.percentAdvanced.toFixed(1)}%` : 'N/A'}</td>
+                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentProficient != null ? `${result.percentProficient.toFixed(1)}%` : 'N/A'}</td>
+                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentBasic != null ? `${result.percentBasic.toFixed(1)}%` : 'N/A'}</td>
+                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentBelowBasic != null ? `${result.percentBelowBasic.toFixed(1)}%` : 'N/A'}</td>
+                <td className={`px-5 py-3 text-sm text-right ${getProficiencyColor(result.percentProficientOrAbove)}`}>
+                  {result.percentProficientOrAbove != null ? `${result.percentProficientOrAbove.toFixed(1)}%` : 'N/A'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Breadcrumb */}
-      <nav className="mb-6">
-        <ol className="flex items-center space-x-2 text-sm">
-          <li>
-            <Link to="/schools" className="text-gray-500 hover:text-gray-700">Schools</Link>
-          </li>
-          <li className="text-gray-500">/</li>
-          <li>
-            <span className="text-gray-500">{school.countyName}</span>
-          </li>
-          <li className="text-gray-500">/</li>
-          <li>
-            <span className="text-gray-500">{school.districtName}</span>
-          </li>
-          <li className="text-gray-500">/</li>
-          <li className="text-gray-900 font-medium">{school.name}</li>
-        </ol>
-      </nav>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm text-stone-400 mb-6">
+          <Link to="/schools" className="hover:text-navy-600 transition-colors">Schools</Link>
+          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <span>{school.countyName}</span>
+          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <span>{school.districtName}</span>
+          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <span className="text-stone-700 font-medium">{school.name}</span>
+        </nav>
 
-      {/* School Info Card */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-gray-900">{school.name}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">School #{school.schoolNumber}</p>
-        </div>
-        <div className="border-t border-gray-200">
-          <dl>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">County</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{school.countyName}</dd>
+        {/* School Header Card */}
+        <div className="card-philly p-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="p-3 rounded-xl bg-navy-100 self-start">
+              <AcademicCapIcon className="w-7 h-7 text-navy-600" />
             </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">District</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {school.districtName}
-                <span className="ml-2 text-xs text-gray-500">(AUN: {school.districtAun})</span>
-              </dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">School Type</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{school.type || 'N/A'}</dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Location</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {school.address && (
-                  <>
-                    {school.address}<br />
-                    {school.city}, PA {school.zipCode}
-                  </>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-stone-900">{school.name}</h1>
+              <p className="text-sm text-stone-400 mt-0.5">School #{school.schoolNumber}</p>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <BuildingOffice2Icon className="w-4 h-4 text-stone-400" />
+                  <span className="text-stone-600">
+                    {school.districtName}
+                    <span className="text-stone-400 ml-1 text-xs">(AUN: {school.districtAun})</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPinIcon className="w-4 h-4 text-stone-400" />
+                  <span className="text-stone-600">
+                    {school.address ? `${school.address}, ${school.city}, PA ${school.zipCode}` : `${school.city || 'N/A'}, PA ${school.zipCode || ''}`}
+                  </span>
+                </div>
+                {school.type && (
+                  <div>
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-navy-100 text-navy-700">
+                      {school.type}
+                    </span>
+                    <span className="text-sm text-stone-500 ml-2">{school.countyName} County</span>
+                  </div>
                 )}
-                {!school.address && `${school.city || 'N/A'}, PA ${school.zipCode || ''}`}
-              </dd>
+              </div>
             </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Year Selector */}
-      {allYears.length > 0 && (
-        <div className="mt-6 bg-white shadow sm:rounded-lg p-4">
-          <label htmlFor="year-select" className="block text-sm font-medium text-gray-700 mb-2">
-            Select Year
-          </label>
-          <select
-            id="year-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-          >
-            {allYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* PSSA Results */}
-      {selectedPssa.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            PSSA Results ({selectedYear})
-          </h2>
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students Tested</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Advanced</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Proficient</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Basic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Below Basic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Proficient+</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {selectedPssa.map((result: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.grade}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.subject}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.numberScored || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentAdvanced != null ? `${result.percentAdvanced.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentProficient != null ? `${result.percentProficient.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentBasic != null ? `${result.percentBasic.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentBelowBasic != null ? `${result.percentBelowBasic.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <span className={`${result.percentProficientOrAbove >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                        {result.percentProficientOrAbove != null ? `${result.percentProficientOrAbove.toFixed(1)}%` : 'N/A'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
-      )}
 
-      {/* Keystone Results */}
-      {selectedKeystone.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Keystone Exam Results ({selectedYear})
-          </h2>
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students Tested</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Advanced</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Proficient</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Basic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Below Basic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Proficient+</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {selectedKeystone.map((result: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.subject}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.numberScored || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentAdvanced != null ? `${result.percentAdvanced.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentProficient != null ? `${result.percentProficient.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentBasic != null ? `${result.percentBasic.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.percentBelowBasic != null ? `${result.percentBelowBasic.toFixed(1)}%` : 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <span className={`${result.percentProficientOrAbove >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                        {result.percentProficientOrAbove != null ? `${result.percentProficientOrAbove.toFixed(1)}%` : 'N/A'}
-                      </span>
-                    </td>
-                  </tr>
+        {/* Year Selector */}
+        {allYears.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-stone-600">Assessment Year</label>
+              <div className="flex flex-wrap gap-1.5">
+                {allYears.map((year) => (
+                  <button
+                    key={year}
+                    onClick={() => setSelectedYear(year)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      selectedYear === year
+                        ? 'bg-navy-700 text-white'
+                        : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    {year}
+                  </button>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Performance Trends Chart (if available) */}
-      {trends && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Historical Performance Trends</h2>
-          <PerformanceChart data={trends} />
-        </div>
-      )}
+        {/* PSSA Results */}
+        {selectedPssa.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
+              PSSA Results
+              <span className="text-sm font-normal text-stone-400">({selectedYear})</span>
+            </h2>
+            <ResultsTable results={selectedPssa} showGrade={true} />
+          </div>
+        )}
+
+        {/* Keystone Results */}
+        {selectedKeystone.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
+              Keystone Exam Results
+              <span className="text-sm font-normal text-stone-400">({selectedYear})</span>
+            </h2>
+            <ResultsTable results={selectedKeystone} showGrade={false} />
+          </div>
+        )}
+
+        {/* Trends */}
+        {trends && (
+          <div>
+            <h2 className="text-lg font-bold text-stone-900 mb-3">Historical Performance Trends</h2>
+            <PerformanceChart data={trends} />
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

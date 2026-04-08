@@ -4,6 +4,44 @@
 
 @layer base {
   body {
-    @apply antialiased;
+    @apply antialiased bg-stone-50 text-stone-900;
   }
+
+  /* Tremor overrides for Philly theme */
+  :root {
+    --tremor-brand: #2d4a6f;
+    --tremor-brand-emphasis: #1b2a4a;
+    --tremor-brand-inverted: #ffffff;
+    --tremor-brand-faint: #eef3f8;
+    --tremor-brand-muted: #d4e1ec;
+    --tremor-brand-subtle: #a8c3d8;
+  }
+}
+
+@layer components {
+  .card-philly {
+    @apply bg-white rounded-xl border border-stone-200/60 shadow-sm;
+  }
+
+  .badge-gold {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gold-100 text-gold-800;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-stone-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-stone-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-stone-400;
 }

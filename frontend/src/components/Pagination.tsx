@@ -1,3 +1,5 @@
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -7,77 +9,77 @@ interface PaginationProps {
 export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   const pages = [];
   const maxVisible = 5;
-  
+
   let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
   let end = Math.min(totalPages, start + maxVisible - 1);
-  
+
   if (end - start < maxVisible - 1) {
     start = Math.max(1, end - maxVisible + 1);
   }
-  
+
   for (let i = start; i <= end; i++) {
     pages.push(i);
   }
 
   return (
-    <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
-      <div className="-mt-px flex w-0 flex-1">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Previous
-        </button>
-      </div>
-      <div className="hidden md:-mt-px md:flex">
+    <nav className="flex items-center justify-between py-4">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+      >
+        <ChevronLeftIcon className="w-4 h-4" />
+        Previous
+      </button>
+
+      <div className="flex items-center gap-1">
         {start > 1 && (
           <>
             <button
               onClick={() => onPageChange(1)}
-              className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              className="w-9 h-9 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"
             >
               1
             </button>
-            {start > 2 && <span className="inline-flex items-center px-4 pt-4">...</span>}
+            {start > 2 && <span className="px-1 text-stone-400">...</span>}
           </>
         )}
-        
+
         {pages.map((page) => (
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`inline-flex items-center border-t-2 px-4 pt-4 text-sm font-medium ${
+            className={`w-9 h-9 text-sm font-medium rounded-lg transition-colors ${
               page === currentPage
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'bg-navy-700 text-white'
+                : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
             {page}
           </button>
         ))}
-        
+
         {end < totalPages && (
           <>
-            {end < totalPages - 1 && <span className="inline-flex items-center px-4 pt-4">...</span>}
+            {end < totalPages - 1 && <span className="px-1 text-stone-400">...</span>}
             <button
               onClick={() => onPageChange(totalPages)}
-              className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              className="w-9 h-9 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"
             >
               {totalPages}
             </button>
           </>
         )}
       </div>
-      <div className="-mt-px flex w-0 flex-1 justify-end">
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="inline-flex items-center border-t-2 border-transparent pt-4 pl-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
-      </div>
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+      >
+        Next
+        <ChevronRightIcon className="w-4 h-4" />
+      </button>
     </nav>
   );
 }

@@ -1,119 +1,167 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  BuildingLibraryIcon,
+  AcademicCapIcon,
+  BuildingOffice2Icon,
+  GlobeAmericasIcon,
+  ArrowsRightLeftIcon,
+  ChartBarIcon,
+  TrophyIcon,
+  Bars3Icon,
+  XMarkIcon,
+  CloudArrowUpIcon,
+  CheckBadgeIcon,
+  CircleStackIcon,
+} from '@heroicons/react/24/outline';
+
+const mainNav = [
+  { path: '/schools', label: 'Schools', icon: AcademicCapIcon },
+  { path: '/districts', label: 'Districts', icon: BuildingOffice2Icon },
+  { path: '/state', label: 'State', icon: GlobeAmericasIcon },
+  { path: '/compare', label: 'Compare', icon: ArrowsRightLeftIcon },
+  { path: '/trends', label: 'Trends', icon: ChartBarIcon },
+  { path: '/rankings', label: 'Rankings', icon: TrophyIcon },
+];
+
+const adminNav = [
+  { path: '/import', label: 'Import', icon: CloudArrowUpIcon },
+  { path: '/verify', label: 'Verify', icon: CheckBadgeIcon },
+  { path: '/database', label: 'Database', icon: CircleStackIcon },
+];
 
 export default function Layout() {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-stone-50">
+      {/* Navbar */}
+      <nav className="bg-navy-900 border-b border-navy-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <Link to="/" className="flex items-center px-2 py-2 text-gray-900">
-                <span className="font-bold text-xl">PA School Data</span>
-              </Link>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  to="/schools"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/schools')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Schools
-                </Link>
-                <Link
-                  to="/districts"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/districts')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Districts
-                </Link>
-                <Link
-                  to="/state"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/state')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  State
-                </Link>
-                <Link
-                  to="/compare"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/compare')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Compare
-                </Link>
-                <Link
-                  to="/trends"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/trends')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Trends
-                </Link>
-                <Link
-                  to="/import"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/import')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                  </svg>
-                  Import
-                </Link>
-                <Link
-                  to="/verify"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/verify')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Verify
-                </Link>
-                <Link
-                  to="/database"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isActive('/database')
-                      ? 'border-primary-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
-                  </svg>
-                  Database
-                </Link>
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gold-500/90 group-hover:bg-gold-400 transition-colors">
+                <BuildingLibraryIcon className="w-5 h-5 text-navy-900" />
               </div>
+              <div className="hidden sm:block">
+                <span className="font-bold text-lg text-white tracking-tight">PA School Data</span>
+                <span className="hidden lg:inline text-gold-400/80 text-xs ml-2 font-medium">Philadelphia</span>
+              </div>
+            </Link>
+
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-1">
+              {mainNav.map(({ path, label, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive(path)
+                      ? 'bg-navy-700/80 text-gold-400'
+                      : 'text-navy-200 hover:bg-navy-800 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </Link>
+              ))}
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-navy-700 mx-1" />
+
+              {adminNav.map(({ path, label, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    isActive(path)
+                      ? 'bg-navy-700/80 text-gold-400'
+                      : 'text-navy-400 hover:bg-navy-800 hover:text-navy-200'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </Link>
+              ))}
             </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 rounded-lg text-navy-300 hover:text-white hover:bg-navy-800 transition-colors"
+            >
+              {mobileOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Nav */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden overflow-hidden border-t border-navy-700/50"
+            >
+              <div className="px-4 py-3 space-y-1">
+                {[...mainNav, ...adminNav].map(({ path, label, icon: Icon }) => (
+                  <Link
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive(path)
+                        ? 'bg-navy-700 text-gold-400'
+                        : 'text-navy-300 hover:bg-navy-800 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
+
+      {/* Page Content */}
       <main>
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-navy-900 border-t border-navy-800 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <BuildingLibraryIcon className="w-5 h-5 text-gold-500" />
+              <span className="text-sm text-navy-300">PA School Data Explorer</span>
+            </div>
+            <p className="text-xs text-navy-500">
+              Data sourced from Pennsylvania Department of Education. PSSA &amp; Keystone results 2015-2024.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

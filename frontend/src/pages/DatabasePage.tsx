@@ -143,8 +143,8 @@ export default function DatabasePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Database Viewer</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold tracking-tight text-stone-900">Database Viewer</h1>
+        <p className="mt-2 text-sm text-stone-500">
           Browse raw database tables and execute read-only SQL queries
         </p>
       </div>
@@ -152,8 +152,8 @@ export default function DatabasePage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white shadow-lg rounded-lg p-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Tables</h2>
+          <div className="card-philly p-4">
+            <h2 className="text-lg font-bold text-stone-900 mb-4">Tables</h2>
             <div className="space-y-2">
               {tables?.map((table) => (
                 <button
@@ -161,12 +161,12 @@ export default function DatabasePage() {
                   onClick={() => handleTableSelect(table.name)}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                     selectedTable === table.name && queryMode === 'table'
-                      ? 'bg-blue-100 text-blue-900 font-semibold'
-                      : 'hover:bg-gray-100 text-gray-700'
+                      ? 'bg-navy-100 text-navy-900 font-semibold'
+                      : 'hover:bg-stone-100 text-stone-600'
                   }`}
                 >
                   <div>{table.label}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-stone-400">
                     {table.recordCount.toLocaleString()} records
                   </div>
                 </button>
@@ -174,22 +174,22 @@ export default function DatabasePage() {
             </div>
 
             {/* Custom Query Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Custom Query</h3>
+            <div className="mt-6 pt-6 border-t border-stone-200">
+              <h3 className="text-sm font-bold text-stone-900 mb-2">Custom Query</h3>
               <textarea
                 value={customQuery}
                 onChange={(e) => setCustomQuery(e.target.value)}
                 placeholder="SELECT * FROM pssa_results LIMIT 10"
-                className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs font-mono h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-stone-200 rounded-md px-2 py-1 text-xs font-mono h-24 focus:outline-none focus:ring-2 focus:ring-navy-500"
               />
               <button
                 onClick={handleExecuteQuery}
                 disabled={!customQuery.trim()}
-                className="mt-2 w-full px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-2 w-full px-3 py-2 bg-civic-700 text-white text-sm rounded-lg hover:bg-civic-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Execute Query
               </button>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-stone-400">
                 Only SELECT queries allowed
               </p>
             </div>
@@ -198,22 +198,22 @@ export default function DatabasePage() {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="card-philly overflow-hidden">
             {/* Table Info Header */}
             {queryMode === 'table' && tableData && (
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <div className="p-4 border-b border-stone-200 bg-stone-50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-xl font-bold text-stone-900">
                       {tables?.find((t) => t.name === selectedTable)?.label}
                     </h2>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-stone-500">
                       {tableData.totalRecords.toLocaleString()} total records
                     </p>
                   </div>
                   {tableData.totalPages > 1 && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-stone-500">
                         Page {tableData.page} of {tableData.totalPages}
                       </span>
                       <div className="flex gap-1">
@@ -253,7 +253,7 @@ export default function DatabasePage() {
                 {/* Schema Info */}
                 {schema && schema.length > 0 && (
                   <details className="mt-3">
-                    <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                    <summary className="text-sm text-navy-600 cursor-pointer hover:text-navy-800">
                       View Table Schema ({schema.length} columns)
                     </summary>
                     <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
@@ -262,10 +262,10 @@ export default function DatabasePage() {
                           <div className="font-semibold flex items-center gap-1">
                             {col.name}
                             {col.primaryKey && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">PK</span>
+                              <span className="text-xs bg-navy-100 text-navy-800 px-1 rounded">PK</span>
                             )}
                           </div>
-                          <div className="text-gray-600">
+                          <div className="text-stone-500">
                             {col.type} {col.notNull && '(NOT NULL)'}
                           </div>
                         </div>
@@ -278,9 +278,9 @@ export default function DatabasePage() {
 
             {/* Query Result Header */}
             {queryMode === 'custom' && queryResult && (
-              <div className="p-4 border-b border-gray-200 bg-green-50">
-                <h2 className="text-lg font-bold text-gray-900">Query Results</h2>
-                <p className="text-sm text-gray-600">
+              <div className="p-4 border-b border-stone-200 bg-civic-50">
+                <h2 className="text-lg font-bold text-stone-900">Query Results</h2>
+                <p className="text-sm text-stone-500">
                   {queryResult.rowCount.toLocaleString()} rows returned
                 </p>
                 <div className="mt-2 p-2 bg-white rounded border text-xs font-mono overflow-x-auto">
@@ -292,9 +292,9 @@ export default function DatabasePage() {
             {/* Error Display */}
             {(error || queryError) && (
               <div className="p-6">
-                <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                  <p className="text-red-800 font-semibold">Error</p>
-                  <p className="text-sm text-red-700">
+                <div className="bg-brick-50 border border-brick-200 rounded-md p-4">
+                  <p className="text-brick-700 font-semibold">Error</p>
+                  <p className="text-sm text-brick-600">
                     {error instanceof Error ? error.message : queryError instanceof Error ? queryError.message : 'An error occurred'}
                   </p>
                 </div>
@@ -304,8 +304,8 @@ export default function DatabasePage() {
             {/* Loading State */}
             {(isLoading || queryLoading) && (
               <div className="p-6 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-gray-600">Loading data...</p>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-navy-600"></div>
+                <p className="mt-2 text-stone-500">Loading data...</p>
               </div>
             )}
 
@@ -325,9 +325,9 @@ export default function DatabasePage() {
 
             {/* Empty State */}
             {!selectedTable && queryMode === 'table' && !queryResult && (
-              <div className="p-12 text-center text-gray-500">
+              <div className="p-12 text-center text-stone-400">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-stone-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

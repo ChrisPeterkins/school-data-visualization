@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronUpIcon, ChevronDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon, FunnelIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import type { School } from '@shared';
 
 interface EnhancedSchoolTableProps {
@@ -9,15 +9,14 @@ interface EnhancedSchoolTableProps {
   currentSort?: { field: string; order: 'asc' | 'desc' };
 }
 
-export default function EnhancedSchoolTable({ 
-  schools, 
+export default function EnhancedSchoolTable({
+  schools,
   onSort,
   currentSort = { field: 'name', order: 'asc' }
 }: EnhancedSchoolTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
 
-  // Filter schools based on column filters
   const filteredSchools = useMemo(() => {
     return schools.filter(school => {
       return Object.entries(columnFilters).every(([key, value]) => {
@@ -36,237 +35,147 @@ export default function EnhancedSchoolTable({
   };
 
   const handleFilterChange = (column: string, value: string) => {
-    setColumnFilters(prev => ({
-      ...prev,
-      [column]: value
-    }));
-  };
-
-  const clearFilters = () => {
-    setColumnFilters({});
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
   };
 
   const SortIcon = ({ field }: { field: string }) => {
     if (currentSort.field !== field) {
-      return <span className="text-gray-400">↕</span>;
+      return <span className="text-stone-300 ml-1">&#8597;</span>;
     }
-    return currentSort.order === 'asc' ? 
-      <ChevronUpIcon className="h-4 w-4 inline" /> : 
-      <ChevronDownIcon className="h-4 w-4 inline" />;
+    return currentSort.order === 'asc' ?
+      <ChevronUpIcon className="h-3.5 w-3.5 ml-1 text-gold-600" /> :
+      <ChevronDownIcon className="h-3.5 w-3.5 ml-1 text-gold-600" />;
   };
 
-  const getSchoolTypeColor = (type: string) => {
+  const getSchoolTypeBadge = (type: string) => {
     switch (type?.toLowerCase()) {
-      case 'elementary':
-        return 'bg-blue-100 text-blue-800';
-      case 'middle':
-        return 'bg-purple-100 text-purple-800';
-      case 'high':
-        return 'bg-green-100 text-green-800';
-      case 'charter':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'elementary': return 'bg-navy-100 text-navy-700';
+      case 'middle': return 'bg-civic-100 text-civic-800';
+      case 'high': return 'bg-gold-100 text-gold-800';
+      case 'charter': return 'bg-brick-100 text-brick-700';
+      default: return 'bg-stone-100 text-stone-600';
     }
   };
 
   return (
     <div className="space-y-4">
-      {/* Filter Controls */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              showFilters
+                ? 'bg-navy-50 border-navy-200 text-navy-700'
+                : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+            }`}
           >
-            <FunnelIcon className="h-4 w-4 mr-2" />
-            {showFilters ? 'Hide' : 'Show'} Column Filters
+            <FunnelIcon className="h-4 w-4" />
+            Column Filters
           </button>
           {Object.values(columnFilters).some(v => v) && (
             <button
-              onClick={clearFilters}
-              className="text-sm text-primary-600 hover:text-primary-800"
+              onClick={() => setColumnFilters({})}
+              className="text-sm text-brick-600 hover:text-brick-700 font-medium"
             >
-              Clear all filters
+              Clear filters
             </button>
           )}
         </div>
-        <div className="text-sm text-gray-500">
-          Showing {filteredSchools.length} of {schools.length} schools
+        <span className="text-sm text-stone-500">
+          {filteredSchools.length} of {schools.length} schools
+        </span>
+      </div>
+
+      <div className="card-philly overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="bg-stone-50/80 border-b border-stone-200">
+                {[
+                  { field: 'name', label: 'School Name' },
+                  { field: 'districtName', label: 'District' },
+                  { field: 'countyName', label: 'County' },
+                  { field: 'type', label: 'Type' },
+                ].map(col => (
+                  <th key={col.field} className="px-5 py-3 text-left">
+                    <button
+                      onClick={() => handleSort(col.field)}
+                      className="inline-flex items-center text-xs font-semibold text-stone-500 uppercase tracking-wider hover:text-stone-700"
+                    >
+                      {col.label}
+                      <SortIcon field={col.field} />
+                    </button>
+                  </th>
+                ))}
+                <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">City</th>
+                <th className="px-5 py-3"><span className="sr-only">Actions</span></th>
+              </tr>
+
+              {showFilters && (
+                <tr className="border-b border-stone-200 bg-stone-50/50">
+                  {['name', 'districtName', 'countyName', 'type', 'city'].map(field => (
+                    <th key={field} className="px-5 py-2">
+                      <input
+                        type="text"
+                        value={columnFilters[field] || ''}
+                        onChange={(e) => handleFilterChange(field, e.target.value)}
+                        placeholder="Filter..."
+                        className="w-full px-2.5 py-1.5 text-sm border border-stone-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-navy-500/30"
+                      />
+                    </th>
+                  ))}
+                  <th className="px-5 py-2" />
+                </tr>
+              )}
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {filteredSchools.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-stone-400">
+                    No schools found matching your filters
+                  </td>
+                </tr>
+              ) : (
+                filteredSchools.map((school) => (
+                  <tr key={school.id} className="hover:bg-stone-50/70 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="text-sm font-medium text-stone-900">{school.name}</div>
+                      <div className="text-xs text-stone-400">#{school.schoolNumber}</div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="text-sm text-stone-700">{school.districtName}</div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="text-sm text-stone-700">{school.countyName}</div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getSchoolTypeBadge(school.type || '')}`}>
+                        {school.type || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-stone-500">{school.city || 'N/A'}</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <Link
+                        to={`/schools/${school.id}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-800 transition-colors"
+                      >
+                        View
+                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-300">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left">
-                <button
-                  onClick={() => handleSort('name')}
-                  className="group inline-flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                >
-                  School Name
-                  <SortIcon field="name" />
-                </button>
-              </th>
-              <th className="px-6 py-3 text-left">
-                <button
-                  onClick={() => handleSort('districtName')}
-                  className="group inline-flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                >
-                  District
-                  <SortIcon field="districtName" />
-                </button>
-              </th>
-              <th className="px-6 py-3 text-left">
-                <button
-                  onClick={() => handleSort('countyName')}
-                  className="group inline-flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                >
-                  County
-                  <SortIcon field="countyName" />
-                </button>
-              </th>
-              <th className="px-6 py-3 text-left">
-                <button
-                  onClick={() => handleSort('type')}
-                  className="group inline-flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                >
-                  Type
-                  <SortIcon field="type" />
-                </button>
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                City
-              </th>
-              <th className="relative px-6 py-3">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-            {/* Filter Row */}
-            {showFilters && (
-              <tr className="bg-gray-100">
-                <th className="px-6 py-2">
-                  <input
-                    type="text"
-                    value={columnFilters.name || ''}
-                    onChange={(e) => handleFilterChange('name', e.target.value)}
-                    placeholder="Filter..."
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  />
-                </th>
-                <th className="px-6 py-2">
-                  <input
-                    type="text"
-                    value={columnFilters.districtName || ''}
-                    onChange={(e) => handleFilterChange('districtName', e.target.value)}
-                    placeholder="Filter..."
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  />
-                </th>
-                <th className="px-6 py-2">
-                  <input
-                    type="text"
-                    value={columnFilters.countyName || ''}
-                    onChange={(e) => handleFilterChange('countyName', e.target.value)}
-                    placeholder="Filter..."
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  />
-                </th>
-                <th className="px-6 py-2">
-                  <input
-                    type="text"
-                    value={columnFilters.type || ''}
-                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                    placeholder="Filter..."
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  />
-                </th>
-                <th className="px-6 py-2">
-                  <input
-                    type="text"
-                    value={columnFilters.city || ''}
-                    onChange={(e) => handleFilterChange('city', e.target.value)}
-                    placeholder="Filter..."
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  />
-                </th>
-                <th className="px-6 py-2"></th>
-              </tr>
-            )}
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredSchools.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  No schools found matching your filters
-                </td>
-              </tr>
-            ) : (
-              filteredSchools.map((school) => (
-                <tr key={school.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{school.name}</div>
-                      <div className="text-xs text-gray-500">#{school.schoolNumber}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm text-gray-900">{school.districtName}</div>
-                      <div className="text-xs text-gray-500">AUN: {school.districtAun}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{school.countyName}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSchoolTypeColor(school.type || '')}`}>
-                      {school.type || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {school.city || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      to={`/schools/${school.id}`}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      View Details
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Summary Stats */}
       {filteredSchools.length > 0 && (
-        <div className="bg-gray-50 px-6 py-3 rounded-lg">
-          <div className="text-sm text-gray-600">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <span className="font-medium">Counties:</span>{' '}
-                {new Set(filteredSchools.map(s => s.countyName)).size}
-              </div>
-              <div>
-                <span className="font-medium">Districts:</span>{' '}
-                {new Set(filteredSchools.map(s => s.districtId)).size}
-              </div>
-              <div>
-                <span className="font-medium">Schools:</span>{' '}
-                {filteredSchools.length}
-              </div>
-              <div>
-                <span className="font-medium">Types:</span>{' '}
-                {new Set(filteredSchools.map(s => s.type).filter(Boolean)).size}
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center gap-6 px-1 text-sm text-stone-500">
+          <span><strong className="text-stone-700">{new Set(filteredSchools.map(s => s.countyName)).size}</strong> counties</span>
+          <span><strong className="text-stone-700">{new Set(filteredSchools.map(s => s.districtId)).size}</strong> districts</span>
+          <span><strong className="text-stone-700">{filteredSchools.length}</strong> schools</span>
         </div>
       )}
     </div>
