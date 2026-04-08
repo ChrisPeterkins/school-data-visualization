@@ -35,7 +35,7 @@ function examineFile() {
     
     for (let startRow = 0; startRow < 5; startRow++) {
       const data = XLSX.utils.sheet_to_json(worksheet, { range: startRow, header: 1 });
-      if (data.length > 0 && data[0].length > 5) {
+      if (data.length > 0 && (data[0] as any[]).length > 5) {
         console.log(`\n✅ Starting from row ${startRow} - Found ${data.length} data rows`);
         console.log('Headers:', data[0]);
         if (data[1]) {
@@ -50,7 +50,7 @@ function examineFile() {
     const defaultData = XLSX.utils.sheet_to_json(worksheet);
     if (defaultData.length > 0) {
       console.log(`Found ${defaultData.length} rows`);
-      console.log('First row keys:', Object.keys(defaultData[0]));
+      console.log('First row keys:', Object.keys(defaultData[0] as object));
       console.log('First row sample:', defaultData[0]);
     }
     

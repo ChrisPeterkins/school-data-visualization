@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 async function runImportWithProgress() {
-  const importer = new NewDataImporter();
+  void new NewDataImporter();
   const sourcesDir = path.join(__dirname, '../../../sources');
   
   // Count total files

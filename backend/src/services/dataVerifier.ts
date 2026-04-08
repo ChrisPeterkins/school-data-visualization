@@ -1,9 +1,9 @@
 import * as XLSX from 'xlsx';
 import { db } from '../db';
-import { pssaResults, keystoneResults, schools, districts } from '../db/newSchema';
+import { pssaResults, keystoneResults } from '../db/newSchema';
 import { logger } from '../utils/logger';
 import { getFileConfig } from './fileConfigs';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs/promises';
 

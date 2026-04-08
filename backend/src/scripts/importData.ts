@@ -1,6 +1,5 @@
-import { DataImporterFixed as DataImporter } from '../services/dataImporterFixed';
 import { logger } from '../utils/logger';
-import { db, pool } from '../db';
+import { pool } from '../db';
 
 async function main() {
   logger.info('Starting data import process...');

@@ -7,7 +7,7 @@ const filesRoutes: FastifyPluginAsync = async (fastify) => {
   const sourcePath = path.join(process.cwd(), '..', 'sources');
 
   // Get list of all Excel files
-  fastify.get('/list', async (request, reply) => {
+  fastify.get('/list', async (_request, _reply) => {
     const directories = [
       'pssa/school',
       'pssa/district',

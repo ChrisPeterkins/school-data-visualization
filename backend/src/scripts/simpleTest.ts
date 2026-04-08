@@ -7,7 +7,7 @@ async function main() {
   const { PVAASImporter } = await import('../services/pvaasImporter');
 
   logger.info('Step 3: Creating importer instance');
-  const importer = new PVAASImporter();
+  void new PVAASImporter();
 
   logger.info('Step 4: Done!');
 }

@@ -203,7 +203,7 @@ function normalizeSubject(raw: any): string | null {
   return s;
 }
 
-function parseGrade(raw: any): number | null {
+export function parseGrade(raw: any): number | null {
   if (raw === null || raw === undefined || raw === '') return null;
   const s = String(raw).trim();
   if (s.toLowerCase() === 'total' || s.toLowerCase() === 'all') return null;
@@ -285,12 +285,11 @@ async function processFile(fix: FixConfig) {
 
   const subjectIdx = colMap.get('Subject');
   const groupIdx = colMap.get('Group') ?? colMap.get('Student_Group_Name');
-  const numberScoredIdx = colMap.get('Number Scored') ?? colMap.get('N Scored');
+  void (colMap.get('Number Scored') ?? colMap.get('N Scored'));
 
   let dbIdx = 0;
   let updated = 0;
   let skipped = 0;
-  let mismatches = 0;
 
   const batchUpdate = sqlite.transaction((updates: { id: number; schoolId: number | null; districtId: number | null; countyId: number | null }[]) => {
     for (const u of updates) {

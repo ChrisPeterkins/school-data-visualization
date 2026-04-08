@@ -5,7 +5,6 @@ import { logger } from '../utils/logger';
 import { getFileConfig, FileConfig } from './fileConfigs';
 import { eq, and, sql } from 'drizzle-orm';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 
 interface ImportResult {
   success: boolean;
@@ -20,8 +19,6 @@ const districtCache = new Map<string, number>(); // aun -> districts.id
 const countyCache = new Map<string, number>(); // county_code -> counties.id
 
 export class DataImporterFixed {
-  private sourcePath = path.join(process.cwd(), '..', 'sources');
-
   async importFile(filePath: string): Promise<ImportResult> {
     const fileName = path.basename(filePath);
     const result: ImportResult = {
@@ -213,8 +210,8 @@ export class DataImporterFixed {
 
         // Insert in batches
         if (batch.length >= batchSize) {
-          db.insert(pssaResults).values(batch).onConflictDoNothing().run();
-          inserted += batch.length;
+          const res = db.insert(pssaResults).values(batch).onConflictDoNothing().run();
+          inserted += res.changes;
           batch.length = 0;
         }
       } catch (error) {
@@ -225,8 +222,8 @@ export class DataImporterFixed {
 
     // Insert remaining batch
     if (batch.length > 0) {
-      db.insert(pssaResults).values(batch).onConflictDoNothing().run();
-      inserted += batch.length;
+      const res = db.insert(pssaResults).values(batch).onConflictDoNothing().run();
+      inserted += res.changes;
     }
 
     return { inserted, skipped };
@@ -331,8 +328,8 @@ export class DataImporterFixed {
 
         // Insert in batches
         if (batch.length >= batchSize) {
-          db.insert(keystoneResults).values(batch).onConflictDoNothing().run();
-          inserted += batch.length;
+          const res = db.insert(keystoneResults).values(batch).onConflictDoNothing().run();
+          inserted += res.changes;
           batch.length = 0;
         }
       } catch (error) {
@@ -343,8 +340,8 @@ export class DataImporterFixed {
 
     // Insert remaining batch
     if (batch.length > 0) {
-      db.insert(keystoneResults).values(batch).onConflictDoNothing().run();
-      inserted += batch.length;
+      const res = db.insert(keystoneResults).values(batch).onConflictDoNothing().run();
+      inserted += res.changes;
     }
 
     return { inserted, skipped };
@@ -547,9 +544,9 @@ export class DataImporterFixed {
   private normalizeKeystoneSubject(value: any): string {
     if (!value) return 'Unknown';
     const subject = String(value).toLowerCase().trim();
-    if (subject.includes('algebra')) return 'Algebra I';
-    if (subject.includes('biology')) return 'Biology';
-    if (subject.includes('literature') || subject.includes('english')) return 'Literature';
+    if (subject === 'e' || subject.includes('literature') || subject.includes('english')) return 'Literature';
+    if (subject === 'm' || subject.includes('algebra')) return 'Algebra I';
+    if (subject === 's' || subject.includes('biology')) return 'Biology';
     return value;
   }
 

@@ -71,9 +71,9 @@ async function analyzeAllSourceFiles() {
       }
       
       // Show sample unique values
-      if (analysis.uniqueValues.counties?.size > 0) {
+      if (analysis.uniqueValues.counties && analysis.uniqueValues.counties.size > 0) {
         console.log(`   Counties found: ${analysis.uniqueValues.counties.size}`);
-        const sample = Array.from(analysis.uniqueValues.counties).slice(0, 3);
+        const sample = Array.from(analysis.uniqueValues.counties as Set<string>).slice(0, 3);
         console.log(`     Sample: ${sample.join(', ')}`);
       }
     }
@@ -103,7 +103,7 @@ async function analyzeAllSourceFiles() {
   console.log('\n\n✅ Analysis complete! See source-analysis.json for full details');
 }
 
-function analyzeFile(filePath: string, category: string): FileAnalysis {
+function analyzeFile(filePath: string, _category: string): FileAnalysis {
   const workbook = xlsx.readFile(filePath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][];

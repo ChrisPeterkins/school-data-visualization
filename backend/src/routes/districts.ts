@@ -17,7 +17,7 @@ const districtQuerySchema = z.object({
 
 const districtRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all districts with filtering and sorting
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (request, _reply) => {
     const query = districtQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('districts', JSON.stringify(query));
     
@@ -215,7 +215,7 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get district statistics
-  fastify.get('/stats', async (request, reply) => {
+  fastify.get('/stats', async (_request, _reply) => {
     const cacheKey = cache.generateKey('district-stats', 'all');
     
     const cached = await cache.get(cacheKey);

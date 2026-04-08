@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { pssaResults, keystoneResults } from '../db/newSchema';
-import { sql, and, isNotNull, isNull } from 'drizzle-orm';
+import { sql, isNotNull } from 'drizzle-orm';
 
 async function calculateProficientOrAbove() {
   console.log('🔧 Calculating proficient_or_above_percent from advanced + proficient...\n');

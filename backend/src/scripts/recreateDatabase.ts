@@ -2,15 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
-import { 
-  counties, 
-  districts, 
-  schools, 
-  pssaResults, 
-  keystoneResults, 
-  dataImports,
-  searchViewSQL 
-} from '../db/newSchema';
+import { searchViewSQL } from '../db/newSchema';
 import { sql } from 'drizzle-orm';
 
 async function recreateDatabase() {

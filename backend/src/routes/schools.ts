@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { schools, districts, counties, pssaResults, keystoneResults } from '../db/newSchema';
 import { cache } from '../cache';
-import { eq, like, and, sql, desc, asc, inArray } from 'drizzle-orm';
+import { eq, like, and, sql, desc, asc } from 'drizzle-orm';
 
 const schoolQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -20,7 +20,7 @@ const schoolQuerySchema = z.object({
 
 const schoolRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all schools with filtering and sorting
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (request, _reply) => {
     const query = schoolQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('schools', JSON.stringify(query));
     
@@ -225,7 +225,7 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get distinct values for filters
-  fastify.get('/filters', async (request, reply) => {
+  fastify.get('/filters', async (_request, _reply) => {
     const cacheKey = cache.generateKey('school-filters', 'all');
     
     const cached = await cache.get(cacheKey);

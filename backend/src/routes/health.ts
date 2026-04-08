@@ -3,7 +3,7 @@ import { pool } from '../db';
 import { redis } from '../cache';
 
 const healthRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (_request, reply) => {
     const checks = {
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -32,7 +32,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.status(statusCode).send(checks);
   });
 
-  fastify.get('/ready', async (request, reply) => {
+  fastify.get('/ready', async (_request, reply) => {
     try {
       await pool.query('SELECT 1');
       await redis.ping();

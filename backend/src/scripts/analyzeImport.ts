@@ -21,7 +21,6 @@ async function analyzeImport() {
   let totalSourceRows = 0;
   let fileCount = 0;
   const subjectCounts: Record<string, number> = {};
-  const skippedReasons: Record<string, number> = {};
 
   const directories = [
     'pssa/school', 'pssa/district', 'pssa/state',

@@ -12,15 +12,15 @@ interface ParsedRow {
   county?: string;
   districtName?: string;
   schoolName?: string;
-  grade?: string;
+  grade?: string | null;
   subject: string;
   group: string;
-  numberScored?: number;
-  percentAdvanced?: number;
-  percentProficient?: number;
-  percentBasic?: number;
-  percentBelowBasic?: number;
-  percentProficientOrAbove?: number;
+  numberScored?: number | null;
+  percentAdvanced?: number | null;
+  percentProficient?: number | null;
+  percentBasic?: number | null;
+  percentBelowBasic?: number | null;
+  percentProficientOrAbove?: number | null;
 }
 
 function parsePercent(value: any): number | null {
@@ -125,15 +125,15 @@ async function importPSSAFile(filePath: string, year: number, level: 'school' | 
       percentProficient: parsePercent(rowData[columnMap.percentProficient]),
       percentBasic: parsePercent(rowData[columnMap.percentBasic]),
       percentBelowBasic: parsePercent(rowData[columnMap.percentBelowBasic]),
-      percentProficientOrAbove: columnMap.percentProficientOrAbove >= 0 
+      percentProficientOrAbove: columnMap.percentProficientOrAbove >= 0
         ? parsePercent(rowData[columnMap.percentProficientOrAbove])
-        : null
+        : undefined
     };
-    
+
     // Calculate proficient or above if not provided
-    if (parsedRow.percentProficientOrAbove === null && 
-        parsedRow.percentAdvanced !== null && 
-        parsedRow.percentProficient !== null) {
+    if (parsedRow.percentProficientOrAbove === undefined &&
+        parsedRow.percentAdvanced != null &&
+        parsedRow.percentProficient != null) {
       parsedRow.percentProficientOrAbove = parsedRow.percentAdvanced + parsedRow.percentProficient;
     }
     
@@ -186,16 +186,12 @@ async function importPSSAFile(filePath: string, year: number, level: 'school' | 
   return imported;
 }
 
-async function importKeystoneFile(filePath: string, year: number, level: 'school' | 'district' | 'state') {
+export async function importKeystoneFile(filePath: string, _year: number, _level: 'school' | 'district' | 'state') {
   console.log(`  📄 Importing ${path.basename(filePath)}...`);
-  
-  const workbook = XLSX.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-  
+
   // Similar logic to PSSA but for Keystone
   // (Implementation similar to above with Keystone-specific columns)
-  
+
   return 0; // Placeholder
 }
 

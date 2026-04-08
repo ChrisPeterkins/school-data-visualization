@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { keystoneResults, schools, districts, counties } from '../db/newSchema';
-import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
+import { keystoneResults, counties } from '../db/newSchema';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 
 async function checkNullSchoolIds() {
   console.log('🔍 Checking NULL school_id in keystone_results...\n');

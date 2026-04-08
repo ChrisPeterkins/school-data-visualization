@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { pssaResults, keystoneResults } from '../db/newSchema';
-import { sql, isNotNull, isNull, and } from 'drizzle-orm';
+import { sql, isNotNull } from 'drizzle-orm';
 
 async function checkMissingColumns() {
   console.log('🔍 Checking proficientOrAbove and growth columns...\n');

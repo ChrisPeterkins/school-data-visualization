@@ -72,12 +72,12 @@ const verifyRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get current verification status
-  fastify.get('/status', async (request, reply) => {
+  fastify.get('/status', async (_request, _reply) => {
     return currentVerificationStatus;
   });
 
   // Start verification
-  fastify.post('/start', async (request, reply) => {
+  fastify.post('/start', async (_request, reply) => {
     if (currentVerificationStatus.isRunning) {
       return reply.status(400).send({ error: 'Verification already running' });
     }
@@ -89,7 +89,7 @@ const verifyRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Cancel verification
-  fastify.post('/cancel', async (request, reply) => {
+  fastify.post('/cancel', async (_request, reply) => {
     if (!currentVerificationStatus.isRunning) {
       return reply.status(400).send({ error: 'No verification running' });
     }
@@ -103,7 +103,7 @@ const verifyRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get text report (if available)
-  fastify.get('/report', async (request, reply) => {
+  fastify.get('/report', async (_request, reply) => {
     if (!currentVerificationStatus.report) {
       return reply.status(404).send({ error: 'No verification report available' });
     }

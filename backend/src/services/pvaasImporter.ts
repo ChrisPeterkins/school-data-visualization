@@ -1,8 +1,6 @@
 import * as XLSX from 'xlsx';
 import * as path from 'path';
-import { db, sqliteDb } from '../db';
-import { pssaResults, keystoneResults, schools, districts } from '../db/newSchema';
-import { eq, and, sql } from 'drizzle-orm';
+import { sqliteDb } from '../db';
 import { logger } from '../utils/logger';
 
 interface PVAASRecord {

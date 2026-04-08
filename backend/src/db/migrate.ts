@@ -1,12 +1,12 @@
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db } from './index';
 import { logger } from '../utils/logger';
 
 async function runMigrations() {
   logger.info('Running database migrations...');
-  
+
   try {
-    await migrate(db, { migrationsFolder: './drizzle' });
+    migrate(db, { migrationsFolder: './drizzle' });
     logger.info('Migrations completed successfully');
     process.exit(0);
   } catch (error) {

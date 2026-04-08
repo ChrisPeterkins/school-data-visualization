@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 import * as path from 'path';
 import { db } from '../db';
 import { pssaResults } from '../db/newSchema';
-import { isNotNull, sql } from 'drizzle-orm';
+import { isNotNull } from 'drizzle-orm';
 
 async function main() {
   logger.info('🧪 Testing PVAAS import with single file...\n');

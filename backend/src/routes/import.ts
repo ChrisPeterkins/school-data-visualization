@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { DataImporterFixed } from '../services/dataImporterFixed';
+import { PVAASImporter } from '../services/pvaasImporter';
 import { pssaResults, keystoneResults, schools, districts } from '../db/newSchema';
 import path from 'path';
 import fs from 'fs/promises';
@@ -65,7 +66,7 @@ const importRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get current import status
-  fastify.get('/status', async (request, reply) => {
+  fastify.get('/status', async (_request, _reply) => {
     // Add database statistics
     const stats = await getImportStats();
     return {
@@ -75,7 +76,7 @@ const importRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Start import (example endpoint - you'd trigger your actual import here)
-  fastify.post('/start', async (request, reply) => {
+  fastify.post('/start', async (_request, reply) => {
     if (currentImportStatus.isRunning) {
       return reply.status(400).send({ error: 'Import already running' });
     }
@@ -87,7 +88,7 @@ const importRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Cancel import
-  fastify.post('/cancel', async (request, reply) => {
+  fastify.post('/cancel', async (_request, reply) => {
     if (!currentImportStatus.isRunning) {
       return reply.status(400).send({ error: 'No import running' });
     }
@@ -230,6 +231,23 @@ async function startImportProcess() {
         const errorMsg = `Error reading directory ${dir}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         errors.push(errorMsg);
         updateImportStatus({ errors });
+      }
+    }
+
+    // Import PVAAS growth data (updates existing PSSA/Keystone records)
+    if (!shouldCancelImport) {
+      updateImportStatus({
+        currentStep: 'Importing PVAAS growth data...',
+        processedFiles,
+        processedRecords: totalProcessed
+      });
+
+      try {
+        const pvaasImporter = new PVAASImporter();
+        await pvaasImporter.importAllPVAASFiles();
+      } catch (error) {
+        const errorMsg = `PVAAS import error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        errors.push(errorMsg);
       }
     }
 

@@ -20,7 +20,7 @@ const performanceQuerySchema = z.object({
 
 const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   // Get PSSA performance data
-  fastify.get('/pssa', async (request, reply) => {
+  fastify.get('/pssa', async (request, _reply) => {
     const query = performanceQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('pssa', JSON.stringify(query));
     
@@ -73,7 +73,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get Keystone performance data
-  fastify.get('/keystone', async (request, reply) => {
+  fastify.get('/keystone', async (request, _reply) => {
     const query = performanceQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('keystone', JSON.stringify(query));
     
@@ -123,7 +123,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get performance trends for a school
-  fastify.get('/trends/:schoolId', async (request, reply) => {
+  fastify.get('/trends/:schoolId', async (request, _reply) => {
     const { schoolId } = request.params as { schoolId: string };
     const schoolIdNum = parseInt(schoolId);
     const cacheKey = cache.generateKey('trends', schoolId);
@@ -175,7 +175,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get state-level aggregate performance
-  fastify.get('/state', async (request, reply) => {
+  fastify.get('/state', async (request, _reply) => {
     let { year } = request.query as { year?: number };
 
     // Default to latest year with state-level data
@@ -244,7 +244,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Compare multiple schools/districts
-  fastify.post('/compare', async (request, reply) => {
+  fastify.post('/compare', async (request, _reply) => {
     const { entityIds, entityType = 'school', year, testType = 'both' } = request.body as {
       entityIds: number[];
       entityType: 'school' | 'district';
@@ -338,7 +338,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     limit: z.coerce.number().min(5).max(50).optional().default(10),
   });
 
-  fastify.get('/rankings', async (request, reply) => {
+  fastify.get('/rankings', async (request, _reply) => {
     const query = rankingsQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('rankings', JSON.stringify(query));
 

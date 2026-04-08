@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { pssaResults, keystoneResults, schools, districts, counties } from '../db/newSchema';
-import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 async function verifyDataIntegrity() {
   console.log('🔍 PA School Data Verification Report\n');
