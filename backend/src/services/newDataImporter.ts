@@ -78,9 +78,8 @@ export class NewDataImporter {
     // PSSA School-level configs (these have county info)
     this.fileConfigs.set('2015 pssa school level data.xlsx', {
       headerRow: 6,
-      countyColumn: 'County',
-      districtColumn: 'District Name',
-      schoolColumn: 'School Name',
+      districtColumn: 'District',
+      schoolColumn: 'School',
       aunColumn: 'AUN',
       schoolNumberColumn: 'School Number',
       gradeColumn: 'Grade',
@@ -93,8 +92,26 @@ export class NewDataImporter {
       belowBasicColumn: '% Below Basic'
     });
 
-    // 2016-2023 PSSA School configs
-    for (let year = 2016; year <= 2023; year++) {
+    // 2016 PSSA School config (uses 'District'/'School' column names)
+    this.fileConfigs.set('2016 pssa school level data.xlsx', {
+      headerRow: 4,
+      countyColumn: 'County',
+      districtColumn: 'District',
+      schoolColumn: 'School',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      gradeColumn: 'Grade',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: '% Advanced',
+      proficientColumn: '% Proficient',
+      basicColumn: '% Basic',
+      belowBasicColumn: '% Below Basic'
+    });
+
+    // 2017-2023 PSSA School configs (uses 'District Name'/'School Name' column names)
+    for (let year = 2017; year <= 2023; year++) {
       if (year === 2020 || year === 2021) continue; // No 2020 data, 2021 has different format
       const fileName = `${year} pssa school level data.xlsx`;
       this.fileConfigs.set(fileName, {
@@ -102,7 +119,7 @@ export class NewDataImporter {
         countyColumn: 'County',
         districtColumn: 'District Name',
         schoolColumn: 'School Name',
-        aunColumn: 'District AUN',
+        aunColumn: 'AUN',
         schoolNumberColumn: 'School Number',
         gradeColumn: 'Grade',
         subjectColumn: 'Subject',
@@ -153,14 +170,18 @@ export class NewDataImporter {
     });
 
     // PSSA District-level configs (these also have county)
+    // Note: 2015-2017 are "{year} pssa district data.xlsx", 2018-2022 same,
+    // but 2023 is "2023 pssa district level data.xlsx" (has "level")
     for (let year = 2015; year <= 2023; year++) {
       if (year === 2020) continue; // No 2020 data
-      const fileName = `${year} pssa district level data.xlsx`;
+      const fileName = year === 2023
+        ? `${year} pssa district level data.xlsx`
+        : `${year} pssa district data.xlsx`;
       this.fileConfigs.set(fileName, {
         headerRow: year === 2015 ? 6 : 4,
         countyColumn: 'County',
         districtColumn: 'District Name',
-        aunColumn: year === 2015 ? 'AUN' : 'District AUN',
+        aunColumn: 'AUN',
         gradeColumn: 'Grade',
         subjectColumn: 'Subject',
         groupColumn: 'Group',
@@ -190,11 +211,13 @@ export class NewDataImporter {
     });
 
     // PSSA State-level configs (no county)
+    // Header rows vary: 2015 is row 4, 2016-2018 is row 4, 2019+ is row 3
     for (let year = 2015; year <= 2023; year++) {
       if (year === 2020) continue; // No 2020 data
       const fileName = `${year} pssa state level data.xlsx`;
+      const headerRow = year <= 2018 ? 4 : 3;
       this.fileConfigs.set(fileName, {
-        headerRow: year === 2015 ? 6 : 4,
+        headerRow,
         gradeColumn: 'Grade',
         subjectColumn: 'Subject',
         groupColumn: 'Group',
@@ -235,8 +258,25 @@ export class NewDataImporter {
       belowBasicColumn: 'Pct. Below Basic'
     });
 
-    // 2016-2019 have "exams" in the name
-    for (let year = 2016; year <= 2019; year++) {
+    // 2016 Keystone School (uses 'District'/'School' column names)
+    this.fileConfigs.set('2016 keystone exams school level data.xlsx', {
+      headerRow: 4,
+      countyColumn: 'County',
+      districtColumn: 'District',
+      schoolColumn: 'School',
+      aunColumn: 'AUN',
+      schoolNumberColumn: 'School Number',
+      subjectColumn: 'Subject',
+      groupColumn: 'Group',
+      numberScoredColumn: 'Number Scored',
+      advancedColumn: 'Percent Advanced',
+      proficientColumn: 'Percent Proficient',
+      basicColumn: 'Percent Basic',
+      belowBasicColumn: 'Percent Below Basic'
+    });
+
+    // 2017-2019 have "exams" in the name
+    for (let year = 2017; year <= 2019; year++) {
       this.fileConfigs.set(`${year} keystone exams school level data.xlsx`, {
         headerRow: 4,
         countyColumn: 'County',
@@ -329,7 +369,7 @@ export class NewDataImporter {
     this.fileConfigs.set('2015 keystone district data.xlsx', {
       headerRow: 4,
       countyColumn: 'County',
-      districtColumn: 'District Name',
+      districtColumn: 'District',
       aunColumn: 'AUN',
       subjectColumn: 'Subject',
       groupColumn: 'Group',
@@ -883,6 +923,20 @@ export class NewDataImporter {
       const level = this.extractLevel(category);
       const isPSSA = fileName.includes('pssa');
 
+      // Delete any existing records from this source file to prevent duplicates on re-import
+      const targetTable = isPSSA ? pssaResults : keystoneResults;
+      const existingCount = this.db.select({ count: sql<number>`COUNT(*)` })
+        .from(targetTable)
+        .where(eq(targetTable.sourceFile, fileName))
+        .get();
+
+      if (existingCount && existingCount.count > 0) {
+        this.db.delete(targetTable)
+          .where(eq(targetTable.sourceFile, fileName))
+          .run();
+        console.log(`     🔄 Cleared ${existingCount.count} existing records for re-import`);
+      }
+
       // Process data rows
       for (let i = config.headerRow + 1; i < data.length; i++) {
         const row = data[i];
@@ -955,11 +1009,46 @@ export class NewDataImporter {
     }
   }
 
+  // Map of column name alternatives — if the configured name isn't found, try these
+  private static readonly COLUMN_ALIASES: Record<string, string[]> = {
+    '% Advanced': ['Percent Advanced', 'Pct. Advanced', 'Pct Advanced'],
+    'Percent Advanced': ['% Advanced', 'Pct. Advanced', 'Pct Advanced'],
+    'Pct. Advanced': ['Percent Advanced', '% Advanced'],
+    '% Proficient': ['Percent Proficient', 'Pct. Proficient', 'Pct Proficient'],
+    'Percent Proficient': ['% Proficient', 'Pct. Proficient', 'Pct Proficient'],
+    'Pct. Proficient': ['Percent Proficient', '% Proficient'],
+    '% Basic': ['Percent Basic', 'Pct. Basic', 'Pct Basic'],
+    'Percent Basic': ['% Basic', 'Pct. Basic', 'Pct Basic'],
+    'Pct. Basic': ['Percent Basic', '% Basic'],
+    '% Below Basic': ['Percent Below Basic', 'Pct. Below Basic', 'Pct Below Basic'],
+    'Percent Below Basic': ['% Below Basic', 'Pct. Below Basic', 'Pct Below Basic'],
+    'Pct. Below Basic': ['Percent Below Basic', '% Below Basic'],
+    '% Advanced/Proficient': ['Percent Proficient and above', 'Percent Proficient and Above', 'Percent Advanced/Proficient'],
+    'Percent Proficient and above': ['Percent Proficient and Above', '% Advanced/Proficient', 'Percent Advanced/Proficient'],
+    // Entity column aliases
+    'District AUN': ['AUN'],
+    'AUN': ['District AUN'],
+    'District Name': ['District'],
+    'District': ['District Name'],
+    'School Name': ['School'],
+    'School': ['School Name'],
+  };
+
   private parseRow(row: any[], config: FileConfig, columnMap: Map<string, number>, fileYear: number): ParsedRow {
     const getColumn = (name?: string) => {
       if (!name) return null;
+      // Try exact match first
       const index = columnMap.get(name);
-      return index !== undefined ? row[index] : null;
+      if (index !== undefined) return row[index];
+      // Try known aliases
+      const aliases = NewDataImporter.COLUMN_ALIASES[name];
+      if (aliases) {
+        for (const alt of aliases) {
+          const altIndex = columnMap.get(alt);
+          if (altIndex !== undefined) return row[altIndex];
+        }
+      }
+      return null;
     };
 
     return {
@@ -1134,27 +1223,16 @@ export class NewDataImporter {
     // Look up growth score from PVAAS data
     const growthScore = this.lookupGrowthScore(row, level);
 
-    this.db.insert(pssaResults)
-      .values({
-        level,
-        schoolId,
-        districtId,
-        countyId,
-        year: row.year || new Date().getFullYear(),
-        grade: row.grade,
-        subject: row.subject!,
-        demographicGroup: row.demographicGroup || 'All Students',
-        totalTested: row.totalTested,
-        advancedPercent: row.advancedPercent,
-        proficientPercent: row.proficientPercent,
-        basicPercent: row.basicPercent,
-        belowBasicPercent: row.belowBasicPercent,
-        proficientOrAbovePercent: row.proficientOrAbovePercent,
-        growthScore,
-        sourceFile
-      })
-      .onConflictDoNothing()
-      .run();
+    this.db.run(sql`INSERT OR IGNORE INTO pssa_results
+      (level, school_id, district_id, county_id, year, grade, subject, demographic_group,
+       total_tested, advanced_percent, proficient_percent, basic_percent, below_basic_percent,
+       proficient_or_above_percent, growth_score, source_file)
+      VALUES (${level}, ${schoolId}, ${districtId}, ${countyId},
+        ${row.year || new Date().getFullYear()}, ${row.grade ?? null}, ${row.subject!},
+        ${row.demographicGroup || 'All Students'}, ${row.totalTested ?? null},
+        ${row.advancedPercent ?? null}, ${row.proficientPercent ?? null},
+        ${row.basicPercent ?? null}, ${row.belowBasicPercent ?? null},
+        ${row.proficientOrAbovePercent ?? null}, ${growthScore ?? null}, ${sourceFile})`);
   }
 
   private async insertKeystoneResult(
@@ -1171,27 +1249,16 @@ export class NewDataImporter {
     // Look up growth score from PVAAS data
     const growthScore = this.lookupGrowthScore(row, level);
 
-    this.db.insert(keystoneResults)
-      .values({
-        level,
-        schoolId,
-        districtId,
-        countyId,
-        year: row.year || new Date().getFullYear(),
-        subject: row.subject!,
-        grade: row.grade || 11,
-        demographicGroup: row.demographicGroup || 'All Students',
-        totalTested: row.totalTested,
-        advancedPercent: row.advancedPercent,
-        proficientPercent: row.proficientPercent,
-        basicPercent: row.basicPercent,
-        belowBasicPercent: row.belowBasicPercent,
-        proficientOrAbovePercent: row.proficientOrAbovePercent,
-        growthScore,
-        sourceFile
-      })
-      .onConflictDoNothing()
-      .run();
+    this.db.run(sql`INSERT OR IGNORE INTO keystone_results
+      (level, school_id, district_id, county_id, year, subject, grade, demographic_group,
+       total_tested, advanced_percent, proficient_percent, basic_percent, below_basic_percent,
+       proficient_or_above_percent, growth_score, source_file)
+      VALUES (${level}, ${schoolId}, ${districtId}, ${countyId},
+        ${row.year || new Date().getFullYear()}, ${row.subject!}, ${row.grade || 11},
+        ${row.demographicGroup || 'All Students'}, ${row.totalTested ?? null},
+        ${row.advancedPercent ?? null}, ${row.proficientPercent ?? null},
+        ${row.basicPercent ?? null}, ${row.belowBasicPercent ?? null},
+        ${row.proficientOrAbovePercent ?? null}, ${growthScore ?? null}, ${sourceFile})`);
   }
 
   private async verifyBucksCounty() {

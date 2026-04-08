@@ -3,7 +3,7 @@ import { db } from '../db';
 import { pssaResults, keystoneResults, schools, districts, counties, dataImports } from '../db/newSchema';
 import { logger } from '../utils/logger';
 import { getFileConfig, FileConfig } from './fileConfigs';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
@@ -61,6 +61,21 @@ export class DataImporterFixed {
       const data = XLSX.utils.sheet_to_json(worksheet, { range: config.headerRow });
 
       logger.info(`Found ${data.length} rows to process`);
+
+      // Delete any existing records from this source file to prevent duplicates on re-import
+      const isPSSA = fileName.toLowerCase().includes('pssa');
+      const targetTable = isPSSA ? pssaResults : keystoneResults;
+      const existingCount = db.select({ count: sql<number>`COUNT(*)` })
+        .from(targetTable)
+        .where(eq(targetTable.sourceFile, fileName))
+        .get();
+
+      if (existingCount && existingCount.count > 0) {
+        db.delete(targetTable)
+          .where(eq(targetTable.sourceFile, fileName))
+          .run();
+        logger.info(`Cleared ${existingCount.count} existing records for re-import`);
+      }
 
       // Process data based on file type
       if (fileName.toLowerCase().includes('pssa')) {

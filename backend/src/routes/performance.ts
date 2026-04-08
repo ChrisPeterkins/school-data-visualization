@@ -176,9 +176,23 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Get state-level aggregate performance
   fastify.get('/state', async (request, reply) => {
-    const { year = new Date().getFullYear() - 1 } = request.query as { year?: number };
+    let { year } = request.query as { year?: number };
+
+    // Default to latest year with state-level data
+    if (!year) {
+      const latestPssa = db.select({ maxYear: sql<number>`MAX(${pssaResults.year})` })
+        .from(pssaResults)
+        .where(eq(pssaResults.level, 'state'))
+        .get();
+      const latestKeystone = db.select({ maxYear: sql<number>`MAX(${keystoneResults.year})` })
+        .from(keystoneResults)
+        .where(eq(keystoneResults.level, 'state'))
+        .get();
+      year = Math.max(latestPssa?.maxYear ?? 0, latestKeystone?.maxYear ?? 0) || new Date().getFullYear() - 1;
+    }
+
     const cacheKey = cache.generateKey('state-performance', year.toString());
-    
+
     const cached = await cache.get(cacheKey);
     if (cached) {
       return cached;
@@ -309,6 +323,108 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     await cache.set(cacheKey, response, 1800); // Cache for 30 minutes
+    return response;
+  });
+
+  // Rankings: best and worst performing schools
+  const rankingsQuerySchema = z.object({
+    year: z.coerce.number(),
+    examType: z.enum(['pssa', 'keystone']),
+    subject: z.string().optional(),
+    grade: z.coerce.number().optional(),
+    countyId: z.coerce.number().optional(),
+    schoolType: z.string().optional(),
+    demographicGroup: z.string().optional().default('All Students'),
+    limit: z.coerce.number().min(5).max(50).optional().default(10),
+  });
+
+  fastify.get('/rankings', async (request, reply) => {
+    const query = rankingsQuerySchema.parse(request.query);
+    const cacheKey = cache.generateKey('rankings', JSON.stringify(query));
+
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const isPssa = query.examType === 'pssa';
+    const resultsTable = isPssa ? pssaResults : keystoneResults;
+
+    // Build conditions
+    const conditions = [
+      eq(resultsTable.level, 'school'),
+      eq(resultsTable.year, query.year),
+      eq(resultsTable.demographicGroup, query.demographicGroup),
+      sql`${resultsTable.proficientOrAbovePercent} IS NOT NULL`,
+      sql`${resultsTable.schoolId} IS NOT NULL`,
+      sql`${resultsTable.totalTested} >= 10`,
+    ];
+
+    if (query.subject) conditions.push(eq(resultsTable.subject, query.subject));
+    if (isPssa && query.grade) conditions.push(eq(pssaResults.grade, query.grade));
+    if (query.countyId) conditions.push(eq(districts.countyId, query.countyId));
+    if (query.schoolType) conditions.push(eq(schools.schoolType, query.schoolType));
+
+    // Build the base select
+    const buildRankingQuery = (order: 'asc' | 'desc') => {
+      return db
+        .select({
+          schoolId: schools.id,
+          schoolName: schools.name,
+          schoolType: schools.schoolType,
+          districtName: districts.name,
+          countyName: counties.name,
+          city: schools.city,
+          avgProficiency: sql<number>`ROUND(AVG(${resultsTable.proficientOrAbovePercent}), 1)`.as('avg_proficiency'),
+          totalTested: sql<number>`SUM(${resultsTable.totalTested})`.as('total_tested'),
+          subjectCount: sql<number>`COUNT(DISTINCT ${resultsTable.subject})`.as('subject_count'),
+        })
+        .from(resultsTable)
+        .innerJoin(schools, eq(resultsTable.schoolId, schools.id))
+        .innerJoin(districts, eq(schools.districtId, districts.id))
+        .innerJoin(counties, eq(districts.countyId, counties.id))
+        .where(and(...conditions))
+        .groupBy(resultsTable.schoolId)
+        .orderBy(order === 'desc' ? desc(sql`avg_proficiency`) : asc(sql`avg_proficiency`))
+        .limit(query.limit);
+    };
+
+    // State average query
+    const stateConditions = [
+      eq(resultsTable.level, 'state'),
+      eq(resultsTable.year, query.year),
+      eq(resultsTable.demographicGroup, query.demographicGroup),
+      sql`${resultsTable.proficientOrAbovePercent} IS NOT NULL`,
+    ];
+    if (query.subject) stateConditions.push(eq(resultsTable.subject, query.subject));
+
+    const [topSchools, bottomSchools, stateAvgResult] = await Promise.all([
+      buildRankingQuery('desc'),
+      buildRankingQuery('asc'),
+      db.select({
+        avg: sql<number>`ROUND(AVG(${resultsTable.proficientOrAbovePercent}), 1)`,
+      })
+      .from(resultsTable)
+      .where(and(...stateConditions)),
+    ]);
+
+    const response = {
+      filters: {
+        year: query.year,
+        examType: query.examType,
+        subject: query.subject || null,
+        grade: query.grade || null,
+        countyId: query.countyId || null,
+        schoolType: query.schoolType || null,
+        demographicGroup: query.demographicGroup,
+        limit: query.limit,
+      },
+      top: topSchools.map((s, i) => ({ rank: i + 1, ...s })),
+      bottom: bottomSchools.map((s, i) => ({ rank: i + 1, ...s })),
+      stateAverage: stateAvgResult[0]?.avg ?? null,
+    };
+
+    await cache.set(cacheKey, response, 1800);
     return response;
   });
 };
