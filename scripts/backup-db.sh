@@ -14,7 +14,8 @@ mkdir -p "$DEST"
 # file (and every backup of it) stays as small as its contents.
 if [[ "$(date +%u)" == "7" || "${FORCE_VACUUM:-}" == "1" ]]; then
   before=$(du -m "$DB" | cut -f1)
-  sqlite3 "$DB" "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
+  # VACUUM rewrites the file through the WAL; checkpoint again so the log shrinks back.
+  sqlite3 "$DB" "PRAGMA wal_checkpoint(TRUNCATE); VACUUM; PRAGMA wal_checkpoint(TRUNCATE);"
   echo "$(date -Is) vacuumed: ${before}M -> $(du -m "$DB" | cut -f1)M"
 fi
 stamp="$(date +%Y%m%d-%H%M%S)"
