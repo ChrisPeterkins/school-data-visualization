@@ -13,6 +13,8 @@ import SimilarSchools from '../components/SimilarSchools';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import PercentileBadges from '../components/PercentileBadges';
 import ExportCsvButton from '../components/ExportCsvButton';
+import PrintButton from '../components/PrintButton';
+import CohortChart from '../components/CohortChart';
 import { formatPct, growthBand } from '../lib/chartUtils';
 
 export default function SchoolDetailPage() {
@@ -89,10 +91,14 @@ export default function SchoolDetailPage() {
         <span className="text-stone-700 font-medium break-words">{s.name}</span>
       </nav>
 
+      <p className="print-only text-xs text-stone-500 mb-2">PA School Data · chrispeterkins.com/paschools · printed {new Date().toLocaleDateString()}</p>
       <div className="card-surface p-4 sm:p-6 mb-8">
         <div className={`grid grid-cols-1 gap-4 ${hasMap ? 'sm:grid-cols-[1fr_16rem]' : ''}`}>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{s.name}</h1>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{s.name}</h1>
+              <PrintButton />
+            </div>
             <p className="text-sm text-stone-400 mt-0.5">
               School #{s.schoolNumber}
               {s.gradeRange ? ` · Grades ${s.gradeRange}` : ''}
@@ -206,6 +212,13 @@ export default function SchoolDetailPage() {
       <div className="mb-8">
         <SimilarSchools schoolId={Number(s.id)} schoolName={s.name} />
       </div>
+
+      {pssaResults.some((r) => r.grade && r.grade > 0) && (
+        <div className="mb-8 space-y-4">
+          <h2 className="text-lg font-bold text-stone-900">Cohorts</h2>
+          <CohortChart rows={pssaResults} entityName={s.name} />
+        </div>
+      )}
 
       {trends && (
         <div className="space-y-4">

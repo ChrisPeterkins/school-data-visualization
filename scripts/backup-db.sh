@@ -10,6 +10,13 @@ DEST="${BACKUP_DIR:-/var/backups/paschools}"
 KEEP_RECENT="${KEEP_RECENT:-3}"
 
 mkdir -p "$DEST"
+# Sundays: fold the WAL back in and reclaim pages freed by re-imports so the
+# file (and every backup of it) stays as small as its contents.
+if [[ "$(date +%u)" == "7" || "${FORCE_VACUUM:-}" == "1" ]]; then
+  before=$(du -m "$DB" | cut -f1)
+  sqlite3 "$DB" "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
+  echo "$(date -Is) vacuumed: ${before}M -> $(du -m "$DB" | cut -f1)M"
+fi
 stamp="$(date +%Y%m%d-%H%M%S)"
 out="$DEST/school-data-$stamp.db"
 sqlite3 "$DB" ".backup '$out'"

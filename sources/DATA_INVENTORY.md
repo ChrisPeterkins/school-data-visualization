@@ -68,6 +68,8 @@ PDE announced the 2026 results release is on hold until later in fall 2026. A we
 
 2016 Keystone district rows: PDE's file covers about 300 of 500 districts, so the rest are derived from school rows weighted by students tested (`source_file = 'derived-from-schools'`).
 
+PVAAS before 2018: PDE's methodology page does not host 2015-2017 value-added files under any of the current naming patterns (six variants per year were probed), so growth coverage starts in 2018.
+
 Pre-2015 results: PDE's current site starts at 2015. The Wayback Machine preserves the old education.pa.gov folder, which has 2013 and 2014 Keystone school- and state-level files (loaded; `keystone/{school,state}/201[34] keystone exams ... grade 11 data.xlsx`, no district files, no PVAAS) and 2011-12 and earlier PSSA per-subject workbooks (Math and Reading, Science, Writing) in a different layout. 2012-13 and 2013-14 PSSA files were not archived, so PSSA still starts at 2015; the older PSSA files are not loaded because a single 2012 point followed by a two-year hole would mislead more than it informs.
 
 ## Total Files

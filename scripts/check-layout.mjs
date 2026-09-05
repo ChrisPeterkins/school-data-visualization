@@ -5,6 +5,7 @@
 import { createRequire } from 'module';
 // Playwright is not a project dependency; point PLAYWRIGHT_MODULES at a node_modules folder that has it.
 const require = createRequire((process.env.PLAYWRIGHT_MODULES || '/root/.npm/_npx/5c6d8c4f680fcd0a/node_modules') + '/');
+// In CI the repo's own node_modules has playwright; locally the npx cache does.
 const { chromium } = require('playwright');
 
 const BASE = process.env.BASE || 'https://chrispeterkins.com/paschools';
@@ -14,7 +15,7 @@ const widths = (process.env.WIDTHS || '375,390').split(',').map(Number);
 const shotDir = process.env.SHOTS || '';
 
 const browser = await chromium.launch({
-  args: ['--host-resolver-rules=MAP chrispeterkins.com 127.0.0.1', '--no-sandbox'],
+  args: ['--no-sandbox', ...(process.env.RESOLVE ? [`--host-resolver-rules=MAP ${new URL(BASE).hostname} ${process.env.RESOLVE}`] : [])],
 });
 const ctx = await browser.newContext({ ignoreHTTPSErrors: true, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 let failures = 0;

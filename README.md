@@ -14,12 +14,15 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Achievement gaps**: proficiency and growth by student group on state, county, district, and school pages
 - **Map**: every school on a clustered Leaflet map with district boundaries, colored by proficiency, growth, or growth-vs-achievement quadrant; search, locate, click-through detail panel, and a shareable viewport
 - **Counties** and **similar schools**: county pages roll up districts; each school page suggests comparable schools nearby
+- **Cohorts**: follow each class through the grades on school and district pages
+- **Rankings** for schools, districts, or counties, by level or by change since any earlier year (most improved / most declined)
+- **Compare over time**: line up the selected schools or districts across every year for a subject and group
 - **Percentiles**: every school and district shows where it stands statewide, in its county, and among its level
 - **Search everywhere**: nav autocomplete across schools, districts, and counties (FTS5, typo-tolerant on spacing)
 - **Compare** schools or districts, for any student group, against the statewide figure for that group
 - **CSV export** on results, rankings, gaps, compare, and the schools list
 - **About the data** page (`/about`) explaining sources, weighting, totals, derived rows, and year caveats
-- **Ops**: weekly PDE release check with optional push notification (`NOTIFY_URL`), nightly rotated backups, coverage report on the admin page, CI on push, `scripts/deploy.sh` for one-command deploys with rollback, API responses cached for an hour with ETags
+- **Ops**: weekly PDE release check with optional push notification (`NOTIFY_URL`), nightly rotated backups, coverage report on the admin page, CI on push, `scripts/deploy.sh` for one-command deploys with rollback (`--e2e` runs the Playwright suite against the live site), API responses cached for an hour with ETags, weekly VACUUM in the backup job, a 2 MB fixture database (`backend/fixtures/fixture.db.gz`, rebuilt with `makeFixtureDb.ts`) that CI's end-to-end job runs the built site against, route-level error boundary, print stylesheet, and screen-reader tables behind every chart
 - **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested
 
 ## 🛠 Tech Stack

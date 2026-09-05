@@ -12,6 +12,9 @@ import districtRoutes from './routes/districts';
 import countyRoutes from './routes/counties';
 import sitemapRoutes from './routes/sitemap';
 import searchRoutes from './routes/search';
+import { sqliteDb } from './db';
+import { ensureSearchIndex, refreshSearchIndex } from './services/searchIndex';
+import { ensureMapPointsTable, refreshMapPoints } from './services/mapPoints';
 import performanceRoutes from './routes/performance';
 import healthRoutes from './routes/health';
 import importRoutes from './routes/import';
@@ -72,6 +75,13 @@ const buildApp = async () => {
       logger.warn({ method: request.method, url: request.url, statusCode: reply.statusCode, ms: Math.round(ms) }, reply.statusCode >= 500 ? 'request failed' : 'slow request');
     }
   });
+
+  // Derived tables are normally refreshed by the import scripts; build them
+  // on first start too so a fresh copy of the database (fixtures, CI) works.
+  ensureMapPointsTable();
+  ensureSearchIndex();
+  if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM search_index').get() as any).n === 0) refreshSearchIndex();
+  if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM school_map_points').get() as any).n === 0) refreshMapPoints();
 
   await fastify.register(healthRoutes, { prefix: '/api/health' });
   await fastify.register(schoolRoutes, { prefix: '/api/schools' });

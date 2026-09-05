@@ -6,6 +6,7 @@ import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
+import AccessibleChart from '../components/AccessibleChart';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine, covidGapArea } from '../lib/chartUtils';
 import {
@@ -155,6 +156,7 @@ export default function StatePage() {
                 {selectedSubject} proficient or above, statewide
               </h2>
               <p className="text-xs text-stone-400 mb-4">All grades combined</p>
+              <AccessibleChart label={`${selectedSubject} proficient or above statewide, by year`} rows={trendSeries.map((d) => ({ year: d.year, proficiency: d.proficiency }))} columns={[{ key: 'year', label: 'Year' }, { key: 'proficiency', label: '% proficient or above' }]}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -166,6 +168,7 @@ export default function StatePage() {
                   <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={2.5} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
+              </AccessibleChart>
             </div>
 
             {/* Subject Comparison */}
@@ -191,6 +194,7 @@ export default function StatePage() {
                 {selectedSubject} Performance Levels by Grade ({selectedYear})
               </h2>
               <p className="text-xs text-stone-400 mb-4">Share of students at each level, statewide</p>
+              <AccessibleChart label={`${selectedSubject} performance levels by grade, ${selectedYear}`} rows={levelsByGrade}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={levelsByGrade}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
@@ -205,6 +209,7 @@ export default function StatePage() {
                   <Bar dataKey="Below Basic" stackId="levels" fill="#d6d3d1" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              </AccessibleChart>
             </div>
 
             {/* Key Stats */}

@@ -89,3 +89,16 @@ html {
 .leaflet-container {
   font-family: Inter, system-ui, sans-serif;
 }
+
+/* Print: one clean report per page. Navigation, filters, and controls go;
+   cards lose shadows and expand to the page width. */
+@media print {
+  nav, footer, .no-print, button, select, input, [role="combobox"] { display: none !important; }
+  main { padding: 0 !important; }
+  .card-surface { box-shadow: none !important; border-color: #d6d3d1 !important; break-inside: avoid; }
+  .max-w-7xl, .max-w-4xl { max-width: 100% !important; }
+  a[href]::after { content: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .print-only { display: block !important; }
+}
+.print-only { display: none; }

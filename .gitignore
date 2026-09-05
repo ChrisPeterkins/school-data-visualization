@@ -39,3 +39,6 @@ backend/logs/
 
 # TypeScript incremental build state (stale copies make tsc skip emitting shared/dist on CI)
 *.tsbuildinfo
+
+# Fixture database is committed compressed only
+backend/fixtures/fixture.db

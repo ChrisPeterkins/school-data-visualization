@@ -1,45 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { countyApi, performanceApi } from '../services/api';
-import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import GapsPanel from '../components/GapsPanel';
 import DataNotes from '../components/DataNotes';
-import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle, formatPct } from '../lib/chartUtils';
-
-const SUBJECT_COLORS: Record<string, string> = {
-  'Mathematics': '#2d4a6f', 'English Language Arts': '#27ab83', 'Science': '#c53030',
-  'Algebra I': '#2d4a6f', 'Biology': '#27ab83', 'Literature': '#c53030',
-};
-
-function TrendCard({ title, data, subjects, years, exam, smUp }: { title: string; data: any[]; subjects: string[]; years: number[]; exam: 'pssa' | 'keystone'; smUp: boolean }) {
-  if (data.length < 2) return null;
-  return (
-    <div className="card-surface p-4 sm:p-6">
-      <h3 className="text-base font-semibold text-stone-900 mb-1">{title}</h3>
-      <p className="text-xs text-stone-400 mb-4">All districts in the county, weighted by students tested</p>
-      <ResponsiveContainer width="100%" height={smUp ? 300 : 240}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-          <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
-          <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
-          <Legend wrapperStyle={{ fontSize: '12px' }} />
-          {covidGapArea(years)}
-            {exam === 'pssa' ? standardsChangeLine(years) : null}
-          {subjects.map((s) => <Line key={s} type="monotone" dataKey={s} connectNulls={false} stroke={SUBJECT_COLORS[s]} strokeWidth={2} dot={{ r: 3 }} />)}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
+import TrendCard from '../components/TrendCard';
+import { fillYearGaps, formatPct } from '../lib/chartUtils';
 
 export default function CountyDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const smUp = useIsSmUp();
   const { latest } = useAvailableYears();
 
   const { data: county, isLoading, error } = useQuery({ queryKey: ['county', id], queryFn: () => countyApi.getCounty(id!), enabled: !!id });
@@ -114,8 +85,8 @@ export default function CountyDetailPage() {
       <div className="mb-8 space-y-6">
         <h2 className="text-lg font-bold text-stone-900">Trends</h2>
         <DataNotes exam="pssa" years={pssaYears} latestAvailable={latest} subject={pssaSci.data?.series?.length ? 'Science' : undefined} />
-        <TrendCard title="PSSA proficient or above" data={pssaTrend} subjects={['Mathematics', 'English Language Arts', 'Science']} years={pssaYears} exam="pssa" smUp={smUp} />
-        <TrendCard title="Keystone proficient or above" data={keystoneTrend} subjects={['Algebra I', 'Biology', 'Literature']} years={keystoneTrend.map((r) => r.year)} exam="keystone" smUp={smUp} />
+        <TrendCard title="PSSA proficient or above" subtitle="All districts in the county, weighted by students tested" data={pssaTrend} series={['Mathematics', 'English Language Arts', 'Science']} years={pssaYears} exam="pssa" />
+        <TrendCard title="Keystone proficient or above" subtitle="All districts in the county, weighted by students tested" data={keystoneTrend} series={['Algebra I', 'Biology', 'Literature']} years={keystoneTrend.filter((r: any) => Object.keys(r).length > 1).map((r) => r.year)} exam="keystone" />
       </div>
 
       <div className="mb-8 space-y-4">

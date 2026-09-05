@@ -15,17 +15,18 @@ import {
   fillYearGaps, standardsChangeLine, covidGapArea, CHART_COLORS, tooltipStyle, formatPct,
 } from '../lib/chartUtils';
 
-const PSSA_SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
-const KEYSTONE_SUBJECTS = ['Algebra I', 'Biology', 'Literature'];
+import { SUBJECTS, isExam, type Exam } from '../lib/constants';
+import AccessibleChart from '../components/AccessibleChart';
+import QueryState from '../components/QueryState';
+
 type Level = 'state' | 'district' | 'school';
-type Exam = 'pssa' | 'keystone';
 
 const LEVEL_NOUN: Record<Level, string> = { state: 'statewide', district: 'districts', school: 'schools' };
 
 export default function TrendsPage() {
   const [level, setLevel] = useUrlState<Level>('level', 'state', (r) => (['state', 'district', 'school'].includes(r) ? (r as Level) : null));
-  const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
-  const subjects = examType === 'pssa' ? PSSA_SUBJECTS : KEYSTONE_SUBJECTS;
+  const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (isExam(r) ? r : null));
+  const subjects = SUBJECTS[examType];
   const [subjectParam, setSubject] = useUrlState<string>('subject', subjects[0], parseString);
   const subject = subjects.includes(subjectParam) ? subjectParam : subjects[0];
   const [grade, setGrade] = useUrlState<number | null>('grade', null, parseNumber, (v) => (v == null ? '' : String(v)));
@@ -40,7 +41,7 @@ export default function TrendsPage() {
   const bigChartHeight = smUp ? 400 : 300;
   useDocumentTitle(`${subject} trends, ${LEVEL_NOUN[level]}`, `How ${subject} proficiency has changed across Pennsylvania ${LEVEL_NOUN[level]} since ${earliest ?? 2015}.`);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['summary', examType, level, subject, grade, earliest, latest],
     queryFn: () => performanceApi.getSummary({
       exam: examType,
@@ -102,18 +103,8 @@ export default function TrendsPage() {
         )}
       </div>
 
-      {isLoading || series.length === 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className={`card-surface p-6 ${isLoading ? 'animate-pulse' : ''}`}>
-              <div className="h-4 bg-stone-200 rounded w-3/4 mb-4" />
-              <div className="h-48 bg-stone-100 rounded flex items-center justify-center text-sm text-stone-400">
-                {isLoading ? '' : 'No results for this selection'}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+      <QueryState isLoading={isLoading || (earliest == null && !error)} error={error} empty={!isLoading && series.length === 0} emptyMessage="No results for this selection." onRetry={() => refetch()} loadingMessage="Loading trends...">
+      {series.length > 0 && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="card-surface p-5">
@@ -144,6 +135,7 @@ export default function TrendsPage() {
 
           <div className="card-surface p-4 sm:p-6">
             <h2 className="text-base font-semibold text-stone-900 mb-4">Proficient or above{yearRange ? ` (${yearRange})` : ''}</h2>
+            <AccessibleChart label={`${subject} proficient or above, ${LEVEL_NOUN[level]}, by year`} rows={series.map((d) => ({ year: d.year, proficiency: d.proficiency, tested: d.tested }))} columns={[{ key: 'year', label: 'Year' }, { key: 'proficiency', label: '% proficient or above' }, { key: 'tested', label: 'Students tested' }]}>
             <ResponsiveContainer width="100%" height={bigChartHeight}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -155,6 +147,7 @@ export default function TrendsPage() {
                 <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} name="Proficient or above" />
               </LineChart>
             </ResponsiveContainer>
+            </AccessibleChart>
           </div>
 
           {hasLevels && (
@@ -197,6 +190,7 @@ export default function TrendsPage() {
           )}
         </div>
       )}
+      </QueryState>
     </div>
   );
 }

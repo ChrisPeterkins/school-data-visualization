@@ -2,7 +2,7 @@
 # Build and deploy both apps with a rollback path, then smoke-test the live site.
 #
 #   scripts/deploy.sh            # build, deploy, restart, smoke check
-#   scripts/deploy.sh --layout   # also run the Playwright layout check
+#   scripts/deploy.sh --e2e      # also run the Playwright end-to-end checks
 #   scripts/deploy.sh --rollback # restore the previous frontend build
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -40,8 +40,8 @@ for u in "" "api/health" "api/performance/years" "api/schools?limit=1" "sitemap.
   [[ "$code" == "200" ]] || { echo "smoke check failed on /$u; run scripts/deploy.sh --rollback"; exit 1; }
 done
 
-if [[ "${1:-}" == "--layout" ]]; then
-  echo "== layout check"
-  WIDTHS=375 node scripts/check-layout.mjs
+if [[ "${1:-}" == "--layout" || "${1:-}" == "--e2e" ]]; then
+  echo "== end-to-end checks against the live site"
+  BASE=https://chrispeterkins.com/paschools RESOLVE=127.0.0.1 PLAYWRIGHT_MODULES="$ROOT/node_modules" node scripts/e2e.mjs
 fi
 echo "deployed $(git rev-parse --short HEAD)"

@@ -5,9 +5,11 @@ import { performanceApi } from '../services/api';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import FilterSelect from './FilterSelect';
 import ExportCsvButton from './ExportCsvButton';
+import AccessibleChart from './AccessibleChart';
 import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle, formatPct, growthBand } from '../lib/chartUtils';
 
-type Exam = 'pssa' | 'keystone';
+import { SUBJECTS, GROUPS as GROUP_ORDER, GROUP_LABEL as SHORT, type Exam } from '../lib/constants';
+
 interface GapsPanelProps {
   level: 'school' | 'district' | 'state';
   schoolId?: number;
@@ -18,26 +20,6 @@ interface GapsPanelProps {
   year?: number;
 }
 
-const SUBJECTS: Record<Exam, string[]> = {
-  pssa: ['Mathematics', 'English Language Arts', 'Science'],
-  keystone: ['Algebra I', 'Biology', 'Literature'],
-};
-
-/** Display order: the whole population, then program groups, then race/ethnicity, then sex. */
-const GROUP_ORDER = [
-  'All Students', 'Economically Disadvantaged', 'IEP', 'ELL', 'Historically Underperforming',
-  'White (not Hispanic)', 'Black or African American (not Hispanic)', 'Hispanic (any race)', 'Asian (not Hispanic)',
-  'Multi-ethnic (not Hispanic)', 'American Indian/Alaskan Native (not Hispanic)', 'Native Hawaiian or other Pacific Islander (not Hispanic)',
-  'Male', 'Female',
-];
-const SHORT: Record<string, string> = {
-  'Economically Disadvantaged': 'Econ. disadvantaged', 'IEP': 'Students with IEPs', 'ELL': 'English learners',
-  'White (not Hispanic)': 'White', 'Black or African American (not Hispanic)': 'Black', 'Hispanic (any race)': 'Hispanic',
-  'Asian (not Hispanic)': 'Asian', 'Multi-ethnic (not Hispanic)': 'Multi-ethnic',
-  'American Indian/Alaskan Native (not Hispanic)': 'American Indian / Alaska Native',
-  'Native Hawaiian or other Pacific Islander (not Hispanic)': 'Native Hawaiian / Pacific Islander',
-  'Historically Underperforming': 'Historically underperforming',
-};
 const TREND_GROUPS = ['All Students', 'Economically Disadvantaged', 'IEP', 'ELL', 'White (not Hispanic)', 'Black or African American (not Hispanic)', 'Hispanic (any race)'];
 const TREND_COLORS: Record<string, string> = {
   'All Students': '#1b2a4a', 'Economically Disadvantaged': '#d4aa3c', 'IEP': '#7a9bb5', 'ELL': '#27ab83',
@@ -157,6 +139,7 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
             <div className="card-surface p-4 sm:p-6">
               <h3 className="text-base font-semibold text-stone-900 mb-1">{subject} proficiency by group over time</h3>
               <p className="text-xs text-stone-400 mb-4">The largest groups; a widening spread between lines is a widening gap</p>
+              <AccessibleChart label={`${subject} proficiency by student group over time`} rows={trendRows.filter((r) => Object.keys(r).length > 1)}>
               <ResponsiveContainer width="100%" height={smUp ? 320 : 260}>
                 <LineChart data={trendRows}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -171,6 +154,7 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+              </AccessibleChart>
             </div>
           )}
         </>

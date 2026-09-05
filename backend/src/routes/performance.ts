@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { db, sqliteDb } from '../db';
 import { buildDataStatus } from '../services/dataStatus';
-import { pssaResults, keystoneResults, schools, districts, counties } from '../db/newSchema';
+import { pssaResults, keystoneResults, schools, districts } from '../db/newSchema';
 import { cache } from '../cache';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
 
@@ -718,109 +718,97 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   const rankingsQuerySchema = z.object({
     year: z.coerce.number(),
     examType: z.enum(['pssa', 'keystone']),
+    /** Rank schools (default), districts, or counties. */
+    entity: z.enum(['school', 'district', 'county']).optional().default('school'),
+    /** Rank by the level, or by change since `compareYear` (default: the previous available year). */
+    mode: z.enum(['level', 'change']).optional().default('level'),
+    compareYear: z.coerce.number().optional(),
     subject: z.string().optional(),
     grade: z.coerce.number().optional(),
     countyId: z.coerce.number().optional(),
     schoolType: z.string().optional(),
     demographicGroup: z.string().optional().default('All Students'),
     limit: z.coerce.number().min(5).max(50).optional().default(10),
-    /** A school needs at least this many students tested across the matched rows to be ranked. */
+    /** An entity needs at least this many students tested across the matched rows to be ranked. */
     minTested: z.coerce.number().min(1).optional().default(40),
   });
 
   fastify.get('/rankings', async (request, _reply) => {
     const query = rankingsQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('rankings', JSON.stringify(query));
-
     const cached = await cache.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const isPssa = query.examType === 'pssa';
-    const resultsTable = isPssa ? pssaResults : keystoneResults;
+    const table = isPssa ? 'pssa_results' : 'keystone_results';
+    const level = query.entity === 'school' ? 'school' : 'district';
 
-    // Build conditions
-    const conditions = [
-      eq(resultsTable.level, 'school'),
-      eq(resultsTable.year, query.year),
-      eq(resultsTable.demographicGroup, query.demographicGroup),
-      sql`${resultsTable.proficientOrAbovePercent} IS NOT NULL`,
-      sql`${resultsTable.schoolId} IS NOT NULL`,
-      sql`${resultsTable.totalTested} >= 10`,
-    ];
-
-    if (query.subject) conditions.push(eq(resultsTable.subject, query.subject));
-    // PSSA: a specific grade, otherwise the school's all-grades total (grade 0)
-    // so a school is one row per subject rather than one per grade.
-    if (isPssa) conditions.push(eq(pssaResults.grade, query.grade || 0));
-    if (query.countyId) conditions.push(eq(districts.countyId, query.countyId));
-    if (query.schoolType) conditions.push(eq(schools.schoolType, query.schoolType));
-
-    // Build the base select
-    const buildRankingQuery = (order: 'asc' | 'desc') => {
-      return db
-        .select({
-          schoolId: schools.id,
-          schoolName: schools.name,
-          schoolType: schools.schoolType,
-          districtName: districts.name,
-          countyName: counties.name,
-          city: schools.city,
-          // Weighted by students tested so subjects with more test-takers count more.
-          avgProficiency: sql<number>`ROUND(SUM(${resultsTable.proficientOrAbovePercent} * ${resultsTable.totalTested}) * 1.0 / SUM(${resultsTable.totalTested}), 1)`.as('avg_proficiency'),
-          totalTested: sql<number>`SUM(${resultsTable.totalTested})`.as('total_tested'),
-          subjectCount: sql<number>`COUNT(DISTINCT ${resultsTable.subject})`.as('subject_count'),
-          avgGrowth: sql<number | null>`ROUND(AVG(${resultsTable.growthScore}), 2)`.as('avg_growth'),
-        })
-        .from(resultsTable)
-        .innerJoin(schools, eq(resultsTable.schoolId, schools.id))
-        .innerJoin(districts, eq(schools.districtId, districts.id))
-        .innerJoin(counties, eq(districts.countyId, counties.id))
-        .where(and(...conditions))
-        .groupBy(resultsTable.schoolId)
-        .having(sql`SUM(${resultsTable.totalTested}) >= ${query.minTested}`)
-        .orderBy(order === 'desc' ? desc(sql`avg_proficiency`) : asc(sql`avg_proficiency`))
-        .limit(query.limit);
+    // Student-weighted proficiency per entity for one year, with the same filters.
+    const perEntity = (year: number) => {
+      const where: string[] = ['r.level = ?', 'r.year = ?', 'r.demographic_group = ?', 'r.proficient_or_above_percent IS NOT NULL', 'r.total_tested > 0'];
+      const args: (string | number)[] = [level, year, query.demographicGroup];
+      if (isPssa) { where.push('r.grade = ?'); args.push(query.grade || 0); }
+      if (query.subject) { where.push('r.subject = ?'); args.push(query.subject); }
+      if (query.countyId) { where.push('d.county_id = ?'); args.push(query.countyId); }
+      if (query.entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
+      if (query.entity === 'school') where.push('s.is_active = 1');
+      const idExpr = query.entity === 'school' ? 's.id' : query.entity === 'district' ? 'd.id' : 'd.county_id';
+      const nameSql = query.entity === 'school'
+        ? 's.name AS name, s.school_type AS schoolType, d.name AS districtName, c.name AS countyName, s.city AS city'
+        : query.entity === 'district'
+          ? 'd.name AS name, NULL AS schoolType, NULL AS districtName, c.name AS countyName, d.city AS city'
+          : "c.name || ' County' AS name, NULL AS schoolType, NULL AS districtName, c.name AS countyName, NULL AS city";
+      const joins = query.entity === 'school'
+        ? 'JOIN schools s ON s.id = r.school_id JOIN districts d ON d.id = s.district_id JOIN counties c ON c.id = d.county_id'
+        : 'JOIN districts d ON d.id = r.district_id JOIN counties c ON c.id = d.county_id';
+      return sqliteDb.prepare(`
+        SELECT ${idExpr} AS id, ${nameSql},
+          ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested), 1) AS avgProficiency,
+          SUM(r.total_tested) AS totalTested,
+          COUNT(DISTINCT r.subject) AS subjectCount,
+          ROUND(AVG(r.growth_score), 2) AS avgGrowth
+        FROM ${table} r ${joins}
+        WHERE ${where.join(' AND ')}
+        GROUP BY ${idExpr}
+        HAVING SUM(r.total_tested) >= ?
+      `).all(...args, query.minTested) as Array<any>;
     };
 
-    // State average query
-    const stateConditions = [
-      eq(resultsTable.level, 'state'),
-      eq(resultsTable.year, query.year),
-      eq(resultsTable.demographicGroup, query.demographicGroup),
-      sql`${resultsTable.proficientOrAbovePercent} IS NOT NULL`,
-    ];
-    if (query.subject) stateConditions.push(eq(resultsTable.subject, query.subject));
-    if (isPssa) stateConditions.push(eq(pssaResults.grade, query.grade || 0));
+    let rows = perEntity(query.year);
+    let compareYear: number | null = null;
+    if (query.mode === 'change') {
+      compareYear = query.compareYear ?? (sqliteDb.prepare(`SELECT MAX(year) AS y FROM ${table} WHERE year < ?`).get(query.year) as any)?.y ?? null;
+      if (compareYear) {
+        const prev = new Map(perEntity(compareYear).map((r) => [r.id, r.avgProficiency as number]));
+        rows = rows
+          .filter((r) => prev.has(r.id))
+          .map((r) => ({ ...r, previousProficiency: prev.get(r.id), change: Math.round((r.avgProficiency - prev.get(r.id)!) * 10) / 10 }));
+      } else {
+        rows = [];
+      }
+    }
+    const key = query.mode === 'change' ? 'change' : 'avgProficiency';
+    const sorted = rows.slice().sort((a, b) => b[key] - a[key]);
+    // schoolId/schoolName are kept as aliases so older clients and the CSV columns still work.
+    const top = sorted.slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
+    const bottom = sorted.slice().reverse().slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
 
-    const [topSchools, bottomSchools, stateAvgResult] = await Promise.all([
-      buildRankingQuery('desc'),
-      buildRankingQuery('asc'),
-      db.select({
-        avg: sql<number>`ROUND(SUM(${resultsTable.proficientOrAbovePercent} * ${resultsTable.totalTested}) * 1.0 / SUM(${resultsTable.totalTested}), 1)`,
-      })
-      .from(resultsTable)
-      .where(and(...stateConditions)),
-    ]);
-
-    const response = {
-      filters: {
-        year: query.year,
-        examType: query.examType,
-        subject: query.subject || null,
-        grade: query.grade || null,
-        countyId: query.countyId || null,
-        schoolType: query.schoolType || null,
-        demographicGroup: query.demographicGroup,
-        limit: query.limit,
-        minTested: query.minTested,
-      },
-      top: topSchools.map((s, i) => ({ rank: i + 1, ...s })),
-      bottom: bottomSchools.map((s, i) => ({ rank: i + 1, ...s })),
-      stateAverage: stateAvgResult[0]?.avg ?? null,
+    // Statewide figure for the same subject/grade/group (and the compare year's, for change mode).
+    const stateFor = (year: number): number | null => {
+      const where: string[] = ["level = 'state'", 'year = ?', 'demographic_group = ?', 'proficient_or_above_percent IS NOT NULL'];
+      const args: (string | number)[] = [year, query.demographicGroup];
+      if (query.subject) { where.push('subject = ?'); args.push(query.subject); }
+      if (isPssa) { where.push('grade = ?'); args.push(query.grade || 0); }
+      return (sqliteDb.prepare(`
+        SELECT ROUND(SUM(proficient_or_above_percent * CASE WHEN total_tested > 0 THEN total_tested ELSE 1 END) * 1.0 / SUM(CASE WHEN total_tested > 0 THEN total_tested ELSE 1 END), 1) AS avg
+        FROM ${table} WHERE ${where.join(' AND ')}
+      `).get(...args) as any)?.avg ?? null;
     };
+    const stateAverage = stateFor(query.year);
+    const statePrev = compareYear ? stateFor(compareYear) : null;
+    const stateChange = stateAverage != null && statePrev != null ? Math.round((stateAverage - statePrev) * 10) / 10 : null;
 
+    const response = { filters: { ...query, compareYear, ranked: rows.length }, top, bottom, stateAverage, stateChange };
     await cache.set(cacheKey, response, 1800);
     return response;
   });

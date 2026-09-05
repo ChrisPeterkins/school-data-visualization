@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import GlobalSearch from './GlobalSearch';
+import ErrorBoundary from './ErrorBoundary';
 import {
   BuildingLibraryIcon,
   AcademicCapIcon,
@@ -133,7 +134,9 @@ export default function Layout() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            <Outlet />
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>

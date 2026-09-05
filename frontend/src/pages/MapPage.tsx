@@ -16,15 +16,11 @@ import PercentileBadges from '../components/PercentileBadges';
 import DetailSheet from '../components/map/DetailSheet';
 import { formatPct, growthBand, fillYearGaps, tooltipStyle } from '../lib/chartUtils';
 
-type Exam = 'pssa' | 'keystone';
+import { SUBJECTS, SUBJECT_SHORT as SHORT_SUBJECT, isExam, type Exam } from '../lib/constants';
+
 type Metric = 'proficiency' | 'growth' | 'quadrant';
-const SUBJECTS: Record<Exam, string[]> = {
-  pssa: ['Mathematics', 'English Language Arts', 'Science'],
-  keystone: ['Algebra I', 'Biology', 'Literature'],
-};
 const PA_CENTER: [number, number] = [40.9, -77.75];
 const PA_ZOOM = 7;
-const SHORT_SUBJECT: Record<string, string> = { 'Mathematics': 'Math', 'English Language Arts': 'ELA', 'Science': 'Science', 'Algebra I': 'Algebra I', 'Biology': 'Biology', 'Literature': 'Literature' };
 const NO_RESULT = '#f5f5f4';
 
 // Sequential navy ramp for proficiency; diverging brick/gold/grey/navy for growth.
@@ -114,7 +110,7 @@ export default function MapPage() {
   const { latest } = availableYears;
   const [yearParam, setYear] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const year = yearParam ?? latest;
-  const [exam, setExam] = useUrlState<Exam>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const [exam, setExam] = useUrlState<Exam>('exam', 'pssa', (r) => (isExam(r) ? r : null));
   const years = yearsForExam(availableYears, exam);
   const [subjectParam, setSubject] = useUrlState<string>('subject', SUBJECTS[exam][0], parseString);
   const subject = SUBJECTS[exam].includes(subjectParam) ? subjectParam : SUBJECTS[exam][0];

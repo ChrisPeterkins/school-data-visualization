@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ScatterChart, Scatter,
@@ -12,28 +12,16 @@ import { useUrlState, parseNumber, parseNumberList, parseString } from '../hooks
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import FilterSelect from '../components/FilterSelect';
 import ExportCsvButton from '../components/ExportCsvButton';
-import { tooltipStyle, formatPct, growthBand, CHART_COLORS } from '../lib/chartUtils';
+import TrendCard from '../components/TrendCard';
+import AccessibleChart from '../components/AccessibleChart';
+import { tooltipStyle, formatPct, growthBand, CHART_COLORS, fillYearGaps } from '../lib/chartUtils';
+import { SUBJECTS, SUBJECT_SHORT as SHORT, GROUPS as ALL_GROUPS, groupLabel as labelFor, isExam, type Exam, type Entity } from '../lib/constants';
 
 const COMPARE_COLORS = ['#2d4a6f', '#27ab83', '#c53030', '#4a6d8c', '#199473'];
 const STATE_COLOR = CHART_COLORS.gold;
-type Exam = 'pssa' | 'keystone';
-type Entity = 'school' | 'district';
-const SUBJECTS: Record<Exam, string[]> = {
-  pssa: ['Mathematics', 'English Language Arts', 'Science'],
-  keystone: ['Algebra I', 'Biology', 'Literature'],
-};
-const SHORT: Record<string, string> = {
-  'Mathematics': 'Math', 'English Language Arts': 'ELA', 'Science': 'Science',
-  'Algebra I': 'Algebra I', 'Biology': 'Biology', 'Literature': 'Literature',
-};
-const GROUPS = [
-  'All Students', 'Economically Disadvantaged', 'IEP', 'ELL', 'White (not Hispanic)', 'Black or African American (not Hispanic)',
-  'Hispanic (any race)', 'Asian (not Hispanic)', 'Multi-ethnic (not Hispanic)', 'Male', 'Female',
-];
-const GROUP_LABEL: Record<string, string> = {
-  'IEP': 'Students with IEPs', 'ELL': 'English learners', 'White (not Hispanic)': 'White', 'Black or African American (not Hispanic)': 'Black',
-  'Hispanic (any race)': 'Hispanic', 'Asian (not Hispanic)': 'Asian', 'Multi-ethnic (not Hispanic)': 'Multi-ethnic',
-};
+type View = 'snapshot' | 'trend';
+// Groups PDE reports for nearly every entity; the rarer ones are usually suppressed.
+const GROUPS = ALL_GROUPS.filter((g) => !['Historically Underperforming', 'American Indian/Alaskan Native (not Hispanic)', 'Native Hawaiian or other Pacific Islander (not Hispanic)'].includes(g));
 
 export default function ComparePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,10 +33,12 @@ export default function ComparePage() {
   const [entity, setEntityParam] = useUrlState<Entity>('entity', 'school', (r) => (r === 'school' || r === 'district' ? r : null));
   const [ids, setIds] = useUrlState<number[]>(entity === 'school' ? 'schools' : 'districts', [], parseNumberList, (v) => v.join(','));
   const [yearParam, setYearParam] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
-  const [examParam, setExamParam] = useUrlState<Exam | null>('exam', null, (r) => (r === 'pssa' || r === 'keystone' ? r : null), (v) => v ?? '');
+  const [examParam, setExamParam] = useUrlState<Exam | null>('exam', null, (r) => (isExam(r) ? r : null), (v) => v ?? '');
   const [groupParam, setGroup] = useUrlState<string>('group', 'All Students', parseString);
   const group = GROUPS.includes(groupParam) ? groupParam : 'All Students';
   const year = yearParam ?? latest;
+  const [view, setView] = useUrlState<View>('view', 'snapshot', (r) => (r === 'snapshot' || r === 'trend' ? r : null));
+  const [trendSubjectParam, setTrendSubject] = useUrlState<string>('subject', '', parseString);
 
   const { data: searchResults } = useQuery({
     queryKey: ['compare-search', entity, searchTerm],
@@ -114,7 +104,26 @@ export default function ComparePage() {
   const stateSeries = subjects.filter((s) => stateBySubject[s] != null).map((s) => ({ subject: SHORT[s], value: stateBySubject[s] }));
   const stateAverage = stateSeries.length ? stateSeries.reduce((s, d) => s + d.value, 0) / stateSeries.length : NaN;
   const noData = figures.length > 0 && figures.every((f) => Object.keys(f.subjects).length === 0);
-  const groupLabel = GROUP_LABEL[group] ?? group;
+  const groupLabel = labelFor(group);
+
+  // Over-time view: one weighted series per entity for a subject and group.
+  const trendSubject = subjects.includes(trendSubjectParam) ? trendSubjectParam : subjects[0];
+  const trendQueries = useQueries({
+    queries: figures.map((f) => ({
+      queryKey: ['summary', exam, entity, f.id, trendSubject, group],
+      queryFn: () => performanceApi.getSummary({ exam, level: entity, subject: trendSubject, ...(entity === 'school' ? { schoolId: f.id } : { districtId: f.id }), ...(group !== 'All Students' ? { demographicGroup: group } as any : {}) }),
+      enabled: view === 'trend',
+      staleTime: 60 * 60 * 1000,
+    })),
+  });
+  const trendByYear: Record<number, any> = {};
+  trendQueries.forEach((q, i) => (q.data?.series ?? []).forEach((p) => {
+    trendByYear[p.year] = trendByYear[p.year] ?? { year: p.year };
+    trendByYear[p.year][figures[i].name] = p.proficiency;
+  }));
+  const trendRows = fillYearGaps(Object.values(trendByYear).sort((a, b) => a.year - b.year));
+  const trendYears = Object.keys(trendByYear).map(Number);
+  const trendColors = Object.fromEntries(figures.map((f, i) => [f.name, COMPARE_COLORS[i]]));
   const meanGrowth = (f: typeof figures[number]) => {
     const g = subjects.map((s) => f.subjects[s]?.growth).filter((v): v is number => v != null);
     return g.length ? g.reduce((a, b) => a + b, 0) / g.length : null;
@@ -144,8 +153,17 @@ export default function ComparePage() {
             <option value="keystone">Keystone (high school)</option>
           </FilterSelect>
           <FilterSelect label="Student group" value={group} onChange={(e) => setGroup(e.target.value)} fluid={false}>
-            {GROUPS.map((g) => <option key={g} value={g}>{GROUP_LABEL[g] ?? g}</option>)}
+            {GROUPS.map((g) => <option key={g} value={g}>{labelFor(g)}</option>)}
           </FilterSelect>
+          <div className="inline-flex rounded-lg border border-stone-200 text-sm font-medium overflow-hidden self-end" role="group" aria-label="View">
+            <button onClick={() => setView('snapshot')} aria-pressed={view === 'snapshot'} className={`px-3 py-2 ${view === 'snapshot' ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>{year} snapshot</button>
+            <button onClick={() => setView('trend')} aria-pressed={view === 'trend'} className={`px-3 py-2 border-l border-stone-200 ${view === 'trend' ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>Over time</button>
+          </div>
+          {view === 'trend' && (
+            <FilterSelect label="Subject" value={trendSubject} onChange={(e) => setTrendSubject(e.target.value)} fluid={false}>
+              {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+            </FilterSelect>
+          )}
           <button
             onClick={() => setShowSearch(true)}
             disabled={ids.length >= 5}
@@ -210,11 +228,27 @@ export default function ComparePage() {
           None of the selected {entity}s have {exam === 'pssa' ? 'PSSA' : 'Keystone'} results for {groupLabel} in {year}.
           {exam === 'pssa' ? ' High schools report Keystone exams; switch the exam above.' : ''} Groups under 11 students are suppressed by PDE.
         </div>
+      ) : view === 'trend' ? (
+        trendRows.length > 1 ? (
+          <TrendCard
+            title={`${trendSubject} proficient or above, ${labelFor(group)}`}
+            subtitle={`Each line is one ${entity}, all grades, weighted by students tested`}
+            data={trendRows}
+            series={figures.map((f) => f.name)}
+            years={trendYears}
+            exam={exam}
+            colors={trendColors}
+            height={smUp ? 400 : 300}
+          />
+        ) : (
+          <div className="card-surface p-12 text-center text-sm text-stone-400">{trendQueries.some((q) => q.isLoading) ? 'Loading…' : `No ${trendSubject} results for ${labelFor(group)} over time.`}</div>
+        )
       ) : figures.length > 0 && (
         <div className="space-y-6">
           <div className="card-surface p-4 sm:p-6">
             <h2 className="text-base font-semibold text-stone-900 mb-1">Proficient or above by subject ({year})</h2>
             <p className="text-xs text-stone-400 mb-4">{groupLabel}, all grades</p>
+            <AccessibleChart label={`Proficient or above by subject, ${groupLabel}, ${year}`} rows={barData}>
             <ResponsiveContainer width="100%" height={smUp ? 400 : 300}>
               <BarChart data={barData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
@@ -225,6 +259,7 @@ export default function ComparePage() {
                 {figures.map((f, index) => <Bar key={f.id} dataKey={f.name} fill={COMPARE_COLORS[index]} radius={[4, 4, 0, 0]} />)}
               </BarChart>
             </ResponsiveContainer>
+            </AccessibleChart>
           </div>
 
           <div className="card-surface p-4 sm:p-6">

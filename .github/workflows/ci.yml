@@ -21,3 +21,31 @@ jobs:
         run: npm run typecheck --workspaces --if-present
       - name: Test
         run: npm test --workspaces --if-present
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build -w shared && npm run build -w backend && (cd frontend && npx vite build)
+      - name: Start backend on the fixture database
+        run: |
+          gunzip -kf backend/fixtures/fixture.db.gz
+          cd backend && DATABASE_PATH=fixtures/fixture.db NODE_ENV=production PORT=3000 CORS_ORIGIN=http://localhost:4173 nohup node dist/index.js > ../backend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break; sleep 1; done
+      - name: Serve frontend
+        run: |
+          cd frontend && nohup npx vite preview --port 4173 > ../preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/paschools/ > /dev/null && break; sleep 1; done
+      - name: End-to-end checks
+        run: BASE=http://localhost:4173/paschools SCHOOL_ID=1 PLAYWRIGHT_MODULES=$PWD/node_modules node scripts/e2e.mjs
+      - name: Logs on failure
+        if: failure()
+        run: tail -50 backend.log preview.log

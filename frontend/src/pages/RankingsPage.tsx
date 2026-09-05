@@ -14,9 +14,11 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ExportCsvButton from '../components/ExportCsvButton';
 import { CHART_COLORS, tooltipStyle, growthBand } from '../lib/chartUtils';
 
-type Exam = 'pssa' | 'keystone';
-const PSSA_SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
-const KEYSTONE_SUBJECTS = ['Algebra I', 'Biology', 'Literature'];
+import { SUBJECTS, isExam, type Exam } from '../lib/constants';
+import QueryState from '../components/QueryState';
+
+type RankEntity = 'school' | 'district' | 'county';
+type Mode = 'level' | 'change';
 
 export default function RankingsPage() {
   const availableYears = useAvailableYears();
@@ -25,8 +27,11 @@ export default function RankingsPage() {
 
   const [yearParam, setYearParam] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const year = yearParam ?? latest;
-  const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (isExam(r) ? r : null));
   const years = yearsForExam(availableYears, examType);
+  const [entity, setEntity] = useUrlState<RankEntity>('entity', 'school', (r) => (['school', 'district', 'county'].includes(r) ? (r as RankEntity) : null));
+  const [mode, setMode] = useUrlState<Mode>('mode', 'level', (r) => (r === 'level' || r === 'change' ? r : null));
+  const [compareYearParam, setCompareYear] = useUrlState<number | null>('since', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const [subject, setSubject] = useUrlState<string>('subject', '', parseString);
   const [grade, setGrade] = useUrlState<number | ''>('grade', '', parseNumber, (v) => (v === '' ? '' : String(v)));
   const [schoolType, setSchoolType] = useUrlState<string>('type', '', parseString);
@@ -48,23 +53,28 @@ export default function RankingsPage() {
     subject: subject || undefined,
     grade: grade || undefined,
     countyId: countyId || undefined,
-    schoolType: schoolType || undefined,
+    schoolType: entity === 'school' && schoolType ? schoolType : undefined,
     minTested,
   };
 
-  const { data: rankings, isLoading } = useQuery({
-    queryKey: ['rankings', year, commonParams, limit],
-    queryFn: () => performanceApi.getRankings({ year: year!, ...commonParams, limit }),
+  const { data: rankings, isLoading, error, refetch } = useQuery({
+    queryKey: ['rankings', year, commonParams, limit, entity, mode, compareYearParam],
+    queryFn: () => performanceApi.getRankings({ year: year!, ...commonParams, limit, entity, mode, compareYear: compareYearParam ?? undefined } as any),
     enabled: year != null,
   });
+  const isChange = mode === 'change';
+  const compareYear: number | null = (rankings as any)?.filters?.compareYear ?? null;
+  const entityNoun = entity === 'school' ? 'schools' : entity === 'district' ? 'districts' : 'counties';
+  const pathFor = (id: number) => (entity === 'school' ? `/schools/${id}` : entity === 'district' ? `/districts/${id}` : `/counties/${id}`);
+  const metricOf = (s: any): number => (isChange ? s.change : s.avgProficiency);
 
   const { data: growthData } = useQuery({
     queryKey: ['growth-achievement', year, commonParams],
     queryFn: () => performanceApi.getGrowthAchievement({ year: year!, ...commonParams }),
-    enabled: year != null,
+    enabled: year != null && entity === 'school',
   });
 
-  const subjects = examType === 'pssa' ? PSSA_SUBJECTS : KEYSTONE_SUBJECTS;
+  const subjects = SUBJECTS[examType];
   useDocumentTitle(`School rankings${year ? `, ${year}` : ''}`, 'Highest and lowest proficiency Pennsylvania schools, with PVAAS growth.');
 
   // The category axis eats fixed width; phones get a narrower axis and shorter labels.
@@ -74,10 +84,11 @@ export default function RankingsPage() {
 
   const chartData = rankings
     ? [
-        ...rankings.top.map((s) => ({ name: shorten(s.schoolName), fullName: s.schoolName, value: s.avgProficiency, isTop: true })),
-        ...rankings.bottom.slice().reverse().map((s) => ({ name: shorten(s.schoolName), fullName: s.schoolName, value: s.avgProficiency, isTop: false })),
+        ...rankings.top.map((s: any) => ({ name: shorten(s.schoolName), fullName: s.schoolName, value: metricOf(s), isTop: true })),
+        ...rankings.bottom.slice().reverse().map((s: any) => ({ name: shorten(s.schoolName), fullName: s.schoolName, value: metricOf(s), isTop: false })),
       ]
     : [];
+  const changeExtent = Math.max(5, ...chartData.map((d) => Math.abs(d.value ?? 0)));
   const chartHeight = Math.max(400, chartData.length * 36 + 80);
 
   const points = growthData?.points ?? [];
@@ -88,9 +99,10 @@ export default function RankingsPage() {
     return CHART_COLORS.navyLight;
   };
 
-  const SchoolCard = ({ school, variant }: { school: NonNullable<typeof rankings>['top'][0]; variant: 'top' | 'bottom' }) => {
+  const SchoolCard = ({ school, variant }: { school: any; variant: 'top' | 'bottom' }) => {
     const isTop = variant === 'top';
     const band = growthBand(school.avgGrowth);
+    const sub = entity === 'school' ? `${school.districtName} · ${school.countyName}` : entity === 'district' ? `${school.countyName} County${school.city ? ` · ${school.city}` : ''}` : 'County';
     return (
       <div className="card-surface p-4">
         <div className="flex items-start gap-3">
@@ -99,19 +111,24 @@ export default function RankingsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Link to={`/schools/${school.schoolId}`} className="text-sm font-semibold text-stone-900 hover:text-navy-600 transition-colors truncate">
+              <Link to={pathFor(school.schoolId)} className="text-sm font-semibold text-stone-900 hover:text-navy-600 transition-colors truncate">
                 {school.schoolName}
               </Link>
-              <Link to={`/schools/${school.schoolId}`} className="flex-shrink-0 text-stone-400 hover:text-navy-500" aria-label={`Open ${school.schoolName}`}>
+              <Link to={pathFor(school.schoolId)} className="flex-shrink-0 text-stone-400 hover:text-navy-500" aria-label={`Open ${school.schoolName}`}>
                 <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
               </Link>
             </div>
-            <p className="text-xs text-stone-500 truncate">{school.districtName} &middot; {school.countyName}</p>
+            <p className="text-xs text-stone-500 truncate">{sub}</p>
             <div className="mt-2 flex items-center gap-3">
               <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${isTop ? 'bg-navy-600' : 'bg-navy-300'}`} style={{ width: `${school.avgProficiency}%` }} />
               </div>
               <span className="text-sm font-bold tabular-nums text-stone-900">{school.avgProficiency}%</span>
+              {isChange && (
+                <span className={`text-sm font-semibold tabular-nums ${school.change >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>
+                  {school.change > 0 ? '+' : ''}{school.change} pts
+                </span>
+              )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
               <span className="flex items-center gap-1">
@@ -132,14 +149,30 @@ export default function RankingsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">School Rankings</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Rankings</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Share of students proficient or above, weighted by students tested. Schools below the minimum tested are left out.
+          {isChange
+            ? `Change in the share of students proficient or above${compareYear ? ` since ${compareYear}` : ''}, weighted by students tested. Most improved and most declined ${entityNoun}.`
+            : `Share of students proficient or above, weighted by students tested. ${entityNoun[0].toUpperCase() + entityNoun.slice(1)} below the minimum tested are left out.`}
         </p>
       </div>
 
       <div className="card-surface p-4 mb-8">
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+          <FilterSelect label="Rank" value={entity} onChange={(e) => setEntity(e.target.value as RankEntity)}>
+            <option value="school">Schools</option>
+            <option value="district">Districts</option>
+            <option value="county">Counties</option>
+          </FilterSelect>
+          <FilterSelect label="By" value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
+            <option value="level">Proficiency</option>
+            <option value="change">Change since a year</option>
+          </FilterSelect>
+          {isChange && (
+            <FilterSelect label="Since" value={compareYearParam ?? compareYear ?? ''} onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}>
+              {years.filter((y) => year == null || y < year).map((y) => <option key={y} value={y}>{y}</option>)}
+            </FilterSelect>
+          )}
           <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYearParam(Number(e.target.value))}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
@@ -157,10 +190,12 @@ export default function RankingsPage() {
               {[3, 4, 5, 6, 7, 8].map((g) => <option key={g} value={g}>Grade {g}</option>)}
             </FilterSelect>
           )}
-          <FilterSelect label="School Type" value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
-            <option value="">All Types</option>
-            {filterOptions?.schoolTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-          </FilterSelect>
+          {entity === 'school' && (
+            <FilterSelect label="School Type" value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
+              <option value="">All Types</option>
+              {filterOptions?.schoolTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </FilterSelect>
+          )}
           <FilterSelect label="County" value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
             <option value="">All Counties</option>
             {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -174,64 +209,67 @@ export default function RankingsPage() {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="card-surface p-12 text-center">
-          <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
-          <p className="mt-3 text-sm text-stone-500">Loading rankings...</p>
-        </div>
-      )}
-
-      {rankings && (
+      <QueryState isLoading={isLoading} error={error} empty={!!rankings && rankings.top.length === 0} emptyMessage={`No ${entityNoun} meet these filters${isChange && !compareYear ? ' (no earlier year to compare with)' : ''}.`} onRetry={() => refetch()} loadingMessage="Loading rankings...">
+      {rankings && rankings.top.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">Highest</p>
-              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{rankings.top[0]?.avgProficiency ?? 'N/A'}%</p>
+              <p className="text-sm text-stone-500">{isChange ? 'Most improved' : 'Highest'}</p>
+              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange ? `${metricOf(rankings.top[0]) > 0 ? '+' : ''}${metricOf(rankings.top[0])} pts` : `${rankings.top[0]?.avgProficiency ?? 'N/A'}%`}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.top[0]?.schoolName || 'N/A'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">State average</p>
-              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{rankings.stateAverage != null ? `${rankings.stateAverage}%` : 'N/A'}</p>
-              <p className="text-sm text-stone-700 mt-0.5">All students, same subject and grade</p>
+              <p className="text-sm text-stone-500">{isChange ? `Statewide change${compareYear ? ` since ${compareYear}` : ''}` : 'State average'}</p>
+              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
+                {isChange
+                  ? ((rankings as any).stateChange != null ? `${(rankings as any).stateChange > 0 ? '+' : ''}${(rankings as any).stateChange} pts` : 'N/A')
+                  : (rankings.stateAverage != null ? `${rankings.stateAverage}%` : 'N/A')}
+              </p>
+              <p className="text-sm text-stone-700 mt-0.5">{isChange ? `Now ${rankings.stateAverage ?? '—'}% proficient` : 'All students, same subject and grade'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">Lowest</p>
-              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{rankings.bottom[0]?.avgProficiency ?? 'N/A'}%</p>
+              <p className="text-sm text-stone-500">{isChange ? 'Most declined' : 'Lowest'}</p>
+              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange ? `${metricOf(rankings.bottom[0]) > 0 ? '+' : ''}${metricOf(rankings.bottom[0])} pts` : `${rankings.bottom[0]?.avgProficiency ?? 'N/A'}%`}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.bottom[0]?.schoolName || 'N/A'}</p>
             </div>
           </div>
 
           <div className="card-surface p-4 sm:p-6 mb-8">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">Proficiency Rankings</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-1">{isChange ? `Change in proficiency${compareYear ? `, ${compareYear} to ${year}` : ''}` : 'Proficiency Rankings'}</h2>
               <ExportCsvButton
-                filename={`rankings-${examType}-${subject || 'all-subjects'}-${year}`}
-                rows={[...rankings.top.map((r) => ({ list: 'highest', ...r })), ...rankings.bottom.map((r) => ({ list: 'lowest', ...r }))]}
-                columns={[{ key: 'list', label: 'List' }, { key: 'rank', label: 'Rank' }, { key: 'schoolName', label: 'School' }, { key: 'districtName', label: 'District' }, { key: 'countyName', label: 'County' }, { key: 'schoolType', label: 'Type' }, { key: 'avgProficiency', label: '% proficient or above' }, { key: 'avgGrowth', label: 'Growth index' }, { key: 'totalTested', label: 'Students tested' }]}
+                filename={`rankings-${entity}-${mode}-${examType}-${subject || 'all-subjects'}-${year}`}
+                rows={[...rankings.top.map((r: any) => ({ list: isChange ? 'most improved' : 'highest', ...r })), ...rankings.bottom.map((r: any) => ({ list: isChange ? 'most declined' : 'lowest', ...r }))]}
+                columns={[{ key: 'list', label: 'List' }, { key: 'rank', label: 'Rank' }, { key: 'schoolName', label: 'Name' }, { key: 'districtName', label: 'District' }, { key: 'countyName', label: 'County' }, { key: 'schoolType', label: 'Type' }, { key: 'avgProficiency', label: '% proficient or above' }, ...(isChange ? [{ key: 'previousProficiency', label: `% proficient in ${compareYear}` }, { key: 'change', label: 'Change (pts)' }] : []), { key: 'avgGrowth', label: 'Growth index' }, { key: 'totalTested', label: 'Students tested' }]}
               />
             </div>
             <p className="text-xs text-stone-400 mb-4">
-              Highest {rankings.top.length} and lowest {rankings.bottom.length} schools by % proficient or above
+              {isChange ? `Most improved ${rankings.top.length} and most declined ${rankings.bottom.length} ${entityNoun}, percentage points` : `Highest ${rankings.top.length} and lowest ${rankings.bottom.length} ${entityNoun} by % proficient or above`}
             </p>
             <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart layout="vertical" data={chartData} margin={{ left: smUp ? 10 : 0, right: smUp ? 30 : 16, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                <XAxis type="number" domain={isChange ? [-Math.ceil(changeExtent), Math.ceil(changeExtent)] : [0, 100]} tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => (isChange ? `${v > 0 ? '+' : ''}${v}` : `${v}%`)} />
                 <YAxis type="category" dataKey="name" width={axisWidth} tick={{ fontSize: smUp ? 11 : 10, fill: '#57534e' }} />
-                {rankings.stateAverage != null && (
+                {!isChange && rankings.stateAverage != null && (
                   <ReferenceLine x={rankings.stateAverage} stroke={CHART_COLORS.gold} strokeWidth={2} strokeDasharray="6 3"
                     label={{ value: `State Avg: ${rankings.stateAverage}%`, position: 'top', fill: CHART_COLORS.gold, fontSize: 11, fontWeight: 600 }} />
                 )}
-                <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}%`, 'Proficiency']}
+                {isChange && <ReferenceLine x={0} stroke="#a8a29e" />}
+                {isChange && (rankings as any).stateChange != null && (
+                  <ReferenceLine x={(rankings as any).stateChange} stroke={CHART_COLORS.gold} strokeWidth={2} strokeDasharray="6 3"
+                    label={{ value: `State: ${(rankings as any).stateChange > 0 ? '+' : ''}${(rankings as any).stateChange}`, position: 'top', fill: CHART_COLORS.gold, fontSize: 11, fontWeight: 600 }} />
+                )}
+                <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => (isChange ? [`${value > 0 ? '+' : ''}${value} pts`, 'Change'] : [`${value}%`, 'Proficiency'])}
                   labelFormatter={(label) => chartData.find((d) => d.name === label)?.fullName || label} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {chartData.map((entry, index) => <Cell key={index} fill={entry.isTop ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
+                  {chartData.map((entry, index) => <Cell key={index} fill={isChange ? (entry.value >= 0 ? CHART_COLORS.teal : CHART_COLORS.brick) : entry.isTop ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {points.length > 0 && (
+          {entity === 'school' && points.length > 0 && (
             <div className="card-surface p-4 sm:p-6 mb-8">
               <h2 className="text-base font-semibold text-stone-900 mb-1">Growth vs. achievement</h2>
               <p className="text-xs text-stone-400 mb-4">
@@ -270,13 +308,13 @@ export default function RankingsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Highest proficiency</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">{isChange ? 'Most improved' : 'Highest proficiency'}</h2>
               <div className="space-y-3">
                 {rankings.top.map((school) => <SchoolCard key={school.schoolId} school={school} variant="top" />)}
               </div>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Lowest proficiency</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">{isChange ? 'Most declined' : 'Lowest proficiency'}</h2>
               <div className="space-y-3">
                 {rankings.bottom.map((school) => <SchoolCard key={school.schoolId} school={school} variant="bottom" />)}
               </div>
@@ -284,6 +322,7 @@ export default function RankingsPage() {
           </div>
         </>
       )}
+      </QueryState>
     </div>
   );
 }

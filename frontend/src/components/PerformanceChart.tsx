@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import type { SchoolPerformanceTrends } from '@shared';
 import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle } from '../lib/chartUtils';
+import AccessibleChart from './AccessibleChart';
 
 interface PerformanceChartProps {
   data: SchoolPerformanceTrends;
@@ -29,6 +30,7 @@ function ChartCard({ title, chartData, years, exam, action }: { title: string; c
         <h3 className="text-base font-semibold text-stone-900">{title}</h3>
         {action}
       </div>
+      <AccessibleChart label={`${title} by year`} rows={chartData.filter((r) => Object.keys(r).length > 1)}>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -52,6 +54,7 @@ function ChartCard({ title, chartData, years, exam, action }: { title: string; c
           ))}
         </LineChart>
       </ResponsiveContainer>
+      </AccessibleChart>
     </div>
   );
 }
