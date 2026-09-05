@@ -36,3 +36,6 @@ Thumbs.db
 sources/**/.cache/
 data/
 backend/logs/
+
+# TypeScript incremental build state (stale copies make tsc skip emitting shared/dist on CI)
+*.tsbuildinfo
