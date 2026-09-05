@@ -281,7 +281,7 @@ export default function MapPage() {
       <div className="hidden sm:block card-surface p-4 mb-4">{filters}</div>
 
       <div className="relative card-surface sm:overflow-hidden rounded-none sm:rounded-xl border-x-0 sm:border-x">
-        <div className="absolute z-[1000] top-3 left-3 right-3 sm:left-14 sm:right-auto sm:w-80 flex gap-2">
+        <div className="absolute z-[1000] top-3 left-14 right-3 sm:right-auto sm:w-80 flex gap-2">
           <div className="relative flex-1">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
             <input
