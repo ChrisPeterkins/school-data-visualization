@@ -98,8 +98,9 @@ export interface SimilarSchool {
 }
 export interface MapPoint {
   id: number; name: string; lat: number; lng: number; type: string | null; enrollment: number | null;
-  districtName: string; countyId: number; proficiency: number | null; growth: number | null; tested: number | null;
+  districtId: number; countyId: number; proficiency: number | null; growth: number | null; tested: number | null;
 }
+export interface DistrictMapValue { id: number; ncesId: string | null; name: string; proficiency: number | null; growth: number | null; tested: number | null }
 export interface CountySummary { id: number; name: string; code: string; districtCount: number; schoolCount: number; enrollment: number | null }
 export interface CountyDetail extends Omit<CountySummary, 'districtCount' | 'schoolCount' | 'enrollment'> {
   districts: Array<{ id: number; name: string; enrollment: number | null; city: string | null; schoolCount: number }>;
@@ -125,6 +126,11 @@ export const districtApi = {
   getDistrict: async (id: string) => {
     const { data } = await api.get<District>(`/api/districts/${id}`);
     return data;
+  },
+
+  getMapValues: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string }) => {
+    const { data } = await api.get<{ districts: DistrictMapValue[] }>('/api/districts/map-values', { params });
+    return data.districts;
   },
 };
 

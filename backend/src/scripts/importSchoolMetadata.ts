@@ -25,7 +25,7 @@ interface CcdSchool {
   lowest_grade_offered: number | null; highest_grade_offered: number | null;
 }
 interface CcdDistrict {
-  state_leaid: string | null; lea_name: string; enrollment: number | null;
+  leaid: string | null; state_leaid: string | null; lea_name: string; enrollment: number | null;
   city_location: string | null; street_location?: string | null; zip_location?: string | null;
 }
 
@@ -147,7 +147,8 @@ async function main() {
   const districts = sqliteDb.prepare(`SELECT id, aun, name FROM districts`).all() as Array<{ id: number; aun: string; name: string }>;
   const updateDistrict = sqliteDb.prepare(`
     UPDATE districts SET total_enrollment = COALESCE(?, total_enrollment), city = COALESCE(?, city),
-      address = COALESCE(?, address), zip_code = COALESCE(?, zip_code), updated_at = CURRENT_TIMESTAMP
+      address = COALESCE(?, address), zip_code = COALESCE(?, zip_code), nces_id = COALESCE(?, nces_id),
+      updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
   let dMatched = 0;
@@ -159,7 +160,7 @@ async function main() {
       if (!dryRun) {
         updateDistrict.run(
           ccd.enrollment != null && ccd.enrollment >= 0 ? ccd.enrollment : null,
-          ccd.city_location, ccd.street_location ?? null, ccd.zip_location ?? null, d.id,
+          ccd.city_location, ccd.street_location ?? null, ccd.zip_location ?? null, ccd.leaid ?? null, d.id,
         );
       }
     }

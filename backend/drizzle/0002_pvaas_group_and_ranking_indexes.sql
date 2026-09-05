@@ -7,3 +7,4 @@ CREATE INDEX IF NOT EXISTS pvaas_group_idx ON pvaas_results(student_group);
 -- on level + year + group + grade and group by school.
 CREATE INDEX IF NOT EXISTS pssa_rank_idx ON pssa_results(level, year, demographic_group, grade, school_id);
 CREATE INDEX IF NOT EXISTS keystone_rank_idx ON keystone_results(level, year, demographic_group, school_id);
+ALTER TABLE districts ADD COLUMN nces_id TEXT;

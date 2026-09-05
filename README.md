@@ -12,7 +12,7 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **State-level Analytics**: Aggregate performance data at state level
 - **Growth**: PVAAS growth index on school and district results, rankings, and a growth-vs-achievement view
 - **Achievement gaps**: proficiency and growth by student group on state, county, district, and school pages
-- **Map**: every school on a Leaflet map colored by proficiency or growth
+- **Map**: every school on a clustered Leaflet map with district boundaries, colored by proficiency, growth, or growth-vs-achievement quadrant; search, locate, click-through detail panel, and a shareable viewport
 - **Counties** and **similar schools**: county pages roll up districts; each school page suggests comparable schools nearby
 - **Ops**: weekly PDE release check (cron), nightly rotated backups, coverage report on the admin page, CI on push
 - **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested

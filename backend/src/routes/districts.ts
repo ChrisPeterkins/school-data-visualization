@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { db } from '../db';
+import { db, sqliteDb } from '../db';
 import { districts, counties, schools, pssaResults, keystoneResults } from '../db/newSchema';
 import { cache } from '../cache';
 import { eq, like, and, sql, desc, asc } from 'drizzle-orm';
@@ -115,6 +115,37 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get district by ID with schools and performance data
+  /**
+   * One value per district for the map's boundary layer: student-weighted
+   * all-grades proficiency and mean growth for a year/exam/subject, keyed by
+   * district id and NCES id (which the Census boundary file uses).
+   */
+  fastify.get('/map-values', async (request, _reply) => {
+    const q = request.query as { year?: string; exam?: string; subject?: string };
+    const year = parseInt(q.year || '0', 10);
+    const exam = q.exam === 'keystone' ? 'keystone' : 'pssa';
+    const subject = q.subject || 'Mathematics';
+    const cacheKey = cache.generateKey('district-map-values', String(year), exam, subject);
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const rows = sqliteDb.prepare(`
+      SELECT d.id, d.nces_id AS ncesId, d.name,
+        ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / NULLIF(SUM(r.total_tested), 0), 1) AS proficiency,
+        ROUND(AVG(r.growth_score), 2) AS growth,
+        SUM(r.total_tested) AS tested
+      FROM ${table} r JOIN districts d ON d.id = r.district_id
+      WHERE r.level = 'district' AND r.year = ? AND r.subject = ? AND r.demographic_group = 'All Students'
+        AND r.proficient_or_above_percent IS NOT NULL ${exam === 'pssa' ? 'AND r.grade = 0' : ''}
+      GROUP BY d.id
+    `).all(year, subject);
+
+    const response = { year, exam, subject, districts: rows };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const cacheKey = cache.generateKey('district', id);

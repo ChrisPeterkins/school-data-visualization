@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db, sqliteDb } from '../db';
 import { schools, districts, counties, pssaResults, keystoneResults } from '../db/newSchema';
 import { cache } from '../cache';
+import { ensureMapPointsTable } from '../services/mapPoints';
 import { eq, like, and, sql, desc, asc } from 'drizzle-orm';
 
 const schoolQuerySchema = z.object({
@@ -95,6 +96,8 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         id: schools.id,
         schoolNumber: schools.schoolNumber,
         name: schools.name,
+        latitude: schools.latitude,
+        longitude: schools.longitude,
         type: schools.schoolType,
         districtId: schools.districtId,
         districtName: districts.name,
@@ -295,18 +298,18 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
-    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
-    const gradeClause = q.exam === 'pssa' ? 'AND r.grade = 0' : '';
+    ensureMapPointsTable();
+    // Precomputed per (year, exam, subject); names come along so the list and
+    // search work offline, district and address load on click.
     const points = sqliteDb.prepare(`
       SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
-             d.name AS districtName, d.county_id AS countyId,
-             r.proficient_or_above_percent AS proficiency, r.growth_score AS growth, r.total_tested AS tested
+             s.district_id AS districtId, d.county_id AS countyId,
+             p.proficiency, p.growth, p.tested
       FROM schools s
       JOIN districts d ON d.id = s.district_id
-      LEFT JOIN ${table} r ON r.school_id = s.id AND r.level = 'school' AND r.year = ? AND r.subject = ?
-        AND r.demographic_group = 'All Students' ${gradeClause}
+      LEFT JOIN school_map_points p ON p.school_id = s.id AND p.year = ? AND p.exam = ? AND p.subject = ?
       WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-    `).all(q.year, q.subject);
+    `).all(q.year, q.exam, q.subject);
 
     const response = { filters: q, points };
     await cache.set(cacheKey, response, 3600);

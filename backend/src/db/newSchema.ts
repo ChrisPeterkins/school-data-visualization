@@ -37,7 +37,8 @@ export const counties = sqliteTable('counties', {
 // DISTRICTS TABLE
 export const districts = sqliteTable('districts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  aun: text('aun').notNull().unique(), // Administrative Unit Number (e.g., "109420803")
+  aun: text('aun').notNull().unique(),
+  ncesId: text('nces_id'), // Administrative Unit Number (e.g., "109420803")
   countyId: integer('county_id').notNull().references(() => counties.id),
   name: text('name').notNull(), // e.g., "Central Bucks School District"
   shortName: text('short_name'), // e.g., "Central Bucks SD"

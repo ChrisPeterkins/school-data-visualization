@@ -57,7 +57,7 @@ Demographic group spelling reverted to `American Indian / Alaskan Native (not Hi
 
 All-grades "Total" rows (labelled `Total`, `School Total`, or `District Total` in the files) are stored with `grade = 0` at every level so a school or district has one school-wide figure per subject. Student-weighted aggregates come from `GET /api/performance/summary`; `backend/src/scripts/backfillTotals.ts` adds the total rows to years imported before this was the rule.
 
-School addresses, coordinates, enrollment, grade span, and level-based type come from the NCES Common Core of Data (Urban Institute Education Data API), matched on AUN plus state school number: `npx tsx src/scripts/importSchoolMetadata.ts`. Schools that closed before the CCD year stay without location data.
+District boundaries on the map are the Census Bureau's 2023 cartographic (500k) unified school district file for Pennsylvania, simplified to about 30k vertices and stored at `frontend/public/assets/pa-districts-2023.geojson`; they join to districts on the NCES LEA id (`districts.nces_id`). School addresses, coordinates, enrollment, grade span, and level-based type come from the NCES Common Core of Data (Urban Institute Education Data API), matched on AUN plus state school number: `npx tsx src/scripts/importSchoolMetadata.ts`. Schools that closed before the CCD year stay without location data.
 
 Parsed workbooks are cached as gzipped JSON in a `.cache/` folder beside each file (gitignored, keyed by size and mtime), so re-imports and the verifier skip the slow spreadsheet parse.
 
