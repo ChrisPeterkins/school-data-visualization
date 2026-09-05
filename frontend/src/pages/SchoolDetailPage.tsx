@@ -8,6 +8,9 @@ import PerformanceChart from '../components/PerformanceChart';
 import ResultsTable from '../components/ResultsTable';
 import SchoolMap from '../components/SchoolMap';
 import DataNotes from '../components/DataNotes';
+import GapsPanel from '../components/GapsPanel';
+import SimilarSchools from '../components/SimilarSchools';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { formatPct, growthBand } from '../lib/chartUtils';
 
 export default function SchoolDetailPage() {
@@ -27,6 +30,8 @@ export default function SchoolDetailPage() {
     queryFn: () => performanceApi.getTrends(id!),
     enabled: !!id,
   });
+  const sAny: any = school;
+  useDocumentTitle(sAny?.name ?? null, sAny ? `PSSA and Keystone results, growth, and trends for ${sAny.name} (${sAny.districtName}), Pennsylvania.` : null);
 
   if (schoolLoading || trendsLoading) {
     return (
@@ -169,6 +174,20 @@ export default function SchoolDetailPage() {
           <ResultsTable results={selectedKeystone} showGrade={false} />
         </div>
       )}
+
+      <div className="mb-8 space-y-4">
+        <h2 className="text-lg font-bold text-stone-900">Achievement gaps</h2>
+        <GapsPanel
+          level="school"
+          schoolId={Number(s.id)}
+          year={activeYear}
+          exams={[...(pssaResults.length ? ['pssa'] : []), ...(keystoneResults.length ? ['keystone'] : [])] as Array<'pssa' | 'keystone'>}
+        />
+      </div>
+
+      <div className="mb-8">
+        <SimilarSchools schoolId={Number(s.id)} schoolName={s.name} />
+      </div>
 
       {trends && (
         <div className="space-y-4">

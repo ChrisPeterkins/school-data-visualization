@@ -34,3 +34,5 @@ Thumbs.db
 
 # Parsed-workbook cache written by backend/src/utils/workbookCache.ts
 sources/**/.cache/
+data/
+backend/logs/

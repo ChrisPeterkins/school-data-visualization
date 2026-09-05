@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { performanceApi } from '../services/api';
-import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useAvailableYears, yearsForExam } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
 import DataNotes from '../components/DataNotes';
+import GapsPanel from '../components/GapsPanel';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine } from '../lib/chartUtils';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -27,13 +29,15 @@ const tooltipStyle = {
 };
 
 export default function StatePage() {
-  const { years, latest, earliest } = useAvailableYears();
+  const availableYears = useAvailableYears();
+  const { latest, earliest } = availableYears;
   const smUp = useIsSmUp();
   const chartHeight = smUp ? 300 : 260;
   // null = latest year in the database; becomes a number once the user picks one.
   const [yearChoice, setYearChoice] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const selectedYear = yearChoice ?? latest;
   const [examType, setExamType] = useUrlState<'pssa' | 'keystone'>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const years = yearsForExam(availableYears, examType);
   const subjectOptions = examType === 'pssa' ? ['Mathematics', 'English Language Arts', 'Science'] : ['Algebra I', 'Biology', 'Literature'];
   const [subjectParam, setSelectedSubject] = useUrlState<string>('subject', subjectOptions[0], parseString);
   const selectedSubject = subjectOptions.includes(subjectParam) ? subjectParam : subjectOptions[0];
@@ -45,6 +49,7 @@ export default function StatePage() {
   });
   const trendSeries = summary?.series ?? [];
   const trendYears = trendSeries.map((d) => d.year);
+  useDocumentTitle(`Statewide ${selectedSubject} results${selectedYear ? `, ${selectedYear}` : ''}`, 'Pennsylvania statewide PSSA and Keystone proficiency, performance levels by grade, and achievement gaps.');
 
   const { data: statePerformance, isLoading } = useQuery({
     queryKey: ['state-performance', selectedYear],
@@ -229,6 +234,11 @@ export default function StatePage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-8 space-y-4">
+        <h2 className="text-lg font-bold text-stone-900">Achievement gaps, statewide</h2>
+        <GapsPanel level="state" year={selectedYear ?? undefined} />
       </div>
     </div>
   );

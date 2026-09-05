@@ -83,6 +83,15 @@ export default function ImportProgressPage() {
     return d.toLocaleTimeString();
   };
 
+  const { data: releaseStatus } = useQuery({
+    queryKey: ['release-status'],
+    queryFn: async () => {
+      const { data } = await axios.get('/paschools/api/import/release-status');
+      return data as { checkedAt: string; latestYearOnPage: number; newYears: number[]; downloaded: string[]; imported: number[]; note: string | null };
+    },
+    retry: false,
+  });
+
   const { data: dataStatus } = useQuery({
     queryKey: ['data-status'],
     queryFn: performanceApi.getDataStatus,
@@ -182,6 +191,23 @@ export default function ImportProgressPage() {
           </div>
         </div>
       )}
+
+      <div className="card-surface p-6 mt-6">
+        <h2 className="text-lg font-bold text-stone-900 mb-1">PDE Release Check</h2>
+        {releaseStatus ? (
+          <div className="text-sm text-stone-600 space-y-1">
+            <p>Last checked {new Date(releaseStatus.checkedAt).toLocaleString()}. Newest year on PDE's page: <span className="font-medium text-stone-900">{releaseStatus.latestYearOnPage || '—'}</span>.</p>
+            {releaseStatus.newYears.length ? (
+              <p className="text-gold-800">New year(s) found: {releaseStatus.newYears.join(', ')}. Downloaded {releaseStatus.downloaded.length} file(s){releaseStatus.imported.length ? `, imported ${releaseStatus.imported.join(', ')}` : ''}.</p>
+            ) : (
+              <p>No new files since the last import. The check runs weekly and imports new years automatically.</p>
+            )}
+            {releaseStatus.note && <p className="text-stone-500">{releaseStatus.note}</p>}
+          </div>
+        ) : (
+          <p className="text-sm text-stone-500">The weekly check has not run yet.</p>
+        )}
+      </div>
 
       {dataStatus && (
         <div className="card-surface p-6 mt-6">

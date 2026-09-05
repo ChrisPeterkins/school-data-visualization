@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MagnifyingGlassIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const features = [
   {
@@ -44,6 +45,7 @@ export default function HomePage() {
   const availableYears = useAvailableYears();
   const { counts } = availableYears;
   const yearRange = formatYearRange(availableYears);
+  useDocumentTitle(null);
 
   const stats = [
     { label: 'Public schools', value: counts ? counts.schools.toLocaleString() : '…' },

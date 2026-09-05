@@ -5,6 +5,10 @@ export interface AvailableYears {
   years: number[];
   latest: number | null;
   earliest: number | null;
+  /** Years with PSSA results; defaults to `years` until loaded. */
+  pssaYears?: number[];
+  /** Years with Keystone results; defaults to `years` until loaded. */
+  keystoneYears?: number[];
   counts?: {
     schools: number;
     districts: number;
@@ -27,6 +31,12 @@ export function useAvailableYears(): AvailableYears & { isLoading: boolean } {
     staleTime: 60 * 60 * 1000,
   });
   return { ...(data ?? EMPTY), isLoading };
+}
+
+/** Years that have results for the given exam, newest first. */
+export function yearsForExam(a: AvailableYears, exam: 'pssa' | 'keystone'): number[] {
+  const list = exam === 'pssa' ? a.pssaYears : a.keystoneYears;
+  return list && list.length ? list : a.years;
 }
 
 export function formatYearRange(years: AvailableYears): string {

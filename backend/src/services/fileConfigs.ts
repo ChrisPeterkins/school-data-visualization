@@ -84,6 +84,10 @@ export interface FileConfig {
 // Get configuration for a specific file
 export function getFileConfig(fileName: string): FileConfig {
   const lowerName = fileName.toLowerCase();
+  // PDE has kept the 2025 layout going forward; treat any later year the same
+  // way so a new release imports before anyone edits this file.
+  const fileYear = parseInt((lowerName.match(/20\d{2}/) || ['0'])[0], 10);
+  const is2025Plus = fileYear >= 2025;
   
   // PSSA School Level
   if (lowerName.includes('pssa') && lowerName.includes('school')) {
@@ -191,7 +195,7 @@ export function getFileConfig(fileName: string): FileConfig {
     }
 
     // 2025: sheet 'PSSA', hdr r3 (0-indexed), Year col, 'Percent' style names.
-    if (lowerName.includes('2025')) {
+    if (is2025Plus) {
       return {
         headerRow: 3,
         yearColumn: 'Year',
@@ -238,7 +242,7 @@ export function getFileConfig(fileName: string): FileConfig {
   // PSSA District Level
   if (lowerName.includes('pssa') && lowerName.includes('district')) {
     // 2025 moved the header up one row (sheet 'PSSA', hdr r3 0-indexed).
-    const headerRow = lowerName.includes('2025') ? 3 : 4;
+    const headerRow = is2025Plus ? 3 : 4;
 
     return {
       headerRow,
@@ -403,7 +407,7 @@ export function getFileConfig(fileName: string): FileConfig {
     }
 
     // 2025: sheet 'PSSA', hdr r3, has Year col, 'Percent' style, PaA = 'Percent Proficient and above'.
-    if (lowerName.includes('2025')) {
+    if (is2025Plus) {
       return {
         headerRow: 3,
         yearColumn: 'Year',
@@ -438,6 +442,28 @@ export function getFileConfig(fileName: string): FileConfig {
   
   // Keystone School Level
   if (lowerName.includes('keystone') && lowerName.includes('school')) {
+    // 2013/2014: archived education.pa.gov files. Header row 4 (1-based), Year
+    // column, '% ...' names, no proficient-or-above column (computed on import).
+    if (fileYear === 2013 || fileYear === 2014) {
+      return {
+        headerRow: 3,
+        yearColumn: 'Year',
+        aunColumn: 'AUN',
+        schoolNumberColumn: 'School Number',
+        districtNameColumn: fileYear === 2013 ? 'District' : 'District Name',
+        schoolNameColumn: fileYear === 2013 ? 'School' : 'School Name',
+        subjectColumn: 'Subject',
+        gradeColumn: 'Grade',
+        groupColumn: 'Group',
+        numberScoredColumn: fileYear === 2013 ? 'Number Scored' : 'Number Tested',
+        advancedColumn: '% Advanced',
+        proficientColumn: '% Proficient',
+        basicColumn: '% Basic',
+        belowBasicColumn: '% Below Basic',
+        extractYearFromFilename: false
+      };
+    }
+
     if (lowerName.includes('2015')) {
       return {
         headerRow: 7,
@@ -518,7 +544,7 @@ export function getFileConfig(fileName: string): FileConfig {
       };
     }
     
-    if (lowerName.includes('2023') || lowerName.includes('2024') || lowerName.includes('2025')) {
+    if (lowerName.includes('2023') || lowerName.includes('2024') || is2025Plus) {
       return {
         headerRow: 3,
         yearColumn: 'Year',
@@ -563,7 +589,7 @@ export function getFileConfig(fileName: string): FileConfig {
   
   // Keystone District Level
   if (lowerName.includes('keystone') && lowerName.includes('district')) {
-    const headerRow = (lowerName.includes('2023') || lowerName.includes('2024') || lowerName.includes('2025')) ? 3 : 4;
+    const headerRow = (lowerName.includes('2023') || lowerName.includes('2024') || is2025Plus) ? 3 : 4;
     
     return {
       headerRow,
@@ -586,6 +612,23 @@ export function getFileConfig(fileName: string): FileConfig {
   
   // Keystone State Level
   if (lowerName.includes('keystone') && lowerName.includes('state')) {
+    // 2013/2014: archived education.pa.gov files (see the school-level note).
+    if (fileYear === 2013 || fileYear === 2014) {
+      return {
+        headerRow: 3,
+        yearColumn: 'Year',
+        subjectColumn: 'Subject',
+        gradeColumn: 'Grade',
+        groupColumn: 'Group',
+        numberScoredColumn: fileYear === 2013 ? 'Number Scored' : 'Number Tested',
+        advancedColumn: '% Advanced',
+        proficientColumn: '% Proficient',
+        basicColumn: '% Basic',
+        belowBasicColumn: '% Below Basic',
+        extractYearFromFilename: false
+      };
+    }
+
     // 2015: headerRow 4, abbreviated columns, no Year column
     if (lowerName.includes('2015')) {
       return {
@@ -709,7 +752,7 @@ export function getFileConfig(fileName: string): FileConfig {
     }
 
     // 2025: sheet 'Keystone', hdr r3, has Year col, 'Percent' style names.
-    if (lowerName.includes('2025')) {
+    if (is2025Plus) {
       return {
         headerRow: 3,
         yearColumn: 'Year',

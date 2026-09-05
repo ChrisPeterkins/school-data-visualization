@@ -8,6 +8,8 @@ import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import ResultsTable from '../components/ResultsTable';
 import DataNotes from '../components/DataNotes';
+import GapsPanel from '../components/GapsPanel';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine, tooltipStyle, formatPct } from '../lib/chartUtils';
 
 const SUBJECT_COLORS: Record<string, string> = {
@@ -52,6 +54,8 @@ export default function DistrictDetailPage() {
   });
 
   const districtId = district ? Number(district.id) : undefined;
+  const dName = (district as any)?.name as string | undefined;
+  useDocumentTitle(dName ?? null, dName ? `PSSA and Keystone results, trends, and achievement gaps for ${dName}, Pennsylvania.` : null);
   const trendQuery = (exam: 'pssa' | 'keystone', subject: string) => ({
     queryKey: ['summary', exam, 'district', districtId, subject],
     queryFn: () => performanceApi.getSummary({ exam, level: 'district', subject, districtId }),
@@ -111,7 +115,7 @@ export default function DistrictDetailPage() {
       <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-400 mb-6 min-w-0" aria-label="Breadcrumb">
         <Link to="/districts" className="hover:text-navy-600 transition-colors">Districts</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{d.countyName} County</span>
+        <Link to={`/counties/${d.countyId}`} className="hover:text-navy-600 transition-colors">{d.countyName} County</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="text-stone-700 font-medium break-words">{d.name}</span>
       </nav>
@@ -175,6 +179,11 @@ export default function DistrictDetailPage() {
         <DataNotes exam="pssa" years={pssaYears} latestAvailable={latest} subject={pssaSci.data?.series?.length ? 'Science' : undefined} />
         <TrendCard title="PSSA proficient or above" data={pssaTrend} subjects={['Mathematics', 'English Language Arts', 'Science']} years={pssaYears} exam="pssa" smUp={smUp} />
         <TrendCard title="Keystone proficient or above" data={keystoneTrend} subjects={['Algebra I', 'Biology', 'Literature']} years={keystoneTrend.map((r) => r.year)} exam="keystone" smUp={smUp} />
+      </div>
+
+      <div className="mb-8 space-y-4">
+        <h2 className="text-lg font-bold text-stone-900">Achievement gaps</h2>
+        <GapsPanel level="district" districtId={Number(d.id)} year={activeYear} exams={[...(pssaRows.length ? ['pssa'] : []), ...(keystoneRows.length ? ['keystone'] : [])] as Array<'pssa' | 'keystone'>} />
       </div>
 
       {(d.schools ?? []).length > 0 && (

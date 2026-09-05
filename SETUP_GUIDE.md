@@ -91,7 +91,7 @@ This is the most important step - it creates the database and imports all school
 cd backend
 
 # Run the comprehensive data import
-npx tsx src/scripts/runNewImport.ts
+npx tsx src/scripts/importYear.ts <year>
 
 # This will:
 # - Create the SQLite database
@@ -181,7 +181,7 @@ cd backend
 mv school-data.db school-data.backup.db
 
 # Re-run import
-npx tsx src/scripts/runNewImport.ts
+npx tsx src/scripts/importYear.ts <year>
 ```
 
 ### Port Conflicts
@@ -228,9 +228,9 @@ cd ../frontend && npm install
 - `backend/src/db/newSchema.ts` - Updated schema with relationships
 
 ### Import Scripts
-- `backend/src/scripts/runNewImport.ts` - Main import script
-- `backend/src/services/newDataImporter.ts` - Import service with column mappings
-- `backend/src/scripts/importWithProgress.ts` - Import with progress tracking
+- `backend/src/scripts/importYear.ts` - Main import script (one year at a time)
+- `backend/src/services/dataImporterFixed.ts` - Import service; column mappings live in `fileConfigs.ts`
+- `backend/src/scripts/checkPdeReleases.ts` - Weekly PDE release check (cron)
 
 ### Key Components
 - `frontend/src/pages/SchoolDetailPage.tsx` - School details with year selector
@@ -269,7 +269,7 @@ To update with new data files:
 
 1. Add new Excel files to appropriate `sources/` subdirectory
 2. Update column mappings in `backend/src/services/newDataImporter.ts` if format changed
-3. Run import script: `npx tsx src/scripts/runNewImport.ts`
+3. Run import script: `npx tsx src/scripts/importYear.ts <year>`
 
 ## 📦 Production Deployment
 

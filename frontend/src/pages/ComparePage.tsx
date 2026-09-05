@@ -6,10 +6,11 @@ import {
 } from 'recharts';
 import { MagnifyingGlassIcon, XMarkIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 import { schoolApi, performanceApi } from '../services/api';
-import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useAvailableYears, yearsForExam } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseNumberList } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { tooltipStyle, formatPct, growthBand, CHART_COLORS } from '../lib/chartUtils';
 
 const COMPARE_COLORS = ['#2d4a6f', '#27ab83', '#c53030', '#4a6d8c', '#199473'];
@@ -55,7 +56,8 @@ function subjectFigures(rows: any[], exam: Exam, year: number): Record<string, S
 export default function ComparePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const { years, latest } = useAvailableYears();
+  const availableYears = useAvailableYears();
+  const { latest } = availableYears;
   const smUp = useIsSmUp();
 
   const [ids, setIds] = useUrlState<number[]>('schools', [], parseNumberList, (v) => v.join(','));
@@ -85,6 +87,7 @@ export default function ComparePage() {
   const firstHasKeystone = !!first && year != null && first.keystoneResults.some((r: any) => r.year === year && r.percentProficientOrAbove != null);
   const exam: Exam = examParam ?? (first && !firstHasPssa && firstHasKeystone ? 'keystone' : 'pssa');
   const subjects = SUBJECTS[exam];
+  const years = yearsForExam(availableYears, exam);
 
   const { data: statePerformance } = useQuery({
     queryKey: ['state-performance', year],
@@ -101,6 +104,8 @@ export default function ComparePage() {
       if (r.avgProficientOrAbove != null) stateBySubject[r.subject] = parseFloat(r.avgProficientOrAbove.toFixed(1));
     });
   }
+
+  useDocumentTitle(schools.length ? `Compare: ${schools.map((s) => s.name).join(' vs ')}` : 'Compare schools', 'Side-by-side PSSA and Keystone results for up to five Pennsylvania schools against the state average.');
 
   const figures = year == null ? [] : schools.map((school) => ({
     school,

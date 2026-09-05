@@ -30,8 +30,6 @@ interface TableData {
 export default function DatabasePage() {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [customQuery, setCustomQuery] = useState('');
-  const [queryMode, setQueryMode] = useState<'table' | 'custom'>('table');
   const pageSize = 100;
 
   // Fetch table list
@@ -52,7 +50,7 @@ export default function DatabasePage() {
       );
       return data;
     },
-    enabled: !!selectedTable && queryMode === 'table',
+    enabled: !!selectedTable,
   });
 
   // Fetch table data
@@ -64,25 +62,13 @@ export default function DatabasePage() {
       );
       return data;
     },
-    enabled: !!selectedTable && queryMode === 'table',
+    enabled: !!selectedTable,
     retry: 1,
-  });
-
-  // Execute custom query
-  const { data: queryResult, isLoading: queryLoading, error: queryError, refetch: executeQuery } = useQuery({
-    queryKey: ['database-query', customQuery],
-    queryFn: async () => {
-      const { data } = await axios.post('/paschools/api/database/query', {
-        query: customQuery,
-      });
-      return data;
-    },
-    enabled: false, // Manual execution only
   });
 
   // Convert table data to ReactGrid format
   const { columns, rows } = useMemo(() => {
-    const dataSource = queryMode === 'custom' ? queryResult?.results : tableData?.data;
+    const dataSource = tableData?.data;
 
     if (!dataSource || dataSource.length === 0) {
       return { columns: [], rows: [] };
@@ -121,7 +107,7 @@ export default function DatabasePage() {
       columns: cols,
       rows: [headerRow, ...dataRows],
     };
-  }, [tableData, queryResult, queryMode]);
+  }, [tableData]);
 
   const handleChanges = () => {
     // Read-only grid
@@ -130,14 +116,6 @@ export default function DatabasePage() {
   const handleTableSelect = (tableName: string) => {
     setSelectedTable(tableName);
     setCurrentPage(1);
-    setQueryMode('table');
-  };
-
-  const handleExecuteQuery = () => {
-    if (customQuery.trim()) {
-      setQueryMode('custom');
-      executeQuery();
-    }
   };
 
   return (
@@ -145,7 +123,7 @@ export default function DatabasePage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-stone-900">Database Viewer</h1>
         <p className="mt-2 text-sm text-stone-500">
-          Browse raw database tables and execute read-only SQL queries
+          Browse the raw database tables
         </p>
       </div>
 
@@ -160,7 +138,7 @@ export default function DatabasePage() {
                   key={table.name}
                   onClick={() => handleTableSelect(table.name)}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedTable === table.name && queryMode === 'table'
+                    selectedTable === table.name
                       ? 'bg-navy-100 text-navy-900 font-semibold'
                       : 'hover:bg-stone-100 text-stone-600'
                   }`}
@@ -173,26 +151,6 @@ export default function DatabasePage() {
               ))}
             </div>
 
-            {/* Custom Query Section */}
-            <div className="mt-6 pt-6 border-t border-stone-200">
-              <h3 className="text-sm font-bold text-stone-900 mb-2">Custom Query</h3>
-              <textarea
-                value={customQuery}
-                onChange={(e) => setCustomQuery(e.target.value)}
-                placeholder="SELECT * FROM pssa_results LIMIT 10"
-                className="w-full border border-stone-200 rounded-md px-2 py-1 text-xs font-mono h-24 focus:outline-none focus:ring-2 focus:ring-navy-500"
-              />
-              <button
-                onClick={handleExecuteQuery}
-                disabled={!customQuery.trim()}
-                className="mt-2 w-full px-3 py-2 bg-civic-700 text-white text-sm rounded-lg hover:bg-civic-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Execute Query
-              </button>
-              <p className="mt-2 text-xs text-stone-400">
-                Only SELECT queries allowed
-              </p>
-            </div>
           </div>
         </div>
 
@@ -200,7 +158,7 @@ export default function DatabasePage() {
         <div className="lg:col-span-3">
           <div className="card-surface overflow-hidden">
             {/* Table Info Header */}
-            {queryMode === 'table' && tableData && (
+            {tableData && (
               <div className="p-4 border-b border-stone-200 bg-stone-50">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -276,33 +234,20 @@ export default function DatabasePage() {
               </div>
             )}
 
-            {/* Query Result Header */}
-            {queryMode === 'custom' && queryResult && (
-              <div className="p-4 border-b border-stone-200 bg-civic-50">
-                <h2 className="text-lg font-bold text-stone-900">Query Results</h2>
-                <p className="text-sm text-stone-500">
-                  {queryResult.rowCount.toLocaleString()} rows returned
-                </p>
-                <div className="mt-2 p-2 bg-white rounded border text-xs font-mono overflow-x-auto">
-                  {queryResult.query}
-                </div>
-              </div>
-            )}
-
             {/* Error Display */}
-            {(error || queryError) && (
+            {error && (
               <div className="p-6">
                 <div className="bg-brick-50 border border-brick-200 rounded-md p-4">
                   <p className="text-brick-700 font-semibold">Error</p>
                   <p className="text-sm text-brick-600">
-                    {error instanceof Error ? error.message : queryError instanceof Error ? queryError.message : 'An error occurred'}
+                    {error instanceof Error ? error.message : 'An error occurred'}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Loading State */}
-            {(isLoading || queryLoading) && (
+            {isLoading && (
               <div className="p-6 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-navy-600"></div>
                 <p className="mt-2 text-stone-500">Loading data...</p>
@@ -310,7 +255,7 @@ export default function DatabasePage() {
             )}
 
             {/* Data Grid */}
-            {columns.length > 0 && !isLoading && !queryLoading && (
+            {columns.length > 0 && !isLoading && (
               <div className="overflow-auto" style={{ height: '600px' }}>
                 <ReactGrid
                   rows={rows}
@@ -324,7 +269,7 @@ export default function DatabasePage() {
             )}
 
             {/* Empty State */}
-            {!selectedTable && queryMode === 'table' && !queryResult && (
+            {!selectedTable && (
               <div className="p-12 text-center text-stone-400">
                 <svg
                   className="mx-auto h-12 w-12 text-stone-300"
@@ -339,7 +284,7 @@ export default function DatabasePage() {
                     d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
                   />
                 </svg>
-                <p className="mt-4">Select a table or execute a custom query</p>
+                <p className="mt-4">Select a table</p>
               </div>
             )}
           </div>

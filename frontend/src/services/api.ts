@@ -71,6 +71,49 @@ export const schoolApi = {
     const { data } = await api.get<School>(`/api/schools/${id}`);
     return data;
   },
+
+  getSimilar: async (id: string, limit = 4) => {
+    const { data } = await api.get<{ schoolId: number; similar: SimilarSchool[] }>(`/api/schools/${id}/similar`, { params: { limit } });
+    return data.similar;
+  },
+
+  getMapPoints: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string }) => {
+    const { data } = await api.get<{ filters: any; points: MapPoint[] }>('/api/schools/map', { params });
+    return data.points;
+  },
+};
+
+export interface GapGroup { group: string; proficiency: number | null; tested: number; growth: number | null; gap: number | null }
+export interface GapsResponse {
+  filters: any;
+  year: number | undefined;
+  years: number[];
+  allStudents: number | null;
+  groups: GapGroup[];
+  trend: Array<{ year: number; group: string; proficiency: number; tested: number }>;
+}
+export interface SimilarSchool {
+  id: number; name: string; type: string | null; city: string | null; districtName: string; countyName: string;
+  enrollment: number | null; distanceKm: number | null; lat: number | null; lng: number | null;
+}
+export interface MapPoint {
+  id: number; name: string; lat: number; lng: number; type: string | null; enrollment: number | null;
+  districtName: string; countyId: number; proficiency: number | null; growth: number | null; tested: number | null;
+}
+export interface CountySummary { id: number; name: string; code: string; districtCount: number; schoolCount: number; enrollment: number | null }
+export interface CountyDetail extends Omit<CountySummary, 'districtCount' | 'schoolCount' | 'enrollment'> {
+  districts: Array<{ id: number; name: string; enrollment: number | null; city: string | null; schoolCount: number }>;
+}
+
+export const countyApi = {
+  getCounties: async () => {
+    const { data } = await api.get<{ data: CountySummary[] }>('/api/counties');
+    return data.data;
+  },
+  getCounty: async (id: string) => {
+    const { data } = await api.get<CountyDetail>(`/api/counties/${id}`);
+    return data;
+  },
 };
 
 export const districtApi = {
@@ -132,6 +175,19 @@ export const performanceApi = {
     minTested?: number;
   }) => {
     const { data } = await api.get<{ filters: any; points: GrowthPoint[] }>('/api/performance/growth-achievement', { params });
+    return data;
+  },
+
+  getGaps: async (params: {
+    exam: 'pssa' | 'keystone';
+    level: 'school' | 'district' | 'state';
+    subject: string;
+    year?: number;
+    schoolId?: number;
+    districtId?: number;
+    countyId?: number;
+  }) => {
+    const { data } = await api.get<GapsResponse>('/api/performance/gaps', { params });
     return data;
   },
 

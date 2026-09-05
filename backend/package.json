@@ -8,15 +8,17 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest",
+    "test": "vitest run",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "data:import": "tsx src/scripts/importData.ts",
-    "data:process-schools": "tsx src/scripts/processSchools.ts",
-    "data:verify": "tsx src/scripts/verify-data.ts"
+    "data:verify": "tsx src/scripts/verify-data.ts",
+    "data:import-year": "tsx src/scripts/importYear.ts",
+    "data:check-releases": "tsx src/scripts/checkPdeReleases.ts",
+    "data:metadata": "tsx src/scripts/importSchoolMetadata.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

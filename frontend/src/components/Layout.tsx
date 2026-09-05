@@ -10,6 +10,8 @@ import {
   ArrowsRightLeftIcon,
   ChartBarIcon,
   TrophyIcon,
+  MapIcon,
+  MapPinIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -17,7 +19,9 @@ import {
 const mainNav = [
   { path: '/schools', label: 'Schools', icon: AcademicCapIcon },
   { path: '/districts', label: 'Districts', icon: BuildingOffice2Icon },
+  { path: '/counties', label: 'Counties', icon: MapPinIcon },
   { path: '/state', label: 'State', icon: GlobeAmericasIcon },
+  { path: '/map', label: 'Map', icon: MapIcon },
   { path: '/compare', label: 'Compare', icon: ArrowsRightLeftIcon },
   { path: '/trends', label: 'Trends', icon: ChartBarIcon },
   { path: '/rankings', label: 'Rankings', icon: TrophyIcon },

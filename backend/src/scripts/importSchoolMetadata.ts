@@ -123,6 +123,25 @@ async function main() {
   });
   txn();
   logger.info(`Schools: ${byNumber} matched by number, ${byName} by name, ${unmatched} unmatched, ${retyped} types set from CCD level${dryRun ? ' (dry run)' : ''}`);
+
+  // A school missing from the directory with no results in the latest year is closed.
+  if (!dryRun) {
+    const latest = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM pssa_results`).get() as any)?.y ?? 0;
+    const closed = sqliteDb.prepare(`
+      UPDATE schools SET is_active = 0 WHERE id IN (
+        SELECT s.id FROM schools s
+        WHERE s.latitude IS NULL
+          AND NOT EXISTS (SELECT 1 FROM pssa_results p WHERE p.school_id = s.id AND p.year = ?)
+          AND NOT EXISTS (SELECT 1 FROM keystone_results k WHERE k.school_id = s.id AND k.year = ?)
+      )
+    `).run(latest, latest);
+    const reopened = sqliteDb.prepare(`
+      UPDATE schools SET is_active = 1 WHERE is_active = 0 AND (latitude IS NOT NULL
+        OR EXISTS (SELECT 1 FROM pssa_results p WHERE p.school_id = schools.id AND p.year = ?)
+        OR EXISTS (SELECT 1 FROM keystone_results k WHERE k.school_id = schools.id AND k.year = ?))
+    `).run(latest, latest);
+    logger.info(`Closed schools: ${closed.changes} marked inactive, ${reopened.changes} reactivated`);
+  }
   if (unmatchedSamples.length) logger.info(`  unmatched examples: ${unmatchedSamples.join('; ')}`);
 
   const districts = sqliteDb.prepare(`SELECT id, aun, name FROM districts`).all() as Array<{ id: number; aun: string; name: string }>;

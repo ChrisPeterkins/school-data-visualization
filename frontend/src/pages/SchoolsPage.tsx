@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import api, { schoolApi } from '../services/api';
 import SearchBar from '../components/SearchBar';
 import EnhancedSchoolTable from '../components/EnhancedSchoolTable';
@@ -16,6 +17,8 @@ export default function SchoolsPage() {
   const countyName = searchParams.get('county') || '';
   const districtName = searchParams.get('district') || '';
   const schoolType = searchParams.get('type') || '';
+  const includeInactive = searchParams.get('closed') === '1';
+  useDocumentTitle(search ? `Schools matching "${search}"` : 'Schools', 'Search and browse every public school in Pennsylvania.');
 
   const [searchQuery, setSearchQuery] = useState(search);
   const [filters, setFilters] = useState({
@@ -33,10 +36,11 @@ export default function SchoolsPage() {
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['schools', { page, search, sortBy, sortOrder, countyName, districtName, schoolType }],
+    queryKey: ['schools', { page, search, sortBy, sortOrder, countyName, districtName, schoolType, includeInactive }],
     queryFn: () => schoolApi.getSchools({
-      page, search, limit: 20, sortBy, sortOrder, countyName, districtName, schoolType
-    }),
+      page, search, limit: 20, sortBy, sortOrder, countyName, districtName, schoolType,
+      ...(includeInactive ? { includeInactive: true } : {}),
+    } as any),
   });
 
   const handleSearch = (query: string) => {
@@ -112,6 +116,16 @@ export default function SchoolsPage() {
                 ))}
               </select>
             </div>
+
+            <label className="inline-flex items-center gap-2 text-sm text-stone-600 py-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeInactive}
+                onChange={(e) => handleFilterChange('closed', e.target.checked ? '1' : '')}
+                className="rounded border-stone-300 text-navy-600 focus:ring-navy-500/30"
+              />
+              Include closed schools
+            </label>
 
             {hasActiveFilters && (
               <button

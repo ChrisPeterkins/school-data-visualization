@@ -1,5 +1,6 @@
 import { db, sqliteDb } from '../db';
 import { readWorkbookRows } from '../utils/workbookCache';
+import { parseGrade } from '../utils/parseGrade';
 import { pssaResults, keystoneResults, schools, districts, counties, dataImports } from '../db/newSchema';
 import { logger } from '../utils/logger';
 import { getFileConfig, FileConfig, normalizeDemographicLabel } from './fileConfigs';
@@ -577,15 +578,8 @@ export class DataImporterFixed {
     return value;
   }
 
-  /** Numeric grade, 0 for the all-grades "Total" row, null when unparseable. */
   private parseGrade(value: any): number | null {
-    if (value === undefined || value === null || value === '') return null;
-    const str = String(value).trim();
-    // 'Total', 'School Total', 'District Total', 'All Grades' are all the all-grades row.
-    if (/total|^all/i.test(str)) return 0;
-    const digits = str.replace(/\D/g, '');
-    if (digits === '') return null;
-    return parseInt(digits);
+    return parseGrade(value);
   }
 
   private parseNumber(value: any): number | null {

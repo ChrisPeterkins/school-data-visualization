@@ -34,6 +34,10 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       ORDER BY year DESC
     `);
     const years = rows.map(r => r.year).filter(y => Number.isFinite(y));
+    const yearsFor = (table: any) =>
+      (db.all<{ year: number }>(sql`SELECT DISTINCT year FROM ${table} ORDER BY year DESC`)).map(r => r.year);
+    const pssaYears = yearsFor(pssaResults);
+    const keystoneYears = yearsFor(keystoneResults);
 
     // Headline counts for the home page; public, unlike the import status route.
     const countOf = (table: any) =>
@@ -43,6 +47,9 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       years,
       latest: years[0] ?? null,
       earliest: years[years.length - 1] ?? null,
+      // Per-exam lists: the archived 2013/2014 files are Keystone-only.
+      pssaYears,
+      keystoneYears,
       counts: {
         schools: countOf(schools),
         districts: countOf(districts),
@@ -126,6 +133,118 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     `).all(...args);
 
     const response = { filters: q, series };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
+  /**
+   * Achievement gaps: proficiency for every reported student group at one
+   * entity and year, plus each group's trend. PSSA uses the all-grades total
+   * rows; growth comes from the PVAAS student-group reports where a group
+   * name maps onto PDE's demographic labels.
+   */
+  const gapsQuerySchema = z.object({
+    exam: z.enum(['pssa', 'keystone']).default('pssa'),
+    level: z.enum(['school', 'district', 'state']).default('state'),
+    subject: z.string().default('Mathematics'),
+    year: z.coerce.number().optional(),
+    schoolId: z.coerce.number().optional(),
+    districtId: z.coerce.number().optional(),
+    countyId: z.coerce.number().optional(),
+  });
+
+  const PVAAS_GROUP_TO_PDE: Record<string, string> = {
+    'All Students': 'All Students',
+    'Economically Disadvantaged': 'Economically Disadvantaged',
+    'Economically disadvantaged': 'Economically Disadvantaged',
+    'Students with IEPs': 'IEP',
+    'English Learner': 'ELL',
+    'English learners': 'ELL',
+    'Black': 'Black or African American (not Hispanic)',
+    'Black/African American (not Hispanic)': 'Black or African American (not Hispanic)',
+    'White': 'White (not Hispanic)',
+    'White (not Hispanic)': 'White (not Hispanic)',
+    'Hispanic': 'Hispanic (any race)',
+    'Hispanic (any race)': 'Hispanic (any race)',
+    'Asian': 'Asian (not Hispanic)',
+    'Asian (not Hispanic)': 'Asian (not Hispanic)',
+    'American Indian/Alaskan Native': 'American Indian/Alaskan Native (not Hispanic)',
+    'Hawaiian/Pacific Islander': 'Native Hawaiian or other Pacific Islander (not Hispanic)',
+    'Multi-Racial (not Hispanic)': 'Multi-ethnic (not Hispanic)',
+    'Two or More Races': 'Multi-ethnic (not Hispanic)',
+  };
+
+  fastify.get('/gaps', async (request, _reply) => {
+    const q = gapsQuerySchema.parse(request.query);
+    const cacheKey = cache.generateKey('gaps', JSON.stringify(q));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const where: string[] = ['level = ?', 'subject = ?', 'proficient_or_above_percent IS NOT NULL'];
+    const args: (string | number)[] = [q.level, q.subject];
+    if (q.schoolId) { where.push('school_id = ?'); args.push(q.schoolId); }
+    if (q.districtId) { where.push('district_id = ?'); args.push(q.districtId); }
+    if (q.countyId) { where.push('county_id = ?'); args.push(q.countyId); }
+
+    const w = 'CASE WHEN total_tested > 0 THEN total_tested ELSE 1 END';
+    const aggregate = (gradeClause: string) => sqliteDb.prepare(`
+      SELECT year, demographic_group AS "group",
+        ROUND(SUM(proficient_or_above_percent * ${w}) * 1.0 / SUM(${w}), 1) AS proficiency,
+        SUM(CASE WHEN total_tested > 0 THEN total_tested ELSE 0 END) AS tested
+      FROM ${table}
+      WHERE ${where.join(' AND ')} ${gradeClause}
+      GROUP BY year, demographic_group
+      ORDER BY year, demographic_group
+    `).all(...args) as Array<{ year: number; group: string; proficiency: number; tested: number }>;
+
+    // PSSA: prefer the all-grades total row per group; older state files only
+    // carry subgroup rows by grade, so fall back to weighting those.
+    let trend: Array<{ year: number; group: string; proficiency: number; tested: number }>;
+    if (q.exam === 'pssa') {
+      const totals = aggregate('AND grade = 0');
+      const graded = aggregate('AND grade BETWEEN 1 AND 12');
+      const have = new Set(totals.map((t) => `${t.year}|${t.group}`));
+      trend = [...totals, ...graded.filter((g) => !have.has(`${g.year}|${g.group}`))]
+        .sort((a, b) => a.year - b.year || a.group.localeCompare(b.group));
+    } else {
+      trend = aggregate('');
+    }
+
+    const years = [...new Set(trend.map((t) => t.year))].sort((a, b) => a - b);
+    const year = q.year && years.includes(q.year) ? q.year : years[years.length - 1];
+
+    // Growth per group for the chosen year, from the PVAAS group reports.
+    const growthByGroup: Record<string, number> = {};
+    if (year && q.level !== 'state') {
+      const gw: string[] = ['level = ?', 'year = ?', 'subject = ?', 'grade IS NULL'];
+      const ga: (string | number)[] = [q.level, year, q.subject];
+      if (q.schoolId) { gw.push('school_id = ?'); ga.push(q.schoolId); }
+      if (q.districtId) { gw.push('district_id = ?'); ga.push(q.districtId); }
+      if (q.countyId) { gw.push('district_id IN (SELECT id FROM districts WHERE county_id = ?)'); ga.push(q.countyId); }
+      const rows = sqliteDb.prepare(`
+        SELECT student_group AS g, ROUND(AVG(growth_index), 2) AS growth
+        FROM pvaas_results WHERE ${gw.join(' AND ')} GROUP BY student_group
+      `).all(...ga) as Array<{ g: string; growth: number }>;
+      for (const r of rows) {
+        const pde = PVAAS_GROUP_TO_PDE[r.g];
+        if (pde && growthByGroup[pde] == null) growthByGroup[pde] = r.growth;
+      }
+    }
+
+    const groups = trend
+      .filter((t) => t.year === year)
+      .map((t) => ({ group: t.group, proficiency: t.proficiency, tested: t.tested, growth: growthByGroup[t.group] ?? null }));
+    const allStudents = groups.find((g) => g.group === 'All Students')?.proficiency ?? null;
+
+    const response = {
+      filters: q,
+      year,
+      years,
+      allStudents,
+      groups: groups.map((g) => ({ ...g, gap: allStudents != null && g.proficiency != null ? Math.round((g.proficiency - allStudents) * 10) / 10 : null })),
+      trend,
+    };
     await cache.set(cacheKey, response, 3600);
     return response;
   });

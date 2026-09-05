@@ -10,6 +10,7 @@ import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
 import DataNotes from '../components/DataNotes';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   fillYearGaps, standardsChangeLine, CHART_COLORS, tooltipStyle, formatPct,
 } from '../lib/chartUtils';
@@ -34,6 +35,7 @@ export default function TrendsPage() {
   const yearRange = formatYearRange(availableYears);
   const smUp = useIsSmUp();
   const bigChartHeight = smUp ? 400 : 300;
+  useDocumentTitle(`${subject} trends, ${LEVEL_NOUN[level]}`, `How ${subject} proficiency has changed across Pennsylvania ${LEVEL_NOUN[level]} since ${earliest ?? 2015}.`);
 
   const { data, isLoading } = useQuery({
     queryKey: ['summary', examType, level, subject, grade, earliest, latest],

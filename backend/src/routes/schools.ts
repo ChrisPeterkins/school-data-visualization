@@ -1,11 +1,12 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { db } from '../db';
+import { db, sqliteDb } from '../db';
 import { schools, districts, counties, pssaResults, keystoneResults } from '../db/newSchema';
 import { cache } from '../cache';
 import { eq, like, and, sql, desc, asc } from 'drizzle-orm';
 
 const schoolQuerySchema = z.object({
+  includeInactive: z.coerce.boolean().optional().default(false),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   search: z.string().optional(),
@@ -54,6 +55,12 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
       conditions.push(eq(schools.districtId, query.districtId));
     }
     
+    // Closed schools (no directory match and no results in the latest year) are
+    // hidden unless asked for, so search results are not padded with history.
+    if (!query.includeInactive) {
+      conditions.push(eq(schools.isActive, true));
+    }
+
     if (query.districtName) {
       conditions.push(like(districts.name, `%${query.districtName}%`));
     }
@@ -229,6 +236,81 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
 
     await cache.set(cacheKey, result, 3600); // Cache for 1 hour
     return result;
+  });
+
+  /**
+   * Schools of the same level, nearest by distance and closest in size.
+   * Used for the "similar schools" card and its one-click comparison.
+   */
+  fastify.get('/:id/similar', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const limit = Math.min(8, Math.max(1, parseInt((request.query as any).limit ?? '4', 10) || 4));
+    const cacheKey = cache.generateKey('similar', id, String(limit));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const me = sqliteDb.prepare(`
+      SELECT s.id, s.school_type AS type, s.latitude AS lat, s.longitude AS lng, s.enrollment, d.county_id AS countyId
+      FROM schools s JOIN districts d ON d.id = s.district_id WHERE s.id = ?
+    `).get(parseInt(id, 10)) as any;
+    if (!me) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'School not found' });
+
+    const candidates = sqliteDb.prepare(`
+      SELECT s.id, s.name, s.school_type AS type, s.latitude AS lat, s.longitude AS lng, s.enrollment, s.city,
+             d.name AS districtName, d.county_id AS countyId, c.name AS countyName
+      FROM schools s JOIN districts d ON d.id = s.district_id JOIN counties c ON c.id = d.county_id
+      WHERE s.id != ? AND s.is_active = 1 AND COALESCE(s.school_type, '') = COALESCE(?, '')
+    `).all(me.id, me.type) as any[];
+
+    const km = (a: any, b: any) => {
+      if (a.lat == null || b.lat == null) return null;
+      const r = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return 2 * r * Math.asin(Math.sqrt(h));
+    };
+    const scored = candidates.map((c) => {
+      const distance = km(me, c);
+      const sizeRatio = me.enrollment && c.enrollment ? Math.abs(Math.log(c.enrollment / me.enrollment)) : 1;
+      // Distance in km plus a size penalty; a school twice the size costs about 35 km.
+      const score = (distance ?? (c.countyId === me.countyId ? 40 : 200)) + sizeRatio * 50;
+      return { ...c, distanceKm: distance == null ? null : Math.round(distance * 10) / 10, score };
+    }).sort((a, b) => a.score - b.score).slice(0, limit);
+
+    const response = { schoolId: me.id, similar: scored.map(({ score: _s, ...rest }) => rest) };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
+  /**
+   * One point per active school with coordinates, carrying the all-grades
+   * proficiency for the chosen exam/subject/year and its growth index.
+   */
+  fastify.get('/map', async (request, _reply) => {
+    const q = z.object({
+      year: z.coerce.number(),
+      exam: z.enum(['pssa', 'keystone']).default('pssa'),
+      subject: z.string().default('Mathematics'),
+    }).parse(request.query);
+    const cacheKey = cache.generateKey('map', JSON.stringify(q));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const gradeClause = q.exam === 'pssa' ? 'AND r.grade = 0' : '';
+    const points = sqliteDb.prepare(`
+      SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
+             d.name AS districtName, d.county_id AS countyId,
+             r.proficient_or_above_percent AS proficiency, r.growth_score AS growth, r.total_tested AS tested
+      FROM schools s
+      JOIN districts d ON d.id = s.district_id
+      LEFT JOIN ${table} r ON r.school_id = s.id AND r.level = 'school' AND r.year = ? AND r.subject = ?
+        AND r.demographic_group = 'All Students' ${gradeClause}
+      WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+    `).all(q.year, q.subject);
+
+    const response = { filters: q, points };
+    await cache.set(cacheKey, response, 3600);
+    return response;
   });
 
   // Get distinct values for filters

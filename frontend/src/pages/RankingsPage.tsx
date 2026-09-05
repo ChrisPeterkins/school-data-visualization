@@ -6,10 +6,11 @@ import {
   ScatterChart, Scatter, ZAxis,
 } from 'recharts';
 import { performanceApi } from '../services/api';
-import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useAvailableYears, yearsForExam } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CHART_COLORS, tooltipStyle, growthBand } from '../lib/chartUtils';
 
 type Exam = 'pssa' | 'keystone';
@@ -17,12 +18,14 @@ const PSSA_SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
 const KEYSTONE_SUBJECTS = ['Algebra I', 'Biology', 'Literature'];
 
 export default function RankingsPage() {
-  const { years, latest } = useAvailableYears();
+  const availableYears = useAvailableYears();
+  const { latest } = availableYears;
   const smUp = useIsSmUp();
 
   const [yearParam, setYearParam] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const year = yearParam ?? latest;
   const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const years = yearsForExam(availableYears, examType);
   const [subject, setSubject] = useUrlState<string>('subject', '', parseString);
   const [grade, setGrade] = useUrlState<number | ''>('grade', '', parseNumber, (v) => (v === '' ? '' : String(v)));
   const [schoolType, setSchoolType] = useUrlState<string>('type', '', parseString);
@@ -61,6 +64,7 @@ export default function RankingsPage() {
   });
 
   const subjects = examType === 'pssa' ? PSSA_SUBJECTS : KEYSTONE_SUBJECTS;
+  useDocumentTitle(`School rankings${year ? `, ${year}` : ''}`, 'Highest and lowest proficiency Pennsylvania schools, with PVAAS growth.');
 
   // The category axis eats fixed width; phones get a narrower axis and shorter labels.
   const axisWidth = smUp ? 210 : 120;

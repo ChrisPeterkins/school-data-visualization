@@ -11,6 +11,10 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Real-time Import Progress**: Visual tracking of data import operations
 - **State-level Analytics**: Aggregate performance data at state level
 - **Growth**: PVAAS growth index on school and district results, rankings, and a growth-vs-achievement view
+- **Achievement gaps**: proficiency and growth by student group on state, county, district, and school pages
+- **Map**: every school on a Leaflet map colored by proficiency or growth
+- **Counties** and **similar schools**: county pages roll up districts; each school page suggests comparable schools nearby
+- **Ops**: weekly PDE release check (cron), nightly rotated backups, coverage report on the admin page, CI on push
 - **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested
 
 ## 🛠 Tech Stack
@@ -101,7 +105,7 @@ cp .env.example .env
 4. **Import data**
 ```bash
 cd backend
-npx tsx src/scripts/runNewImport.ts
+npx tsx src/scripts/importYear.ts <year>
 ```
 
 5. **Start development servers**
@@ -133,7 +137,7 @@ Data is sourced from the Pennsylvania Department of Education:
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npx tsx src/scripts/runNewImport.ts` - Run full data import
+- `npx tsx src/scripts/importYear.ts <year>` - Run full data import
 - `npx tsx src/scripts/importWithProgress.ts` - Import with progress tracking
 
 ### Frontend

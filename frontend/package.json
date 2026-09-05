@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build && npm run postbuild:compress",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest run",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "postbuild:compress": "find dist/assets -type f \\( -name '*.js' -o -name '*.css' \\) -exec gzip -kf9 {} \\;"

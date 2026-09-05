@@ -65,6 +65,16 @@ const importRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // Result of the last PDE release check (scripts/checkPdeReleases.ts, run weekly by cron).
+  fastify.get('/release-status', async (_request, reply) => {
+    const file = path.join(process.cwd(), 'data', 'release-check.json');
+    try {
+      return JSON.parse(await fs.readFile(file, 'utf8'));
+    } catch {
+      return reply.status(404).send({ error: 'No release check has run yet' });
+    }
+  });
+
   // Get current import status
   fastify.get('/status', async (_request, _reply) => {
     // Add database statistics

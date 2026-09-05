@@ -131,40 +131,7 @@ const databaseRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Execute custom SQL query (read-only)
-  fastify.post('/query', async (request, reply) => {
-    const { query } = request.body as { query: string };
-
-    if (!query) {
-      return reply.status(400).send({ error: 'Query is required' });
-    }
-
-    // Security: only allow SELECT statements
-    const trimmedQuery = query.trim().toUpperCase();
-    if (!trimmedQuery.startsWith('SELECT')) {
-      return reply.status(400).send({ error: 'Only SELECT queries are allowed' });
-    }
-
-    // Prevent dangerous operations
-    const dangerousKeywords = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'TRUNCATE'];
-    if (dangerousKeywords.some(keyword => trimmedQuery.includes(keyword))) {
-      return reply.status(400).send({ error: 'Query contains forbidden keywords' });
-    }
-
-    try {
-      const results = await db.all(sql.raw(query));
-      return {
-        query,
-        results,
-        rowCount: results.length
-      };
-    } catch (error) {
-      fastify.log.error({ err: error }, 'Error executing query');
-      return reply.status(500).send({
-        error: 'Query execution failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  // The ad-hoc SQL console was removed; browse tables with /tables, /schema/:table, /data/:table.
 };
 
 export default databaseRoutes;

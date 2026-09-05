@@ -88,11 +88,15 @@ export function buildDataStatus(): DataStatus {
     const keystone = levelCounts('keystone_results', year);
     const flags: string[] = [];
 
+    // PDE's public PSSA files start in 2015; earlier years are Keystone-only archive copies.
+    const keystoneOnlyYear = year < 2015;
     for (const [name, c] of [['PSSA', pssa], ['Keystone', keystone]] as const) {
+      if (name === 'PSSA' && keystoneOnlyYear) continue;
       if (!c.school) flags.push(`${name}: no school-level rows`);
-      if (!c.district) flags.push(`${name}: no district-level rows`);
+      if (!c.district && !(keystoneOnlyYear)) flags.push(`${name}: no district-level rows`);
       if (!c.state) flags.push(`${name}: no state-level rows`);
     }
+    if (keystoneOnlyYear) flags.push('Keystone only (archived PDE files; PSSA and district files were not preserved)');
     if (pssa.school && !pssa.subjects.includes('Science')) flags.push('PSSA: no Science results published');
     if (year >= 2018) {
       if (pssa.school && (pssa.growthCoverage ?? 0) < 50) flags.push(`PSSA: growth coverage only ${pssa.growthCoverage}%`);

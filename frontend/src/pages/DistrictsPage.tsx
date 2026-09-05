@@ -5,11 +5,13 @@ import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outli
 import { districtApi } from '../services/api';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import Pagination from '../components/Pagination';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function DistrictsPage() {
   const [search, setSearch] = useUrlState<string>('q', '', parseString);
   const [page, setPage] = useUrlState<number>('page', 1, parseNumber);
   const [draft, setDraft] = useState(search);
+  useDocumentTitle(search ? `Districts matching "${search}"` : 'Districts', 'Browse Pennsylvania school districts, charters, and career and technical centers.');
 
   const { data: districtsData, isLoading } = useQuery({
     queryKey: ['districts', { search, page }],

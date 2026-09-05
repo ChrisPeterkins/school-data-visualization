@@ -8,6 +8,8 @@ import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
 import schoolRoutes from './routes/schools';
 import districtRoutes from './routes/districts';
+import countyRoutes from './routes/counties';
+import sitemapRoutes from './routes/sitemap';
 import performanceRoutes from './routes/performance';
 import healthRoutes from './routes/health';
 import importRoutes from './routes/import';
@@ -47,6 +49,8 @@ const buildApp = async () => {
   await fastify.register(healthRoutes, { prefix: '/api/health' });
   await fastify.register(schoolRoutes, { prefix: '/api/schools' });
   await fastify.register(districtRoutes, { prefix: '/api/districts' });
+  await fastify.register(countyRoutes, { prefix: '/api/counties' });
+  await fastify.register(sitemapRoutes, { prefix: '/api' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
   await fastify.register(importRoutes, { prefix: '/api/import' });
   await fastify.register(verifyRoutes, { prefix: '/api/verify' });
