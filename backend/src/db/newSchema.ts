@@ -228,6 +228,7 @@ export const pvaasResults = sqliteTable('pvaas_results', {
   year: integer('year').notNull(),
   subject: text('subject').notNull(), // Mathematics, English Language Arts, Science, Algebra I, Biology, Literature
   grade: integer('grade'), // NULL encodes "Across Grades" / aggregated / N/A
+  studentGroup: text('student_group').notNull().default('All Students'),
 
   // Growth metrics (full detail that was previously discarded)
   growthMeasure: real('growth_measure'),
@@ -249,7 +250,8 @@ export const pvaasResults = sqliteTable('pvaas_results', {
     districtIdx: index('pvaas_district_idx').on(table.districtId),
     compositeIdx: index('pvaas_composite_idx').on(
       table.level, table.aun, table.schoolNumber, table.year, table.subject, table.grade
-    )
+    ),
+    groupIdx: index('pvaas_group_idx').on(table.studentGroup)
   };
 });
 

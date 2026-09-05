@@ -59,6 +59,8 @@ All-grades "Total" rows (labelled `Total`, `School Total`, or `District Total` i
 
 School addresses, coordinates, enrollment, grade span, and level-based type come from the NCES Common Core of Data (Urban Institute Education Data API), matched on AUN plus state school number: `npx tsx src/scripts/importSchoolMetadata.ts`. Schools that closed before the CCD year stay without location data.
 
+Parsed workbooks are cached as gzipped JSON in a `.cache/` folder beside each file (gitignored, keyed by size and mtime), so re-imports and the verifier skip the slow spreadsheet parse.
+
 To import a new year once the files are in place: `cd backend && npx tsx src/scripts/importYear.ts <year>`. The script prints a coverage report at the end; the same report is at `/api/performance/data-status` and on the admin Import page.
 PDE announced the 2026 results release is on hold until later in fall 2026.
 

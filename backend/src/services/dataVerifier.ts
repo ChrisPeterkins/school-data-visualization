@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import { readWorkbookRows } from '../utils/workbookCache';
 import { db } from '../db';
 import { pssaResults, keystoneResults } from '../db/newSchema';
 import { logger } from '../utils/logger';
@@ -250,13 +250,8 @@ export class DataVerifier {
       const level = this.extractLevel(fileName);
       const fileType = fileName.toLowerCase().includes('pssa') ? 'pssa' : 'keystone';
 
-      // Read Excel file
-      const workbook = XLSX.readFile(filePath);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-
-      // Parse data with configuration-specific header row
-      const data = XLSX.utils.sheet_to_json(worksheet, { range: config.headerRow });
+      // Read the workbook (cached as gzipped JSON after the first parse)
+      const data = readWorkbookRows(filePath, config.headerRow).rows;
 
       // Filter valid records (same logic as importer)
       const validRecords = data.filter((row: any) => {

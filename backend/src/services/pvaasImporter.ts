@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
 import * as path from 'path';
+import { readWorkbookRows } from '../utils/workbookCache';
 import { sqliteDb } from '../db';
 import { logger } from '../utils/logger';
 
@@ -9,6 +9,8 @@ interface PVAASRecord {
   year: string;
   subject: string;
   grade: string | number;
+  /** PVAAS student group; the value-added files have no group column and are All Students. */
+  studentGroup: string;
   growthIndex: number;
   growthMeasure: number;
   effectSize: number;
@@ -34,12 +36,9 @@ export class PVAASImporter {
   async importPVAASFile(filePath: string, level: 'school' | 'district'): Promise<{ updated: number; skipped: number; inserted: number }> {
     logger.info(`Importing PVAAS file: ${filePath}`);
 
-    logger.info('Reading Excel file...');
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
-    logger.info(`Loaded ${data.length} rows`);
+    const read = readWorkbookRows(filePath);
+    const data = read.rows;
+    logger.info(`Loaded ${data.length} rows${read.fromCache ? ' from cache' : ''}`);
 
     const sourceFile = path.basename(filePath);
 
@@ -117,10 +116,10 @@ export class PVAASImporter {
     const insertStmt = sqlite.prepare(`
       INSERT INTO pvaas_results (
         level, school_id, district_id, aun, school_number,
-        year, subject, grade,
+        year, subject, grade, student_group,
         growth_measure, growth_index, effect_size, standard_error, growth_score,
         source_file
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const txn = sqlite.transaction((recs: PVAASRecord[]) => {
@@ -142,6 +141,7 @@ export class PVAASImporter {
           parseInt(r.year),
           r.subject,
           gradeValue,
+          r.studentGroup,
           isNaN(r.growthMeasure) ? null : r.growthMeasure,
           isNaN(r.growthIndex) ? null : r.growthIndex,
           isNaN(r.effectSize) ? null : r.effectSize,
@@ -178,6 +178,7 @@ export class PVAASImporter {
     if (!year) return null;
 
     const aun = (row['District AUN'] || row['district_aun'])?.toString();
+    const studentGroup = String(row['Student Group'] ?? row['student_group'] ?? 'All Students').trim() || 'All Students';
     const rawSchoolNumber = level === 'school' ? (row['School Number'] || row['school_number'])?.toString() : undefined;
     // Normalize school number to match database format (9 digits with leading zeros)
     const schoolNumber = rawSchoolNumber ? rawSchoolNumber.padStart(9, '0') : undefined;
@@ -203,6 +204,7 @@ export class PVAASImporter {
       year: year.toString(),
       subject,
       grade,
+      studentGroup,
       growthIndex,
       growthMeasure: isNaN(growthMeasure) ? growthIndex : growthMeasure,
       effectSize: isNaN(effectSize) ? 0 : effectSize,
@@ -319,6 +321,9 @@ export class PVAASImporter {
     type Staged = { entityId: number; year: number; subject: string; grade: number | null; growthIndex: number };
     const staged: Staged[] = [];
     for (const record of records) {
+      // Only the All Students growth belongs on the All Students result rows;
+      // subgroup rows stay in pvaas_results for their own analysis.
+      if (record.studentGroup !== 'All Students') continue;
       const key = level === 'school' ? `${record.aun}|${record.schoolNumber}` : record.aun;
       const entityId = idLookup.get(key);
       if (!entityId) continue;

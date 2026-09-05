@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
-import { db } from '../db';
+import { db, sqliteDb } from '../db';
+import { readWorkbookRows } from '../utils/workbookCache';
 import { pssaResults, keystoneResults, schools, districts, counties, dataImports } from '../db/newSchema';
 import { logger } from '../utils/logger';
 import { getFileConfig, FileConfig, normalizeDemographicLabel } from './fileConfigs';
@@ -58,13 +58,10 @@ export class DataImporterFixed {
         importedAt: new Date()
       }).returning().get();
 
-      // Read Excel file
-      const workbook = XLSX.readFile(filePath);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-
-      // Parse data with configuration-specific header row
-      let data = XLSX.utils.sheet_to_json(worksheet, { range: config.headerRow });
+      // Read the workbook (cached as gzipped JSON after the first parse)
+      const read = readWorkbookRows(filePath, config.headerRow);
+      let data = read.rows;
+      if (read.fromCache) logger.info('Loaded parsed rows from cache');
 
       if (totalsOnly) {
         const gradeCol = config.gradeColumn || 'Grade';
@@ -73,6 +70,18 @@ export class DataImporterFixed {
       } else {
         logger.info(`Found ${data.length} rows to process`);
       }
+
+      // One transaction per file: a crash leaves the file either fully imported
+      // or untouched, and SQLite stops fsyncing every 100-row batch. WAL mode
+      // makes synchronous=NORMAL safe against application crashes.
+      sqliteDb.pragma('synchronous = NORMAL');
+      sqliteDb.exec('BEGIN');
+      let inTransaction = true;
+      const finish = (ok: boolean) => {
+        if (!inTransaction) return;
+        inTransaction = false;
+        sqliteDb.exec(ok ? 'COMMIT' : 'ROLLBACK');
+      };
 
       // Delete any existing records from this source file to prevent duplicates on re-import
       const isPSSA = fileName.toLowerCase().includes('pssa');
@@ -114,9 +123,11 @@ export class DataImporterFixed {
         .where(eq(dataImports.id, importRecord.id))
         .run();
 
+      finish(true);
       result.success = true;
       logger.info(`✅ Successfully imported ${result.recordsProcessed} records (skipped ${result.skipped})`);
     } catch (error) {
+      try { if (sqliteDb.inTransaction) sqliteDb.exec('ROLLBACK'); } catch { /* nothing to roll back */ }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       result.errors.push(errorMessage);
       logger.error(`❌ Error importing ${fileName}:`, error);
