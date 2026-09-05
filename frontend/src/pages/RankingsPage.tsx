@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { performanceApi } from '../services/api';
+import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useIsSmUp } from '../hooks/useMediaQuery';
+import FilterSelect from '../components/FilterSelect';
 import {
-  TrophyIcon,
   ArrowTopRightOnSquareIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
@@ -20,22 +21,11 @@ import {
   Cell,
 } from 'recharts';
 
+// One sequential hue: highest schools in full navy, lowest in a lighter tint.
 const COLORS = {
-  civic: '#27ab83',
-  civicLight: '#c6f7e2',
-  brick: '#c53030',
-  brickLight: '#fde3e3',
   navy: '#2d4a6f',
+  navyLight: '#a8c3d8',
   gold: '#d4aa3c',
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.05, duration: 0.35, ease: 'easeOut' as const },
-  }),
 };
 
 const tooltipStyle = {
@@ -47,7 +37,11 @@ const tooltipStyle = {
 };
 
 export default function RankingsPage() {
-  const [year, setYear] = useState(2024);
+  const { years, latest } = useAvailableYears();
+  const smUp = useIsSmUp();
+  // null = latest year in the database; becomes a number once the user picks one.
+  const [yearChoice, setYearChoice] = useState<number | null>(null);
+  const year = yearChoice ?? latest;
   const [examType, setExamType] = useState<'pssa' | 'keystone'>('pssa');
   const [subject, setSubject] = useState<string>('');
   const [grade, setGrade] = useState<number | ''>('');
@@ -73,7 +67,7 @@ export default function RankingsPage() {
     queryKey: ['rankings', year, examType, subject, grade, countyId, schoolType, limit],
     queryFn: () =>
       performanceApi.getRankings({
-        year,
+        year: year!,
         examType,
         subject: subject || undefined,
         grade: grade || undefined,
@@ -81,18 +75,23 @@ export default function RankingsPage() {
         schoolType: schoolType || undefined,
         limit,
       }),
+    enabled: year != null,
   });
 
   const pssaSubjects = ['Mathematics', 'English Language Arts', 'Science'];
   const keystoneSubjects = ['Algebra I', 'Biology', 'Literature'];
   const subjects = examType === 'pssa' ? pssaSubjects : keystoneSubjects;
-  const years = [2024, 2023, 2022, 2021, 2019, 2018, 2017, 2016, 2015];
+
+  // The category axis eats fixed width; phones get a narrower axis and shorter labels.
+  const axisWidth = smUp ? 210 : 120;
+  const nameMax = smUp ? 28 : 17;
+  const shorten = (name: string) => (name.length > nameMax ? name.slice(0, nameMax - 2) + '...' : name);
 
   // Build chart data: top schools (green) then gap then bottom schools (red, reversed)
   const chartData = rankings
     ? [
         ...rankings.top.map((s) => ({
-          name: s.schoolName.length > 28 ? s.schoolName.slice(0, 26) + '...' : s.schoolName,
+          name: shorten(s.schoolName),
           fullName: s.schoolName,
           value: s.avgProficiency,
           isTop: true,
@@ -101,7 +100,7 @@ export default function RankingsPage() {
           .slice()
           .reverse()
           .map((s) => ({
-            name: s.schoolName.length > 28 ? s.schoolName.slice(0, 26) + '...' : s.schoolName,
+            name: shorten(s.schoolName),
             fullName: s.schoolName,
             value: s.avgProficiency,
             isTop: false,
@@ -111,47 +110,20 @@ export default function RankingsPage() {
 
   const chartHeight = Math.max(400, chartData.length * 36 + 80);
 
-  const FilterSelect = ({ label, value, onChange, children }: any) => (
-    <div className="flex items-center gap-2">
-      <label className="text-xs font-medium text-stone-500 whitespace-nowrap">{label}</label>
-      <select
-        value={value}
-        onChange={onChange}
-        className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
-      >
-        {children}
-      </select>
-    </div>
-  );
-
   const SchoolCard = ({
     school,
-    index,
     variant,
   }: {
     school: NonNullable<typeof rankings>['top'][0];
-    index: number;
     variant: 'top' | 'bottom';
   }) => {
     const isTop = variant === 'top';
 
     return (
-      <motion.div
-        custom={index}
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        className="card-philly p-4 hover:shadow-md transition-shadow"
-      >
+      <div className="card-surface p-4">
         <div className="flex items-start gap-3">
-          {/* Rank badge */}
-          <div
-            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              isTop
-                ? 'bg-civic-100 text-civic-800'
-                : 'bg-brick-100 text-brick-700'
-            }`}
-          >
+          {/* Rank */}
+          <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold bg-stone-100 text-stone-700 tabular-nums">
             {school.rank}
           </div>
 
@@ -178,17 +150,11 @@ export default function RankingsPage() {
             <div className="mt-2 flex items-center gap-3">
               <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    isTop ? 'bg-civic-500' : 'bg-brick-400'
-                  }`}
+                  className={`h-full rounded-full ${isTop ? 'bg-navy-600' : 'bg-navy-300'}`}
                   style={{ width: `${school.avgProficiency}%` }}
                 />
               </div>
-              <span
-                className={`text-sm font-bold tabular-nums ${
-                  isTop ? 'text-civic-700' : 'text-brick-600'
-                }`}
-              >
+              <span className="text-sm font-bold tabular-nums text-stone-900">
                 {school.avgProficiency}%
               </span>
             </div>
@@ -206,34 +172,25 @@ export default function RankingsPage() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div>
         {/* Header */}
-        <div className="flex items-start gap-4 mb-8">
-          <div className="p-2.5 rounded-xl bg-gold-100">
-            <TrophyIcon className="w-6 h-6 text-gold-700" />
-          </div>
-          <div>
+        <div className="mb-8">
             <h1 className="text-2xl font-bold text-stone-900 tracking-tight">School Rankings</h1>
             <p className="mt-1 text-sm text-stone-500">
-              Top and bottom performing schools ranked by proficiency rates
+              Highest and lowest proficiency rates among schools matching the filters
             </p>
           </div>
-        </div>
 
         {/* Filters */}
-        <div className="card-philly p-4 mb-8">
-          <div className="flex flex-wrap gap-4">
-            <FilterSelect label="Year" value={year} onChange={(e: any) => setYear(Number(e.target.value))}>
+        <div className="card-surface p-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+            <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYearChoice(Number(e.target.value))}>
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -242,8 +199,8 @@ export default function RankingsPage() {
             <FilterSelect
               label="Exam"
               value={examType}
-              onChange={(e: any) => {
-                setExamType(e.target.value);
+              onChange={(e) => {
+                setExamType(e.target.value as 'pssa' | 'keystone');
                 setSubject('');
                 setGrade('');
               }}
@@ -252,7 +209,7 @@ export default function RankingsPage() {
               <option value="keystone">Keystone</option>
             </FilterSelect>
 
-            <FilterSelect label="Subject" value={subject} onChange={(e: any) => setSubject(e.target.value)}>
+            <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
               <option value="">All Subjects</option>
               {subjects.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -260,7 +217,7 @@ export default function RankingsPage() {
             </FilterSelect>
 
             {examType === 'pssa' && (
-              <FilterSelect label="Grade" value={grade} onChange={(e: any) => setGrade(e.target.value ? Number(e.target.value) : '')}>
+              <FilterSelect label="Grade" value={grade} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : '')}>
                 <option value="">All Grades</option>
                 {[3, 4, 5, 6, 7, 8].map((g) => (
                   <option key={g} value={g}>Grade {g}</option>
@@ -268,21 +225,21 @@ export default function RankingsPage() {
               </FilterSelect>
             )}
 
-            <FilterSelect label="School Type" value={schoolType} onChange={(e: any) => setSchoolType(e.target.value)}>
+            <FilterSelect label="School Type" value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
               <option value="">All Types</option>
               {filterOptions?.schoolTypes.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </FilterSelect>
 
-            <FilterSelect label="County" value={countyId} onChange={(e: any) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
+            <FilterSelect label="County" value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">All Counties</option>
               {filterOptions?.counties.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </FilterSelect>
 
-            <FilterSelect label="Show" value={limit} onChange={(e: any) => setLimit(Number(e.target.value))}>
+            <FilterSelect label="Show" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
               {[5, 10, 15, 25].map((n) => (
                 <option key={n} value={n}>Top/Bottom {n}</option>
               ))}
@@ -292,7 +249,7 @@ export default function RankingsPage() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="card-philly p-12 text-center">
+          <div className="card-surface p-12 text-center">
             <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
             <p className="mt-3 text-sm text-stone-500">Loading rankings...</p>
           </div>
@@ -301,44 +258,44 @@ export default function RankingsPage() {
         {rankings && (
           <>
             {/* KPI Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="card-philly p-5 border-l-4 border-l-civic-500">
-                <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">Top School</p>
-                <p className="text-lg font-bold text-stone-900 mt-1 truncate">
-                  {rankings.top[0]?.schoolName || 'N/A'}
-                </p>
-                <p className="text-2xl font-bold text-civic-700 mt-0.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <div className="card-surface p-5">
+                <p className="text-sm text-stone-500">Highest</p>
+                <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
                   {rankings.top[0]?.avgProficiency ?? 'N/A'}%
                 </p>
+                <p className="text-sm text-stone-700 mt-0.5 truncate">
+                  {rankings.top[0]?.schoolName || 'N/A'}
+                </p>
               </div>
-              <div className="card-philly p-5 border-l-4 border-l-gold-400">
-                <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">State Average</p>
-                <p className="text-lg font-bold text-stone-900 mt-1">Benchmark</p>
-                <p className="text-2xl font-bold text-gold-700 mt-0.5">
+              <div className="card-surface p-5">
+                <p className="text-sm text-stone-500">State average</p>
+                <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
                   {rankings.stateAverage != null ? `${rankings.stateAverage}%` : 'N/A'}
                 </p>
+                <p className="text-sm text-stone-700 mt-0.5">All schools, same filters</p>
               </div>
-              <div className="card-philly p-5 border-l-4 border-l-brick-500">
-                <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">Bottom School</p>
-                <p className="text-lg font-bold text-stone-900 mt-1 truncate">
-                  {rankings.bottom[0]?.schoolName || 'N/A'}
-                </p>
-                <p className="text-2xl font-bold text-brick-600 mt-0.5">
+              <div className="card-surface p-5">
+                <p className="text-sm text-stone-500">Lowest</p>
+                <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
                   {rankings.bottom[0]?.avgProficiency ?? 'N/A'}%
+                </p>
+                <p className="text-sm text-stone-700 mt-0.5 truncate">
+                  {rankings.bottom[0]?.schoolName || 'N/A'}
                 </p>
               </div>
             </div>
 
             {/* Horizontal Bar Chart */}
-            <div className="card-philly p-6 mb-8">
+            <div className="card-surface p-4 sm:p-6 mb-8">
               <h2 className="text-base font-semibold text-stone-900 mb-1">
                 Proficiency Rankings
               </h2>
               <p className="text-xs text-stone-400 mb-4">
-                Top {rankings.top.length} and bottom {rankings.bottom.length} schools by average % proficient or above
+                Highest {rankings.top.length} and lowest {rankings.bottom.length} schools by average % proficient or above
               </p>
               <ResponsiveContainer width="100%" height={chartHeight}>
-                <BarChart layout="vertical" data={chartData} margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                <BarChart layout="vertical" data={chartData} margin={{ left: smUp ? 10 : 0, right: smUp ? 30 : 16, top: 5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
                   <XAxis
                     type="number"
@@ -349,8 +306,8 @@ export default function RankingsPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={210}
-                    tick={{ fontSize: 11, fill: '#57534e' }}
+                    width={axisWidth}
+                    tick={{ fontSize: smUp ? 11 : 10, fill: '#57534e' }}
                   />
                   {rankings.stateAverage != null && (
                     <ReferenceLine
@@ -379,8 +336,7 @@ export default function RankingsPage() {
                     {chartData.map((entry, index) => (
                       <Cell
                         key={index}
-                        fill={entry.isTop ? COLORS.civic : COLORS.brick}
-                        fillOpacity={0.85}
+                        fill={entry.isTop ? COLORS.navy : COLORS.navyLight}
                       />
                     ))}
                   </Bar>
@@ -390,35 +346,27 @@ export default function RankingsPage() {
 
             {/* Two-column card lists */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Top Performers */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 rounded-full bg-civic-500" />
-                  <h2 className="text-base font-semibold text-stone-900">Top Performers</h2>
-                </div>
+                <h2 className="text-base font-semibold text-stone-900 mb-4">Highest proficiency</h2>
                 <div className="space-y-3">
-                  {rankings.top.map((school, i) => (
-                    <SchoolCard key={school.schoolId} school={school} index={i} variant="top" />
+                  {rankings.top.map((school) => (
+                    <SchoolCard key={school.schoolId} school={school} variant="top" />
                   ))}
                 </div>
               </div>
 
-              {/* Needs Improvement */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 rounded-full bg-brick-500" />
-                  <h2 className="text-base font-semibold text-stone-900">Needs Improvement</h2>
-                </div>
+                <h2 className="text-base font-semibold text-stone-900 mb-4">Lowest proficiency</h2>
                 <div className="space-y-3">
-                  {rankings.bottom.map((school, i) => (
-                    <SchoolCard key={school.schoolId} school={school} index={i} variant="bottom" />
+                  {rankings.bottom.map((school) => (
+                    <SchoolCard key={school.schoolId} school={school} variant="bottom" />
                   ))}
                 </div>
               </div>
             </div>
           </>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

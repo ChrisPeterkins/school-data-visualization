@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Philadelphia Navy — deep, civic, authoritative
+        // Navy — primary
         navy: {
           50: '#eef3f8',
           100: '#d4e1ec',
@@ -22,7 +22,7 @@ export default {
           900: '#0a1628',
           950: '#060e1a',
         },
-        // Liberty Gold — warm, historic accent
+        // Gold — single accent, used for reference lines and highlights
         gold: {
           50: '#fdf8ee',
           100: '#f8ecbe',
@@ -35,7 +35,7 @@ export default {
           800: '#5c4512',
           900: '#3d2e0a',
         },
-        // Civic Teal — parks, rivers, growth
+        // Teal — secondary chart series
         civic: {
           50: '#effcf8',
           100: '#c6f7e2',
@@ -48,7 +48,7 @@ export default {
           800: '#0c6b58',
           900: '#014d40',
         },
-        // Brick — warmth, historic Philly rowhouses
+        // Brick — chart series / errors only
         brick: {
           50: '#fef2f2',
           100: '#fde3e3',

@@ -207,6 +207,52 @@ export const keystoneResults = sqliteTable('keystone_results', {
   };
 });
 
+// PVAAS RESULTS TABLE
+// Captures raw PVAAS growth data (growthMeasure, effectSize, standardError, etc.)
+// that the old importer was dropping. Growth scores still get propagated onto
+// pssa_results/keystone_results.growth_score for backwards compatibility, but
+// this table preserves the full per-subject/per-grade detail.
+export const pvaasResults = sqliteTable('pvaas_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+
+  // Level and entity reference
+  level: text('level').notNull(), // 'school' or 'district'
+  schoolId: integer('school_id').references(() => schools.id),
+  districtId: integer('district_id').references(() => districts.id),
+
+  // Entity identifiers (kept even when FK lookup fails, so rows are not lost)
+  aun: text('aun').notNull(),
+  schoolNumber: text('school_number'),
+
+  // Test details
+  year: integer('year').notNull(),
+  subject: text('subject').notNull(), // Mathematics, English Language Arts, Science, Algebra I, Biology, Literature
+  grade: integer('grade'), // NULL encodes "Across Grades" / aggregated / N/A
+
+  // Growth metrics (full detail that was previously discarded)
+  growthMeasure: real('growth_measure'),
+  growthIndex: real('growth_index'),
+  effectSize: real('effect_size'),
+  standardError: real('standard_error'),
+  growthScore: real('growth_score'), // convenience alias — same value as growthIndex
+
+  // Metadata
+  sourceFile: text('source_file'),
+  importedAt: integer('imported_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`)
+}, (table) => {
+  return {
+    levelIdx: index('pvaas_level_idx').on(table.level),
+    yearIdx: index('pvaas_year_idx').on(table.year),
+    subjectIdx: index('pvaas_subject_idx').on(table.subject),
+    aunIdx: index('pvaas_aun_idx').on(table.aun),
+    schoolIdx: index('pvaas_school_idx').on(table.schoolId),
+    districtIdx: index('pvaas_district_idx').on(table.districtId),
+    compositeIdx: index('pvaas_composite_idx').on(
+      table.level, table.aun, table.schoolNumber, table.year, table.subject, table.grade
+    )
+  };
+});
+
 // DATA IMPORT LOG TABLE
 export const dataImports = sqliteTable('data_imports', {
   id: integer('id').primaryKey({ autoIncrement: true }),

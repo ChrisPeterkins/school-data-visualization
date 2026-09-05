@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { AcademicCapIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { schoolApi } from '../services/api';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import api, { schoolApi } from '../services/api';
 import SearchBar from '../components/SearchBar';
 import EnhancedSchoolTable from '../components/EnhancedSchoolTable';
 import Pagination from '../components/Pagination';
@@ -27,8 +26,7 @@ export default function SchoolsPage() {
   useQuery({
     queryKey: ['school-filters'],
     queryFn: async () => {
-      const response = await fetch('/api/schools/filters');
-      const data = await response.json();
+      const { data } = await api.get('/api/schools/filters');
       setFilters(data);
       return data;
     },
@@ -68,23 +66,14 @@ export default function SchoolsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div>
         {/* Header */}
-        <div className="flex items-start gap-4 mb-8">
-          <div className="p-2.5 rounded-xl bg-navy-100">
-            <AcademicCapIcon className="w-6 h-6 text-navy-600" />
-          </div>
-          <div>
+        <div className="mb-8">
             <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Pennsylvania Schools</h1>
             <p className="mt-1 text-sm text-stone-500">
               Browse and search {data?.meta?.total?.toLocaleString() || '...'} public schools across 67 counties
             </p>
           </div>
-        </div>
 
         {/* Search & Filters */}
         <div className="space-y-4 mb-8">
@@ -96,12 +85,12 @@ export default function SchoolsPage() {
           />
 
           <div className="flex flex-wrap items-end gap-3">
-            <div>
+            <div className="flex-1 min-w-[10rem] sm:flex-none">
               <label className="block text-xs font-medium text-stone-500 mb-1">County</label>
               <select
                 value={countyName}
                 onChange={(e) => handleFilterChange('county', e.target.value)}
-                className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">All Counties</option>
                 {filters.counties.map(county => (
@@ -110,12 +99,12 @@ export default function SchoolsPage() {
               </select>
             </div>
 
-            <div>
+            <div className="flex-1 min-w-[10rem] sm:flex-none">
               <label className="block text-xs font-medium text-stone-500 mb-1">School Type</label>
               <select
                 value={schoolType}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
-                className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">All Types</option>
                 {filters.schoolTypes.map(type => (
@@ -138,14 +127,14 @@ export default function SchoolsPage() {
 
         {/* Content */}
         {isLoading && (
-          <div className="card-philly p-12 text-center">
+          <div className="card-surface p-12 text-center">
             <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
             <p className="mt-3 text-sm text-stone-500">Loading schools...</p>
           </div>
         )}
 
         {error && (
-          <div className="card-philly border-brick-200 bg-brick-50 p-4">
+          <div className="card-surface border-brick-200 bg-brick-50 p-4">
             <p className="text-sm text-brick-700">Error loading schools. Please try again later.</p>
           </div>
         )}
@@ -166,7 +155,7 @@ export default function SchoolsPage() {
             )}
           </>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -97,8 +97,8 @@ npx tsx src/scripts/runNewImport.ts
 # - Create the SQLite database
 # - Import all counties and districts
 # - Import all schools
-# - Import PSSA results (2015-2024)
-# - Import Keystone results (2015-2024)
+# - Import PSSA results (2015-2025)
+# - Import Keystone results (2015-2025)
 # - Process demographic breakdowns
 ```
 
@@ -244,7 +244,7 @@ As of the last update, the application includes:
 ✅ **Completed Features:**
 - School search and filtering
 - PSSA/Keystone data display
-- Year selector (2015-2024)
+- Year selector (2015-2025)
 - Real-time import progress tracking
 - Database with all PA school data
 - Performance visualizations
@@ -301,4 +301,4 @@ npm run start
 
 ---
 
-**Note**: This setup creates a fully functional development environment with all Pennsylvania school data from 2015-2024. The database will be approximately 350MB after import.
+**Note**: This setup creates a fully functional development environment with all Pennsylvania school data from 2015-2025. The database will be approximately 350MB after import.

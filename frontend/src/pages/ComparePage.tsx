@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { schoolApi, performanceApi } from '../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useIsSmUp } from '../hooks/useMediaQuery';
+import FilterSelect from '../components/FilterSelect';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+  ScatterChart, Scatter
 } from 'recharts';
 import { MagnifyingGlassIcon, XMarkIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
-const COMPARE_COLORS = ['#2d4a6f', '#27ab83', '#d4aa3c', '#c53030', '#4a6d8c'];
+const COMPARE_COLORS = ['#2d4a6f', '#27ab83', '#c53030', '#4a6d8c', '#199473'];
+const STATE_COLOR = '#d4aa3c'; // gold is reserved for the state-average reference
+const SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
+const SUBJECT_SHORT: Record<string, string> = { 'Mathematics': 'Math', 'English Language Arts': 'ELA', 'Science': 'Science' };
 
 const tooltipStyle = {
   backgroundColor: '#fff',
@@ -22,7 +27,12 @@ export default function ComparePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSchools, setSelectedSchools] = useState<any[]>([]);
   const [showSearch, setShowSearch] = useState(false);
-  const [year, setYear] = useState(2024);
+  const { years, latest } = useAvailableYears();
+  const smUp = useIsSmUp();
+  const chartHeight = smUp ? 400 : 300;
+  // null = latest year in the database; becomes a number once the user picks one.
+  const [yearChoice, setYearChoice] = useState<number | null>(null);
+  const year = yearChoice ?? latest;
 
   const { data: searchResults } = useQuery({
     queryKey: ['school-search', searchTerm],
@@ -41,7 +51,20 @@ export default function ComparePage() {
       );
       return results;
     },
-    enabled: selectedSchools.length > 0,
+    enabled: selectedSchools.length > 0 && year != null,
+  });
+
+  // Statewide proficiency per subject for the same year (grade 0 = PDE's "Total").
+  const { data: statePerformance } = useQuery({
+    queryKey: ['state-performance', year],
+    queryFn: () => performanceApi.getStatePerformance(year!),
+    enabled: year != null,
+  });
+  const stateBySubject: Record<string, number> = {};
+  (statePerformance?.pssa ?? []).forEach((r: any) => {
+    if (r.grade === 0 && r.avgProficientOrAbove != null) {
+      stateBySubject[r.subject] = parseFloat(r.avgProficientOrAbove.toFixed(1));
+    }
   });
 
   const addSchool = (school: any) => {
@@ -57,9 +80,8 @@ export default function ComparePage() {
   };
 
   const processComparisonData = () => {
-    if (!performanceData) return { barData: [], radarData: [] };
-    const subjects = ['Mathematics', 'English Language Arts', 'Science'];
-    const barData = subjects.map(subject => {
+    if (!performanceData) return { barData: [] };
+    const barData = SUBJECTS.map(subject => {
       const subjectData: any = { subject };
       performanceData.forEach(({ school, data }) => {
         const subjectResults = data.filter((d: any) => d.subject === subject && d.proficientOrAbovePercent != null);
@@ -70,47 +92,39 @@ export default function ComparePage() {
       });
       return subjectData;
     });
-    const radarData = selectedSchools.map(school => {
-      const schoolPerf = performanceData.find(p => p.school.id === school.id);
-      if (!schoolPerf) return null;
-      const metrics: any = { school: school.name };
-      subjects.forEach(subject => {
-        const subjectResults = schoolPerf.data.filter((d: any) => d.subject === subject && d.proficientOrAbovePercent != null);
-        if (subjectResults.length > 0) {
-          const avg = subjectResults.reduce((sum: number, d: any) => sum + d.proficientOrAbovePercent, 0) / subjectResults.length;
-          metrics[subject] = parseFloat(avg.toFixed(1));
-        }
-      });
-      return metrics;
-    }).filter(Boolean);
-    return { barData, radarData };
+    return { barData };
   };
 
-  const { barData, radarData } = processComparisonData();
+  const { barData } = processComparisonData();
+
+  // Dot plot rows: one point per school per subject, plus the state average.
+  const dotSeries = selectedSchools.map((school) => ({
+    name: school.name,
+    data: barData
+      .filter((row: any) => row[school.name] != null)
+      .map((row: any) => ({ subject: SUBJECT_SHORT[row.subject] ?? row.subject, value: row[school.name] })),
+  }));
+  const stateSeries = SUBJECTS
+    .filter((s) => stateBySubject[s] != null)
+    .map((s) => ({ subject: SUBJECT_SHORT[s], value: stateBySubject[s] }));
+  const stateAverageOfAverages = stateSeries.length
+    ? stateSeries.reduce((sum, d) => sum + d.value, 0) / stateSeries.length
+    : NaN;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="flex items-start gap-4 mb-8">
-          <div className="p-2.5 rounded-xl bg-navy-100">
-            <ArrowsRightLeftIcon className="w-6 h-6 text-navy-600" />
-          </div>
-          <div>
+      <div>
+        <div className="mb-8">
             <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Compare Schools</h1>
             <p className="mt-1 text-sm text-stone-500">Compare academic performance across multiple schools (up to 5)</p>
           </div>
-        </div>
 
         {/* Controls */}
-        <div className="card-philly p-5 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-stone-500">Year</label>
-              <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500">
-                {[2024, 2023, 2022, 2021, 2019, 2018, 2017, 2016, 2015].map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
+        <div className="card-surface p-5 mb-6">
+          <div className="flex flex-wrap items-end gap-3 sm:gap-4 mb-4">
+            <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYearChoice(Number(e.target.value))} fluid={false}>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </FilterSelect>
             <button
               onClick={() => setShowSearch(true)}
               disabled={selectedSchools.length >= 5}
@@ -121,15 +135,8 @@ export default function ComparePage() {
           </div>
 
           {/* Search Panel */}
-          <AnimatePresence>
-            {showSearch && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden mb-4"
-              >
+          {showSearch && (
+              <div className="mb-4">
                 <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
                   <div className="relative">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -159,18 +166,14 @@ export default function ComparePage() {
                     </ul>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
 
           {/* Selected Schools Chips */}
           <div className="flex flex-wrap gap-2">
             {selectedSchools.map((school, index) => (
-              <motion.div
+              <div
                 key={school.id}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-full"
                 style={{ borderColor: COMPARE_COLORS[index] }}
               >
@@ -179,7 +182,7 @@ export default function ComparePage() {
                 <button onClick={() => removeSchool(school.id)} className="text-stone-400 hover:text-stone-600 transition-colors">
                   <XMarkIcon className="h-4 w-4" />
                 </button>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -187,9 +190,9 @@ export default function ComparePage() {
         {/* Charts */}
         {selectedSchools.length > 0 && performanceData ? (
           <div className="space-y-6">
-            <div className="card-philly p-6">
+            <div className="card-surface p-4 sm:p-6">
               <h2 className="text-base font-semibold text-stone-900 mb-4">Subject Performance ({year})</h2>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={barData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis dataKey="subject" tick={{ fontSize: 12, fill: '#78716c' }} />
@@ -204,32 +207,28 @@ export default function ComparePage() {
               </ResponsiveContainer>
             </div>
 
-            {radarData.length > 0 && (
-              <div className="card-philly p-6">
-                <h2 className="text-base font-semibold text-stone-900 mb-4">Performance Profile ({year})</h2>
-                <ResponsiveContainer width="100%" height={400}>
-                  <RadarChart data={radarData[0] ? Object.keys(radarData[0])
-                    .filter(k => k !== 'school')
-                    .map(subject => {
-                      const point: any = { subject };
-                      radarData.forEach((d: any) => { point[d.school] = d[subject] || 0; });
-                      return point;
-                    }) : []}>
-                    <PolarGrid stroke="#e7e5e4" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#78716c' }} />
-                    <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#a8a29e' }} />
-                    {selectedSchools.map((school, index) => (
-                      <Radar key={school.id} name={school.name} dataKey={school.name}
-                        stroke={COMPARE_COLORS[index]} fill={COMPARE_COLORS[index]} fillOpacity={0.15} strokeWidth={2} />
-                    ))}
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <div className="card-surface p-4 sm:p-6">
+              <h2 className="text-base font-semibold text-stone-900 mb-1">Schools vs. State Average ({year})</h2>
+              <p className="text-xs text-stone-400 mb-4">Each dot is a school's % proficient or above; the gold diamond is the statewide figure</p>
+              <ResponsiveContainer width="100%" height={smUp ? 260 : 220}>
+                <ScatterChart margin={{ top: 10, right: smUp ? 30 : 16, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                  <XAxis type="number" dataKey="value" domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                  <YAxis type="category" dataKey="subject" allowDuplicatedCategory={false} width={smUp ? 80 : 60} tick={{ fontSize: 12, fill: '#57534e' }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}%`, 'Proficient or above']} cursor={{ strokeDasharray: '3 3' }} />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  {dotSeries.map((series, index) => (
+                    <Scatter key={series.name} name={series.name} data={series.data} fill={COMPARE_COLORS[index]} />
+                  ))}
+                  {stateSeries.length > 0 && (
+                    <Scatter name="State average" data={stateSeries} fill={STATE_COLOR} shape="diamond" />
+                  )}
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
 
             {/* Summary Table */}
-            <div className="card-philly overflow-hidden">
+            <div className="card-surface overflow-hidden">
               <div className="px-6 py-4 border-b border-stone-100">
                 <h2 className="text-base font-semibold text-stone-900">Summary ({year})</h2>
               </div>
@@ -237,11 +236,11 @@ export default function ComparePage() {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-stone-50/80 border-b border-stone-200">
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">School</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Math</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">ELA</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Science</th>
-                      <th className="px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Average</th>
+                      <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">School</th>
+                      <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Math</th>
+                      <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">ELA</th>
+                      <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Science</th>
+                      <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Average</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -255,31 +254,49 @@ export default function ComparePage() {
 
                       return (
                         <tr key={school.id} className="hover:bg-stone-50/50 transition-colors">
-                          <td className="px-5 py-3.5">
+                          <td className="px-3 sm:px-5 py-3.5">
                             <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[index] }} />
+                              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COMPARE_COLORS[index] }} />
                               <span className="text-sm font-medium text-stone-900">{school.name}</span>
                             </div>
                           </td>
-                          <td className="px-5 py-3.5 text-center text-sm text-stone-600">{schoolData['Mathematics']?.toFixed(1) || 'N/A'}%</td>
-                          <td className="px-5 py-3.5 text-center text-sm text-stone-600">{schoolData['English Language Arts']?.toFixed(1) || 'N/A'}%</td>
-                          <td className="px-5 py-3.5 text-center text-sm text-stone-600">{schoolData['Science']?.toFixed(1) || 'N/A'}%</td>
-                          <td className="px-5 py-3.5 text-center text-sm font-semibold text-navy-600">{isNaN(avg) ? 'N/A' : `${avg.toFixed(1)}%`}</td>
+                          <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">{schoolData['Mathematics'] ? `${schoolData['Mathematics'].toFixed(1)}%` : 'N/A'}</td>
+                          <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">{schoolData['English Language Arts'] ? `${schoolData['English Language Arts'].toFixed(1)}%` : 'N/A'}</td>
+                          <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">{schoolData['Science'] ? `${schoolData['Science'].toFixed(1)}%` : 'N/A'}</td>
+                          <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-navy-600 whitespace-nowrap">{isNaN(avg) ? 'N/A' : `${avg.toFixed(1)}%`}</td>
                         </tr>
                       );
                     })}
+                    {stateSeries.length > 0 && (
+                      <tr className="bg-stone-50/80">
+                        <td className="px-3 sm:px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rotate-45 flex-shrink-0" style={{ backgroundColor: STATE_COLOR }} />
+                            <span className="text-sm font-medium text-stone-700">State average</span>
+                          </div>
+                        </td>
+                        {SUBJECTS.map((s) => (
+                          <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">
+                            {stateBySubject[s] != null ? `${stateBySubject[s].toFixed(1)}%` : 'N/A'}
+                          </td>
+                        ))}
+                        <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-stone-700 whitespace-nowrap">
+                          {isNaN(stateAverageOfAverages) ? 'N/A' : `${stateAverageOfAverages.toFixed(1)}%`}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
         ) : selectedSchools.length === 0 ? (
-          <div className="card-philly p-12 text-center">
+          <div className="card-surface p-12 text-center">
             <ArrowsRightLeftIcon className="w-10 h-10 text-stone-300 mx-auto mb-4" />
             <p className="text-stone-500">Select up to 5 schools to compare their academic performance</p>
           </div>
         ) : null}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -4,14 +4,15 @@ import Database from 'better-sqlite3';
 import { eq, and, sql } from 'drizzle-orm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { 
-  counties, 
-  districts, 
-  schools, 
-  pssaResults, 
-  keystoneResults, 
-  dataImports 
+import {
+  counties,
+  districts,
+  schools,
+  pssaResults,
+  keystoneResults,
+  dataImports
 } from '../db/newSchema';
+import { normalizeDemographicLabel } from './fileConfigs';
 
 interface FileConfig {
   headerRow: number;
@@ -905,11 +906,35 @@ export class NewDataImporter {
     try {
       // Read Excel file
       const workbook = XLSX.readFile(filePath);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][];
-      
+      const level = this.extractLevel(category);
+      const fileYear = this.extractYear(fileName);
+
+      // For state-level files pre-2022, the sheet layout is inconsistent: some
+      // years use a 'State' sheet, others 'website', 'State data', 'PSSA',
+      // 'Keystone', 'Sheet1', etc. and several years have a second aggregate
+      // sheet ("All Students group" / "PSSA Results") that doesn't carry a
+      // Group column at all. Scan all sheets and pick the one whose header
+      // row actually contains a "Group" (and a Subject) column so we never
+      // silently drop the entire file when the configured headerRow is off.
+      // The post-2022 path always takes the first sheet (existing behavior).
+      const useLegacyStatePath = level === 'state' && fileYear <= 2022;
+      let data: any[][];
+      let effectiveHeaderRow = config.headerRow;
+
+      if (useLegacyStatePath) {
+        const picked = this.pickStateLevelSheet(workbook, config);
+        data = picked.data;
+        effectiveHeaderRow = picked.headerRow;
+        if (picked.sheetName !== workbook.SheetNames[0] || picked.headerRow !== config.headerRow) {
+          console.log(`     legacy state parser: using sheet='${picked.sheetName}' headerRow=${picked.headerRow}`);
+        }
+      } else {
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: null }) as any[][];
+      }
+
       // Get headers
-      const headers = data[config.headerRow] || [];
+      const headers = data[effectiveHeaderRow] || [];
       const columnMap = new Map<string, number>();
       headers.forEach((header: any, index: number) => {
         if (header) {
@@ -919,8 +944,7 @@ export class NewDataImporter {
 
       let processed = 0;
       let skipped = 0;
-      const year = this.extractYear(fileName);
-      const level = this.extractLevel(category);
+      const year = fileYear;
       const isPSSA = fileName.includes('pssa');
 
       // Delete any existing records from this source file to prevent duplicates on re-import
@@ -938,7 +962,7 @@ export class NewDataImporter {
       }
 
       // Process data rows
-      for (let i = config.headerRow + 1; i < data.length; i++) {
+      for (let i = effectiveHeaderRow + 1; i < data.length; i++) {
         const row = data[i];
         if (!row || row.every((cell: any) => cell === null || cell === '')) continue;
 
@@ -981,7 +1005,7 @@ export class NewDataImporter {
       this.db.update(dataImports)
         .set({
           status: 'completed',
-          totalRows: data.length - config.headerRow - 1,
+          totalRows: data.length - effectiveHeaderRow - 1,
           processedRows: processed + skipped,
           insertedRows: processed,
           skippedRows: skipped,
@@ -1025,6 +1049,10 @@ export class NewDataImporter {
     'Pct. Below Basic': ['Percent Below Basic', '% Below Basic'],
     '% Advanced/Proficient': ['Percent Proficient and above', 'Percent Proficient and Above', 'Percent Advanced/Proficient'],
     'Percent Proficient and above': ['Percent Proficient and Above', '% Advanced/Proficient', 'Percent Advanced/Proficient'],
+    // Number scored column has a lowercase-s variant in some files (2016 state)
+    'Number Scored': ['Number scored', 'N Scored', 'Number_Scored'],
+    'Number scored': ['Number Scored', 'N Scored'],
+    'N Scored': ['Number Scored', 'Number scored'],
     // Entity column aliases
     'District AUN': ['AUN'],
     'AUN': ['District AUN'],
@@ -1209,6 +1237,86 @@ export class NewDataImporter {
     return this.pvaasMap.get(key);
   }
 
+  /**
+   * Legacy state-level sheet picker.
+   *
+   * State PSSA/Keystone files pre-2022 use wildly inconsistent sheet naming
+   * and header-row layouts — some years have a second "All Students group"
+   * sheet with aggregated-by-subject data and no Group column. The old
+   * importer blindly read sheet[0] at the configured header row and silently
+   * dropped the whole file when either of those assumptions was wrong.
+   *
+   * This helper scans every sheet in the workbook and picks the one whose
+   * header row contains both "Subject" and "Group" (or a recognized
+   * equivalent). It also auto-detects the correct header row if the configured
+   * row is off. Returns null if no usable sheet is found (caller falls back to
+   * the default first-sheet behavior).
+   */
+  private pickStateLevelSheet(
+    workbook: XLSX.WorkBook,
+    config: FileConfig
+  ): { sheet: XLSX.WorkSheet; sheetName: string; data: any[][]; headerRow: number } {
+    const groupAliases = new Set(['group', 'student group', 'student_group_name']);
+    const subjectAliases = new Set(['subject']);
+
+    let best: { sheet: XLSX.WorkSheet; sheetName: string; data: any[][]; headerRow: number; groupCount: number } | null = null;
+
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][];
+
+      // Search first 12 rows for a header that contains Subject + Group
+      for (let hr = 0; hr < Math.min(12, data.length); hr++) {
+        const row = data[hr];
+        if (!row) continue;
+        let hasGroup = false;
+        let hasSubject = false;
+        for (const cell of row) {
+          if (cell == null) continue;
+          const v = String(cell).trim().toLowerCase();
+          if (groupAliases.has(v)) hasGroup = true;
+          if (subjectAliases.has(v)) hasSubject = true;
+        }
+        if (hasGroup && hasSubject) {
+          // Count distinct non-null group values below this header
+          const groupColIdx = row.findIndex(c => c != null && groupAliases.has(String(c).trim().toLowerCase()));
+          const groups = new Set<string>();
+          for (let i = hr + 1; i < data.length; i++) {
+            const v = data[i]?.[groupColIdx];
+            if (v != null && String(v).trim() !== '') groups.add(String(v).trim());
+          }
+          if (!best || groups.size > best.groupCount) {
+            best = { sheet, sheetName, data, headerRow: hr, groupCount: groups.size };
+          }
+          break;
+        }
+      }
+    }
+
+    if (best) {
+      return { sheet: best.sheet, sheetName: best.sheetName, data: best.data, headerRow: best.headerRow };
+    }
+
+    // No sheet matched — fall back to the configured layout on the first
+    // sheet. This preserves the old behavior for files that intentionally
+    // have no Group column.
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][];
+    return { sheet, sheetName, data, headerRow: config.headerRow };
+  }
+
+  /**
+   * Derive an integer count from a percent + totalTested. Returns null when
+   * either input is missing or invalid so we never overwrite an existing value
+   * with a garbage 0.
+   */
+  private deriveCount(percent: number | undefined, totalTested: number | undefined): number | null {
+    if (percent == null || isNaN(percent)) return null;
+    if (totalTested == null || isNaN(totalTested) || totalTested <= 0) return null;
+    return Math.round((percent / 100) * totalTested);
+  }
+
   private async insertPSSAResult(
     row: ParsedRow,
     level: string,
@@ -1223,13 +1331,25 @@ export class NewDataImporter {
     // Look up growth score from PVAAS data
     const growthScore = this.lookupGrowthScore(row, level);
 
+    // Derive count columns from percent * totalTested when source files only
+    // provide percentages. We only derive; we never overwrite an explicit count
+    // (source files that include raw counts are not handled here — this
+    // importer parses percents only, so the derived value is the only value).
+    const totalTested = row.totalTested;
+    const advancedCount = this.deriveCount(row.advancedPercent, totalTested);
+    const proficientCount = this.deriveCount(row.proficientPercent, totalTested);
+    const basicCount = this.deriveCount(row.basicPercent, totalTested);
+    const belowBasicCount = this.deriveCount(row.belowBasicPercent, totalTested);
+
     this.db.run(sql`INSERT OR IGNORE INTO pssa_results
       (level, school_id, district_id, county_id, year, grade, subject, demographic_group,
-       total_tested, advanced_percent, proficient_percent, basic_percent, below_basic_percent,
+       total_tested, advanced_count, proficient_count, basic_count, below_basic_count,
+       advanced_percent, proficient_percent, basic_percent, below_basic_percent,
        proficient_or_above_percent, growth_score, source_file)
       VALUES (${level}, ${schoolId}, ${districtId}, ${countyId},
         ${row.year || new Date().getFullYear()}, ${row.grade ?? null}, ${row.subject!},
-        ${row.demographicGroup || 'All Students'}, ${row.totalTested ?? null},
+        ${row.demographicGroup || 'All Students'}, ${totalTested ?? null},
+        ${advancedCount}, ${proficientCount}, ${basicCount}, ${belowBasicCount},
         ${row.advancedPercent ?? null}, ${row.proficientPercent ?? null},
         ${row.basicPercent ?? null}, ${row.belowBasicPercent ?? null},
         ${row.proficientOrAbovePercent ?? null}, ${growthScore ?? null}, ${sourceFile})`);
@@ -1249,13 +1369,22 @@ export class NewDataImporter {
     // Look up growth score from PVAAS data
     const growthScore = this.lookupGrowthScore(row, level);
 
+    // Derive count columns from percent * totalTested (see insertPSSAResult).
+    const totalTested = row.totalTested;
+    const advancedCount = this.deriveCount(row.advancedPercent, totalTested);
+    const proficientCount = this.deriveCount(row.proficientPercent, totalTested);
+    const basicCount = this.deriveCount(row.basicPercent, totalTested);
+    const belowBasicCount = this.deriveCount(row.belowBasicPercent, totalTested);
+
     this.db.run(sql`INSERT OR IGNORE INTO keystone_results
       (level, school_id, district_id, county_id, year, subject, grade, demographic_group,
-       total_tested, advanced_percent, proficient_percent, basic_percent, below_basic_percent,
+       total_tested, advanced_count, proficient_count, basic_count, below_basic_count,
+       advanced_percent, proficient_percent, basic_percent, below_basic_percent,
        proficient_or_above_percent, growth_score, source_file)
       VALUES (${level}, ${schoolId}, ${districtId}, ${countyId},
         ${row.year || new Date().getFullYear()}, ${row.subject!}, ${row.grade || 11},
-        ${row.demographicGroup || 'All Students'}, ${row.totalTested ?? null},
+        ${row.demographicGroup || 'All Students'}, ${totalTested ?? null},
+        ${advancedCount}, ${proficientCount}, ${basicCount}, ${belowBasicCount},
         ${row.advancedPercent ?? null}, ${row.proficientPercent ?? null},
         ${row.basicPercent ?? null}, ${row.belowBasicPercent ?? null},
         ${row.proficientOrAbovePercent ?? null}, ${growthScore ?? null}, ${sourceFile})`);
@@ -1357,25 +1486,13 @@ export class NewDataImporter {
   }
 
   private normalizeDemographicGroup(value: any): string {
-    if (!value) return 'All Students';
-    const group = String(value).trim();
-    
-    // Common mappings
-    if (group.toLowerCase().includes('all student')) return 'All Students';
-    if (group.toLowerCase() === 'male') return 'Male';
-    if (group.toLowerCase() === 'female') return 'Female';
-    if (group.toLowerCase().includes('white')) return 'White';
-    if (group.toLowerCase().includes('black') || group.toLowerCase().includes('african')) return 'Black/African American';
-    if (group.toLowerCase().includes('hispanic') || group.toLowerCase().includes('latino')) return 'Hispanic/Latino';
-    if (group.toLowerCase().includes('asian')) return 'Asian';
-    if (group.toLowerCase().includes('native american') || group.toLowerCase().includes('american indian')) return 'Native American';
-    if (group.toLowerCase().includes('pacific')) return 'Pacific Islander';
-    if (group.toLowerCase().includes('multi') || group.toLowerCase().includes('two or more')) return 'Multi-Racial';
-    if (group.toLowerCase().includes('iep')) return 'IEP';
-    if (group.toLowerCase().includes('economically')) return 'Economically Disadvantaged';
-    if (group.toLowerCase().includes('english learner') || group.toLowerCase().includes('ell')) return 'English Learners';
-    
-    return group;
+    // Delegate to the canonical alias map in fileConfigs.ts so the same
+    // normalization is applied during import and by any one-shot UPDATE the
+    // data agent runs against existing rows. The alias map preserves the
+    // upstream file's detailed labels (e.g. "Black or African American (not
+    // Hispanic)") rather than collapsing them to abbreviated generics, which
+    // the frontend depends on.
+    return normalizeDemographicLabel(value);
   }
 
   private parseGrade(value: any): number | undefined {

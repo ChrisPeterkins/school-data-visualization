@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import {
   BuildingLibraryIcon,
   AcademicCapIcon,
@@ -11,9 +12,6 @@ import {
   TrophyIcon,
   Bars3Icon,
   XMarkIcon,
-  CloudArrowUpIcon,
-  CheckBadgeIcon,
-  CircleStackIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNav = [
@@ -25,15 +23,11 @@ const mainNav = [
   { path: '/rankings', label: 'Rankings', icon: TrophyIcon },
 ];
 
-const adminNav = [
-  { path: '/import', label: 'Import', icon: CloudArrowUpIcon },
-  { path: '/verify', label: 'Verify', icon: CheckBadgeIcon },
-  { path: '/database', label: 'Database', icon: CircleStackIcon },
-];
-
 export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const availableYears = useAvailableYears();
+  const yearRange = formatYearRange(availableYears);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -49,9 +43,8 @@ export default function Layout() {
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gold-500/90 group-hover:bg-gold-400 transition-colors">
                 <BuildingLibraryIcon className="w-5 h-5 text-navy-900" />
               </div>
-              <div className="hidden sm:block">
+              <div>
                 <span className="font-bold text-lg text-white tracking-tight">PA School Data</span>
-                <span className="hidden lg:inline text-gold-400/80 text-xs ml-2 font-medium">Philadelphia</span>
               </div>
             </Link>
 
@@ -71,29 +64,13 @@ export default function Layout() {
                   {label}
                 </Link>
               ))}
-
-              {/* Divider */}
-              <div className="w-px h-6 bg-navy-700 mx-1" />
-
-              {adminNav.map(({ path, label, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    isActive(path)
-                      ? 'bg-navy-700/80 text-gold-400'
-                      : 'text-navy-400 hover:bg-navy-800 hover:text-navy-200'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </Link>
-              ))}
             </div>
 
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
               className="md:hidden p-2 rounded-lg text-navy-300 hover:text-white hover:bg-navy-800 transition-colors"
             >
               {mobileOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
@@ -112,7 +89,7 @@ export default function Layout() {
               className="md:hidden overflow-hidden border-t border-navy-700/50"
             >
               <div className="px-4 py-3 space-y-1">
-                {[...mainNav, ...adminNav].map(({ path, label, icon: Icon }) => (
+                {mainNav.map(({ path, label, icon: Icon }) => (
                   <Link
                     key={path}
                     to={path}
@@ -156,9 +133,14 @@ export default function Layout() {
               <BuildingLibraryIcon className="w-5 h-5 text-gold-500" />
               <span className="text-sm text-navy-300">PA School Data Explorer</span>
             </div>
-            <p className="text-xs text-navy-500">
-              Data sourced from Pennsylvania Department of Education. PSSA &amp; Keystone results 2015-2024.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-navy-500 text-center sm:text-right">
+              <p>
+                Data sourced from Pennsylvania Department of Education.
+                {yearRange ? ` PSSA & Keystone results ${yearRange}.` : ''}
+              </p>
+              {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
+              <Link to="/import" className="text-navy-500 hover:text-navy-300 transition-colors">Admin</Link>
+            </div>
           </div>
         </div>
       </footer>

@@ -1,19 +1,18 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { schoolApi, performanceApi } from '../services/api';
 import PerformanceChart from '../components/PerformanceChart';
 import {
   ChevronRightIcon,
   MapPinIcon,
   BuildingOffice2Icon,
-  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SchoolDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [selectedYear, setSelectedYear] = useState<number>(2024);
+  // null = "latest year this school has data for"; set once the user picks a year.
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const { data: school, isLoading: schoolLoading, error: schoolError } = useQuery({
     queryKey: ['school', id],
@@ -39,7 +38,7 @@ export default function SchoolDetailPage() {
   if (schoolError || !school) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card-philly border-brick-200 bg-brick-50 p-6">
+        <div className="card-surface border-brick-200 bg-brick-50 p-6">
           <p className="text-brick-700 font-medium">School not found.</p>
           <Link to="/schools" className="mt-2 inline-block text-sm text-navy-600 hover:text-navy-800">
             &larr; Back to schools list
@@ -54,8 +53,9 @@ export default function SchoolDetailPage() {
   const pssaYears = [...new Set(pssaResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
   const keystoneYears = [...new Set(keystoneResults.map((r: any) => r.year as number))].sort((a, b) => b - a);
   const allYears: number[] = [...new Set([...pssaYears, ...keystoneYears])].sort((a, b) => b - a);
-  const selectedPssa = pssaResults.filter((r: any) => r.year === selectedYear);
-  const selectedKeystone = keystoneResults.filter((r: any) => r.year === selectedYear);
+  const activeYear = selectedYear != null && allYears.includes(selectedYear) ? selectedYear : allYears[0];
+  const selectedPssa = pssaResults.filter((r: any) => r.year === activeYear);
+  const selectedKeystone = keystoneResults.filter((r: any) => r.year === activeYear);
 
   const getProficiencyColor = (value: number | null) => {
     if (value == null) return 'text-stone-400';
@@ -65,32 +65,33 @@ export default function SchoolDetailPage() {
   };
 
   const ResultsTable = ({ results, showGrade }: { results: any[]; showGrade: boolean }) => (
-    <div className="card-philly overflow-hidden">
+    <div className="card-surface overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead>
+            {/* The four level breakdowns only show from md; phones get Grade / Subject / Tested / Prof+ */}
             <tr className="bg-stone-50/80 border-b border-stone-200">
-              {showGrade && <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Grade</th>}
-              <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Subject</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">Tested</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Advanced</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Proficient</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Basic</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Below Basic</th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">% Prof.+</th>
+              {showGrade && <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Grade</th>}
+              <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">Subject</th>
+              <th className="px-3 sm:px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">Tested</th>
+              <th className="hidden md:table-cell px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">% Advanced</th>
+              <th className="hidden md:table-cell px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">% Proficient</th>
+              <th className="hidden md:table-cell px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">% Basic</th>
+              <th className="hidden md:table-cell px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">% Below Basic</th>
+              <th className="px-3 sm:px-5 py-3 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">% Prof.+</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
             {results.map((result: any, idx: number) => (
               <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
-                {showGrade && <td className="px-5 py-3 text-sm text-stone-700">{result.grade}</td>}
-                <td className="px-5 py-3 text-sm font-medium text-stone-900">{result.subject}</td>
-                <td className="px-5 py-3 text-sm text-stone-600 text-right">{result.numberScored || 'N/A'}</td>
-                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentAdvanced != null ? `${result.percentAdvanced.toFixed(1)}%` : 'N/A'}</td>
-                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentProficient != null ? `${result.percentProficient.toFixed(1)}%` : 'N/A'}</td>
-                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentBasic != null ? `${result.percentBasic.toFixed(1)}%` : 'N/A'}</td>
-                <td className="px-5 py-3 text-sm text-right text-stone-600">{result.percentBelowBasic != null ? `${result.percentBelowBasic.toFixed(1)}%` : 'N/A'}</td>
-                <td className={`px-5 py-3 text-sm text-right ${getProficiencyColor(result.percentProficientOrAbove)}`}>
+                {showGrade && <td className="px-3 sm:px-5 py-3 text-sm text-stone-700">{result.grade}</td>}
+                <td className="px-3 sm:px-5 py-3 text-sm font-medium text-stone-900">{result.subject}</td>
+                <td className="px-3 sm:px-5 py-3 text-sm text-stone-600 text-right">{result.numberScored || 'N/A'}</td>
+                <td className="hidden md:table-cell px-5 py-3 text-sm text-right text-stone-600">{result.percentAdvanced != null ? `${result.percentAdvanced.toFixed(1)}%` : 'N/A'}</td>
+                <td className="hidden md:table-cell px-5 py-3 text-sm text-right text-stone-600">{result.percentProficient != null ? `${result.percentProficient.toFixed(1)}%` : 'N/A'}</td>
+                <td className="hidden md:table-cell px-5 py-3 text-sm text-right text-stone-600">{result.percentBasic != null ? `${result.percentBasic.toFixed(1)}%` : 'N/A'}</td>
+                <td className="hidden md:table-cell px-5 py-3 text-sm text-right text-stone-600">{result.percentBelowBasic != null ? `${result.percentBelowBasic.toFixed(1)}%` : 'N/A'}</td>
+                <td className={`px-3 sm:px-5 py-3 text-sm text-right ${getProficiencyColor(result.percentProficientOrAbove)}`}>
                   {result.percentProficientOrAbove != null ? `${result.percentProficientOrAbove.toFixed(1)}%` : 'N/A'}
                 </td>
               </tr>
@@ -103,30 +104,23 @@ export default function SchoolDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div>
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm text-stone-400 mb-6">
+        <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-400 mb-6 min-w-0" aria-label="Breadcrumb">
           <Link to="/schools" className="hover:text-navy-600 transition-colors">Schools</Link>
-          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{school.countyName}</span>
-          <ChevronRightIcon className="w-3.5 h-3.5" />
+          <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{school.districtName}</span>
-          <ChevronRightIcon className="w-3.5 h-3.5" />
-          <span className="text-stone-700 font-medium">{school.name}</span>
+          <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="text-stone-700 font-medium break-words">{school.name}</span>
         </nav>
 
         {/* School Header Card */}
-        <div className="card-philly p-6 mb-8">
+        <div className="card-surface p-4 sm:p-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="p-3 rounded-xl bg-navy-100 self-start">
-              <AcademicCapIcon className="w-7 h-7 text-navy-600" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-stone-900">{school.name}</h1>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{school.name}</h1>
               <p className="text-sm text-stone-400 mt-0.5">School #{school.schoolNumber}</p>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -159,15 +153,16 @@ export default function SchoolDetailPage() {
         {/* Year Selector */}
         {allYears.length > 0 && (
           <div className="mb-8">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-stone-600">Assessment Year</label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <span className="text-sm font-medium text-stone-600">Assessment Year</span>
               <div className="flex flex-wrap gap-1.5">
                 {allYears.map((year) => (
                   <button
                     key={year}
                     onClick={() => setSelectedYear(year)}
+                    aria-pressed={activeYear === year}
                     className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                      selectedYear === year
+                      activeYear === year
                         ? 'bg-navy-700 text-white'
                         : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
                     }`}
@@ -185,7 +180,7 @@ export default function SchoolDetailPage() {
           <div className="mb-8">
             <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
               PSSA Results
-              <span className="text-sm font-normal text-stone-400">({selectedYear})</span>
+              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
             </h2>
             <ResultsTable results={selectedPssa} showGrade={true} />
           </div>
@@ -196,7 +191,7 @@ export default function SchoolDetailPage() {
           <div className="mb-8">
             <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
               Keystone Exam Results
-              <span className="text-sm font-normal text-stone-400">({selectedYear})</span>
+              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
             </h2>
             <ResultsTable results={selectedKeystone} showGrade={false} />
           </div>
@@ -209,7 +204,7 @@ export default function SchoolDetailPage() {
             <PerformanceChart data={trends} />
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

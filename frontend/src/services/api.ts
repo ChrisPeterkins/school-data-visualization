@@ -40,6 +40,11 @@ export const districtApi = {
 };
 
 export const performanceApi = {
+  getAvailableYears: async () => {
+    const { data } = await api.get<import('../hooks/useAvailableYears').AvailableYears>('/api/performance/years');
+    return data;
+  },
+
   getPSSAResults: async (params: any) => {
     const { data } = await api.get<PSSAResult[]>('/api/performance/pssa', { params });
     return data;

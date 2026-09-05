@@ -152,7 +152,7 @@ export default function DatabasePage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="card-philly p-4">
+          <div className="card-surface p-4">
             <h2 className="text-lg font-bold text-stone-900 mb-4">Tables</h2>
             <div className="space-y-2">
               {tables?.map((table) => (
@@ -198,11 +198,11 @@ export default function DatabasePage() {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <div className="card-philly overflow-hidden">
+          <div className="card-surface overflow-hidden">
             {/* Table Info Header */}
             {queryMode === 'table' && tableData && (
               <div className="p-4 border-b border-stone-200 bg-stone-50">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-bold text-stone-900">
                       {tables?.find((t) => t.name === selectedTable)?.label}
@@ -212,7 +212,7 @@ export default function DatabasePage() {
                     </p>
                   </div>
                   {tableData.totalPages > 1 && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-stone-500">
                         Page {tableData.page} of {tableData.totalPages}
                       </span>

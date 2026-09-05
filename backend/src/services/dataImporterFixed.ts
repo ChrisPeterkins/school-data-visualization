@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import { db } from '../db';
 import { pssaResults, keystoneResults, schools, districts, counties, dataImports } from '../db/newSchema';
 import { logger } from '../utils/logger';
-import { getFileConfig, FileConfig } from './fileConfigs';
+import { getFileConfig, FileConfig, normalizeDemographicLabel } from './fileConfigs';
 import { eq, and, sql } from 'drizzle-orm';
 import * as path from 'path';
 
@@ -177,7 +177,7 @@ export class DataImporterFixed {
           year: config.yearColumn ? row[config.yearColumn] : year,
           grade: config.gradeColumn ? this.parseGrade(row[config.gradeColumn]) : null,
           subject: this.normalizeSubject(row[config.subjectColumn]),
-          demographicGroup: config.groupColumn ? row[config.groupColumn] : 'All Students',
+          demographicGroup: config.groupColumn ? normalizeDemographicLabel(row[config.groupColumn]) : 'All Students',
           totalTested: numberScored || 0,
           // Percentages
           advancedPercent,
@@ -295,7 +295,7 @@ export class DataImporterFixed {
           countyId,
           year: config.yearColumn ? row[config.yearColumn] : year,
           subject: this.normalizeKeystoneSubject(row[config.subjectColumn]),
-          demographicGroup: config.groupColumn ? row[config.groupColumn] : 'All Students',
+          demographicGroup: config.groupColumn ? normalizeDemographicLabel(row[config.groupColumn]) : 'All Students',
           totalTested: numberScored || 0,
           // Percentages
           advancedPercent,

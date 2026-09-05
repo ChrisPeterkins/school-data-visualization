@@ -7,7 +7,7 @@
     @apply antialiased bg-stone-50 text-stone-900;
   }
 
-  /* Tremor overrides for Philly theme */
+  /* Tremor overrides for the navy/gold theme */
   :root {
     --tremor-brand: #2d4a6f;
     --tremor-brand-emphasis: #1b2a4a;
@@ -19,12 +19,28 @@
 }
 
 @layer components {
-  .card-philly {
+  .card-surface {
     @apply bg-white rounded-xl border border-stone-200/60 shadow-sm;
   }
 
   .badge-gold {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gold-100 text-gold-800;
+  }
+}
+
+/* Never let a stray wide element (long breadcrumb, chart label, table) drag the
+   whole page sideways on phones; wide content scrolls inside its own container. */
+html {
+  overflow-x: clip;
+}
+
+/* iOS Safari zooms the page when focusing a control whose font is under 16px.
+   Keep controls at 16px on phones; desktop keeps the compact sizes. */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }
 

@@ -7,7 +7,7 @@ interface StatsCardProps {
 
 export default function StatsCard({ title, value, description, color }: StatsCardProps) {
   return (
-    <div className="card-philly p-5">
+    <div className="card-surface p-5">
       <div className="flex items-center">
         <div className="flex-shrink-0">
           <div className={`${color} rounded-lg p-3`}>

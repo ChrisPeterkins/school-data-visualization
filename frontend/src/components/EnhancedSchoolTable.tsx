@@ -59,7 +59,7 @@ export default function EnhancedSchoolTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-2">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -86,18 +86,18 @@ export default function EnhancedSchoolTable({
         </span>
       </div>
 
-      <div className="card-philly overflow-hidden">
+      <div className="card-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="bg-stone-50/80 border-b border-stone-200">
                 {[
-                  { field: 'name', label: 'School Name' },
-                  { field: 'districtName', label: 'District' },
-                  { field: 'countyName', label: 'County' },
-                  { field: 'type', label: 'Type' },
+                  { field: 'name', label: 'School Name', visibility: '' },
+                  { field: 'districtName', label: 'District', visibility: 'hidden md:table-cell' },
+                  { field: 'countyName', label: 'County', visibility: 'hidden md:table-cell' },
+                  { field: 'type', label: 'Type', visibility: 'hidden sm:table-cell' },
                 ].map(col => (
-                  <th key={col.field} className="px-5 py-3 text-left">
+                  <th key={col.field} className={`px-3 sm:px-5 py-3 text-left ${col.visibility}`}>
                     <button
                       onClick={() => handleSort(col.field)}
                       className="inline-flex items-center text-xs font-semibold text-stone-500 uppercase tracking-wider hover:text-stone-700"
@@ -107,14 +107,20 @@ export default function EnhancedSchoolTable({
                     </button>
                   </th>
                 ))}
-                <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">City</th>
-                <th className="px-5 py-3"><span className="sr-only">Actions</span></th>
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">City</th>
+                <th className="px-3 sm:px-5 py-3"><span className="sr-only">Actions</span></th>
               </tr>
 
               {showFilters && (
                 <tr className="border-b border-stone-200 bg-stone-50/50">
-                  {['name', 'districtName', 'countyName', 'type', 'city'].map(field => (
-                    <th key={field} className="px-5 py-2">
+                  {[
+                    { field: 'name', visibility: '' },
+                    { field: 'districtName', visibility: 'hidden md:table-cell' },
+                    { field: 'countyName', visibility: 'hidden md:table-cell' },
+                    { field: 'type', visibility: 'hidden sm:table-cell' },
+                    { field: 'city', visibility: 'hidden lg:table-cell' },
+                  ].map(({ field, visibility }) => (
+                    <th key={field} className={`px-3 sm:px-5 py-2 ${visibility}`}>
                       <input
                         type="text"
                         value={columnFilters[field] || ''}
@@ -124,37 +130,41 @@ export default function EnhancedSchoolTable({
                       />
                     </th>
                   ))}
-                  <th className="px-5 py-2" />
+                  <th className="px-3 sm:px-5 py-2" />
                 </tr>
               )}
             </thead>
             <tbody className="divide-y divide-stone-100">
               {filteredSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-stone-400">
+                  <td colSpan={6} className="px-3 sm:px-5 py-12 text-center text-stone-400">
                     No schools found matching your filters
                   </td>
                 </tr>
               ) : (
                 filteredSchools.map((school) => (
                   <tr key={school.id} className="hover:bg-stone-50/70 transition-colors">
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 sm:px-5 py-3.5">
                       <div className="text-sm font-medium text-stone-900">{school.name}</div>
+                      {/* On phones the district/county columns are hidden, so fold them in here. */}
+                      <div className="text-xs text-stone-500 md:hidden">
+                        {school.districtName}{school.countyName ? ` · ${school.countyName} County` : ''}
+                      </div>
                       <div className="text-xs text-stone-400">#{school.schoolNumber}</div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="hidden md:table-cell px-3 sm:px-5 py-3.5">
                       <div className="text-sm text-stone-700">{school.districtName}</div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="hidden md:table-cell px-3 sm:px-5 py-3.5">
                       <div className="text-sm text-stone-700">{school.countyName}</div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="hidden sm:table-cell px-3 sm:px-5 py-3.5">
                       <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getSchoolTypeBadge(school.type || '')}`}>
                         {school.type || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-stone-500">{school.city || 'N/A'}</td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 text-sm text-stone-500">{school.city || 'N/A'}</td>
+                    <td className="px-3 sm:px-5 py-3.5 text-right whitespace-nowrap">
                       <Link
                         to={`/schools/${school.id}`}
                         className="inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-800 transition-colors"
@@ -172,7 +182,7 @@ export default function EnhancedSchoolTable({
       </div>
 
       {filteredSchools.length > 0 && (
-        <div className="flex items-center gap-6 px-1 text-sm text-stone-500">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-1 text-sm text-stone-500">
           <span><strong className="text-stone-700">{new Set(filteredSchools.map(s => s.countyName)).size}</strong> counties</span>
           <span><strong className="text-stone-700">{new Set(filteredSchools.map(s => s.districtId)).size}</strong> districts</span>
           <span><strong className="text-stone-700">{filteredSchools.length}</strong> schools</span>

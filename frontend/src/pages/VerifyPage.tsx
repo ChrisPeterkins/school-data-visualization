@@ -145,8 +145,8 @@ export default function VerifyPage() {
       </div>
 
       {/* Status Card */}
-      <div className="card-philly p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="card-surface p-6 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center">
             <div className={`w-3 h-3 rounded-full mr-3 ${status.isRunning ? 'bg-civic-500 animate-pulse' : 'bg-stone-400'}`}></div>
             <span className="text-lg font-semibold">
@@ -154,7 +154,7 @@ export default function VerifyPage() {
             </span>
           </div>
 
-          <div className="space-x-2">
+          <div className="flex flex-wrap gap-2">
             {!status.isRunning ? (
               <button
                 onClick={handleStartVerification}
@@ -208,21 +208,21 @@ export default function VerifyPage() {
         {/* Progress Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div className="bg-stone-50 p-3 rounded-md">
-            <div className="text-xs text-stone-400 uppercase">Files Verified</div>
+            <div className="text-sm text-stone-500">Files Verified</div>
             <div className="text-2xl font-bold text-stone-900">
               {status.processedFiles || 0} / {status.totalFiles || 0}
             </div>
           </div>
           <div className="bg-civic-50 p-3 rounded-md">
-            <div className="text-xs text-civic-600 uppercase">Passed</div>
+            <div className="text-sm text-civic-700">Passed</div>
             <div className="text-2xl font-bold text-civic-700">{status.filesPassed || 0}</div>
           </div>
           <div className="bg-brick-50 p-3 rounded-md">
-            <div className="text-xs text-brick-600 uppercase">Failed</div>
+            <div className="text-sm text-brick-600">Failed</div>
             <div className="text-2xl font-bold text-brick-700">{status.filesFailed || 0}</div>
           </div>
           <div className="bg-navy-50 p-3 rounded-md">
-            <div className="text-xs text-navy-600 uppercase">Status</div>
+            <div className="text-sm text-navy-600">Status</div>
             <div className="text-lg font-bold text-navy-700">
               {status.isRunning ? 'Running' : 'Idle'}
             </div>
@@ -244,11 +244,11 @@ export default function VerifyPage() {
 
       {/* File Results Log */}
       {status.fileResults && status.fileResults.length > 0 && (
-        <div className="card-philly p-6 mb-6">
+        <div className="card-surface p-6 mb-6">
           <h2 className="text-xl font-bold text-stone-900 mb-4">
             File Verification Log ({status.fileResults.length} files)
           </h2>
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-auto">
             <table className="min-w-full divide-y divide-stone-200">
               <thead className="bg-stone-50 sticky top-0">
                 <tr>
@@ -304,10 +304,10 @@ export default function VerifyPage() {
 
       {/* Report Summary */}
       {status.report && (
-        <div className="card-philly p-6">
+        <div className="card-surface p-6">
           <div className="flex items-center mb-4">
             {getStatusIcon()}
-            <h2 className="text-2xl font-bold text-stone-900 ml-3">Verification Report</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900 ml-3">Verification Report</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

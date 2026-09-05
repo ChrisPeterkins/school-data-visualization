@@ -19,6 +19,41 @@ const performanceQuerySchema = z.object({
 });
 
 const performanceRoutes: FastifyPluginAsync = async (fastify) => {
+  // List the assessment years present in the database. The frontend uses
+  // this to build year pickers so a new import shows up without a redeploy.
+  fastify.get('/years', async (_request, _reply) => {
+    const cacheKey = cache.generateKey('available-years');
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const rows = db.all<{ year: number }>(sql`
+      SELECT DISTINCT year FROM ${pssaResults}
+      UNION
+      SELECT DISTINCT year FROM ${keystoneResults}
+      ORDER BY year DESC
+    `);
+    const years = rows.map(r => r.year).filter(y => Number.isFinite(y));
+
+    // Headline counts for the home page; public, unlike the import status route.
+    const countOf = (table: any) =>
+      db.select({ count: sql<number>`count(*)` }).from(table).get()?.count ?? 0;
+
+    const response = {
+      years,
+      latest: years[0] ?? null,
+      earliest: years[years.length - 1] ?? null,
+      counts: {
+        schools: countOf(schools),
+        districts: countOf(districts),
+        pssaRecords: countOf(pssaResults),
+        keystoneRecords: countOf(keystoneResults),
+      },
+    };
+
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
   // Get PSSA performance data
   fastify.get('/pssa', async (request, _reply) => {
     const query = performanceQuerySchema.parse(request.query);

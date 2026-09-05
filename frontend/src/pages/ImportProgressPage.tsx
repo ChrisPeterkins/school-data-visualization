@@ -97,8 +97,8 @@ export default function ImportProgressPage() {
         </p>
       </div>
 
-      <div className="card-philly p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="card-surface p-6 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center">
             <div className={`w-2.5 h-2.5 rounded-full mr-3 ${status.isRunning ? 'bg-civic-500 animate-pulse' : 'bg-stone-400'}`}></div>
             <span className="text-base font-semibold text-stone-900">
@@ -138,7 +138,7 @@ export default function ImportProgressPage() {
             { label: 'Errors', value: status.errors?.length || 0, error: (status.errors?.length || 0) > 0 },
           ].map((s, i) => (
             <div key={i} className="bg-stone-50 p-3 rounded-lg">
-              <div className="text-xs text-stone-500 uppercase tracking-wider">{s.label}</div>
+              <div className="text-sm text-stone-500">{s.label}</div>
               <div className={`text-xl font-bold mt-1 ${s.error ? 'text-brick-600' : 'text-stone-900'}`}>{s.value}</div>
             </div>
           ))}
@@ -155,7 +155,7 @@ export default function ImportProgressPage() {
       </div>
 
       {status.stats && (
-        <div className="card-philly p-6">
+        <div className="card-surface p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-4">Database Statistics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[

@@ -52,7 +52,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
   const keystoneChartData = Object.values(keystoneByYear).sort((a, b) => (a.year as number) - (b.year as number));
 
   const ChartCard = ({ title, chartData }: { title: string; chartData: any[] }) => (
-    <div className="card-philly p-6">
+    <div className="card-surface p-6">
       <h3 className="text-base font-semibold text-stone-900 mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
@@ -97,7 +97,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
       {pssaChartData.length > 0 && <ChartCard title="PSSA Performance Trends" chartData={pssaChartData} />}
       {keystoneChartData.length > 0 && <ChartCard title="Keystone Exam Performance Trends" chartData={keystoneChartData} />}
       {pssaChartData.length === 0 && keystoneChartData.length === 0 && (
-        <div className="card-philly p-8 text-center">
+        <div className="card-surface p-8 text-center">
           <p className="text-stone-400">No performance data available for this school.</p>
         </div>
       )}

@@ -6,7 +6,7 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 
 - **School Search & Browsing**: Search and filter schools by name, district, or county
 - **Performance Data Visualization**: View PSSA and Keystone exam results with interactive charts
-- **Historical Data**: Year selector to view performance trends from 2015-2024
+- **Historical Data**: Year selector to view performance trends from 2015-2025
 - **Comparison Tools**: Compare performance across schools and districts
 - **Real-time Import Progress**: Visual tracking of data import operations
 - **State-level Analytics**: Aggregate performance data at state level
@@ -121,8 +121,8 @@ npm run dev
 ## 📊 Data Sources
 
 Data is sourced from the Pennsylvania Department of Education:
-- PSSA Results (2015-2024) - Grades 3-8
-- Keystone Exam Results (2015-2024) - High School
+- PSSA Results (2015-2025) - Grades 3-8
+- Keystone Exam Results (2015-2025) - High School
 - School and District Information
 
 ## 🔧 Available Scripts
@@ -165,7 +165,7 @@ Data is sourced from the Pennsylvania Department of Education:
 ## 🌟 Key Features
 
 ### Year Selector
-Navigate through historical data from 2015-2024 on school detail pages.
+Navigate through historical data from 2015-2025 on school detail pages.
 
 ### Import Progress Tracking
 Real-time visual feedback during data imports with:

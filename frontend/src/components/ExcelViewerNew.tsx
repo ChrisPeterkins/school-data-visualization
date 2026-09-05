@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../services/api';
 import { ReactGrid, Column, Row, DefaultCellTypes } from '@silevis/reactgrid';
 import '@silevis/reactgrid/styles.css';
 
@@ -34,7 +34,7 @@ export default function ExcelViewerNew() {
   const { data: fileList } = useQuery({
     queryKey: ['excel-files'],
     queryFn: async () => {
-      const { data } = await axios.get<ExcelFile[]>('/paschools/api/files/list');
+      const { data } = await api.get<ExcelFile[]>('/api/files/list');
       return data;
     },
   });
@@ -44,8 +44,8 @@ export default function ExcelViewerNew() {
     queryKey: ['excel-data', selectedFile, selectedSheet, currentPage],
     queryFn: async () => {
       if (!selectedFile) return null;
-      const endpoint = `/paschools/api/files/data?file=${encodeURIComponent(selectedFile)}&page=${currentPage}&limit=${pageSize}`;
-      const { data } = await axios.get<ExcelData>(endpoint, {
+      const { data } = await api.get<ExcelData>('/api/files/data', {
+        params: { file: selectedFile, page: currentPage, limit: pageSize },
         timeout: 30000,
       });
       return data;

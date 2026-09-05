@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = '/paschools';
 
 export default function UploadPage() {
   const [selectedType, setSelectedType] = useState<string>('pvaas');
@@ -62,7 +62,7 @@ export default function UploadPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="card-philly p-6 mb-6">
+      <div className="card-surface p-6 mb-6">
         <h1 className="text-2xl font-bold text-stone-900 tracking-tight mb-1">File Upload</h1>
         <p className="text-sm text-stone-500 mb-6">Upload PVAAS, PSSA, or Keystone data files</p>
 
@@ -127,7 +127,7 @@ export default function UploadPage() {
       </div>
 
       {uploadedFiles.length > 0 && (
-        <div className="card-philly p-6">
+        <div className="card-surface p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-4">Recently Uploaded ({uploadedFiles.length})</h2>
           <div className="space-y-2">
             {uploadedFiles.map((file, idx) => (

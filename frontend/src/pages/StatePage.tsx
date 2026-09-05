@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { performanceApi } from '../services/api';
-import { motion } from 'framer-motion';
-import { GlobeAmericasIcon } from '@heroicons/react/24/outline';
+import { useAvailableYears } from '../hooks/useAvailableYears';
+import { useIsSmUp } from '../hooks/useMediaQuery';
+import FilterSelect from '../components/FilterSelect';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
 const CHART_COLORS = {
@@ -24,26 +25,34 @@ const tooltipStyle = {
 };
 
 export default function StatePage() {
-  const [selectedYear, setSelectedYear] = useState(2023);
+  const { years, latest, earliest } = useAvailableYears();
+  const smUp = useIsSmUp();
+  const chartHeight = smUp ? 300 : 260;
+  // null = latest year in the database; becomes a number once the user picks one.
+  const [yearChoice, setYearChoice] = useState<number | null>(null);
+  const selectedYear = yearChoice ?? latest;
   const [selectedSubject, setSelectedSubject] = useState('Mathematics');
   const [examType, setExamType] = useState<'pssa' | 'keystone'>('pssa');
 
   const { data: statePerformance, isLoading } = useQuery({
     queryKey: ['state-performance', selectedYear],
-    queryFn: () => performanceApi.getStatePerformance(selectedYear),
+    queryFn: () => performanceApi.getStatePerformance(selectedYear!),
+    enabled: selectedYear != null,
   });
 
   const stateData = examType === 'pssa' ? statePerformance?.pssa : statePerformance?.keystone;
 
   const { data: trendData } = useQuery({
-    queryKey: ['state-trends', examType, selectedSubject],
+    queryKey: ['state-trends', examType, selectedSubject, earliest, latest],
     queryFn: async () => {
+      const range = { yearFrom: earliest!, yearTo: latest! };
       if (examType === 'pssa') {
-        return performanceApi.getPSSAResults({ subject: selectedSubject, level: 'state', yearFrom: 2015, yearTo: 2024 });
+        return performanceApi.getPSSAResults({ subject: selectedSubject, level: 'state', ...range });
       } else {
-        return performanceApi.getKeystoneResults({ subject: selectedSubject, level: 'state', yearFrom: 2015, yearTo: 2024 });
+        return performanceApi.getKeystoneResults({ subject: selectedSubject, level: 'state', ...range });
       }
     },
+    enabled: earliest != null && latest != null,
   });
 
   const processDataForChart = () => {
@@ -59,7 +68,8 @@ export default function StatePage() {
       return acc;
     }, {});
     return Object.values(dataByYear)
-      .map((d: any) => ({ year: d.year, proficiency: d.count > 0 ? (d.proficiency / d.count).toFixed(1) : 0 }))
+      .filter((d: any) => d.count > 0)
+      .map((d: any) => ({ year: d.year, proficiency: parseFloat((d.proficiency / d.count).toFixed(1)) }))
       .sort((a: any, b: any) => a.year - b.year);
   };
 
@@ -79,63 +89,48 @@ export default function StatePage() {
       .sort((a: any, b: any) => b.proficiency - a.proficiency);
   };
 
-  const processProficiencyDistribution = () => {
-    if (!stateData) return [];
-    const ranges = [
-      { name: 'Advanced (80-100%)', min: 80, max: 100, count: 0, color: CHART_COLORS.civic },
-      { name: 'Proficient (60-79%)', min: 60, max: 79, count: 0, color: CHART_COLORS.navy },
-      { name: 'Basic (40-59%)', min: 40, max: 59, count: 0, color: CHART_COLORS.gold },
-      { name: 'Below Basic (<40%)', min: 0, max: 39, count: 0, color: CHART_COLORS.brick },
-    ];
-    stateData.forEach((item: any) => {
-      if (item.avgProficientOrAbove != null) {
-        const prof = item.avgProficientOrAbove;
-        ranges.forEach(range => { if (prof >= range.min && prof <= range.max) range.count++; });
-      }
-    });
-    return ranges.filter(r => r.count > 0);
-  };
+  // Performance levels by grade for the selected subject and year, from the
+  // same state-level rows that feed the trend line. Grade 0 is PDE's "Total".
+  const gradeLabel = (g: number | null | undefined) => (g == null || g === 0 ? 'All' : `Gr ${g}`);
+  const gradeOrder = (g: number | null | undefined) => (g == null || g === 0 ? 99 : g);
+  const levelsByGrade = (trendData ?? [])
+    .filter((r: any) => r.year === selectedYear && r.advancedPercent != null)
+    .sort((a: any, b: any) => gradeOrder(a.grade) - gradeOrder(b.grade))
+    .map((r: any) => ({
+      grade: gradeLabel(r.grade),
+      Advanced: r.advancedPercent,
+      Proficient: r.proficientPercent,
+      Basic: r.basicPercent,
+      'Below Basic': r.belowBasicPercent,
+    }));
+
+  const testsScored = (() => {
+    if (!stateData) return null;
+    const rows = examType === 'pssa' ? stateData.filter((d: any) => d.grade === 0) : stateData;
+    const n = rows.reduce((sum: number, d: any) => sum + (d.totalStudents || 0), 0);
+    return n || null;
+  })();
 
   const chartData = processDataForChart();
   const subjectData = processSubjectData();
-  const distributionData = processProficiencyDistribution();
-  const years = [2024, 2023, 2022, 2021, 2019, 2018, 2017, 2016, 2015];
-
-  const FilterSelect = ({ label, value, onChange, children }: any) => (
-    <div className="flex items-center gap-2">
-      <label className="text-xs font-medium text-stone-500">{label}</label>
-      <select
-        value={value}
-        onChange={onChange}
-        className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
-      >
-        {children}
-      </select>
-    </div>
-  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="flex items-start gap-4 mb-8">
-          <div className="p-2.5 rounded-xl bg-gold-100">
-            <GlobeAmericasIcon className="w-6 h-6 text-gold-700" />
-          </div>
-          <div>
+      <div>
+        <div className="mb-8">
             <h1 className="text-2xl font-bold text-stone-900 tracking-tight">State Performance</h1>
             <p className="mt-1 text-sm text-stone-500">Statewide academic performance trends and analysis</p>
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-4 mb-8">
-          <FilterSelect label="Exam" value={examType} onChange={(e: any) => setExamType(e.target.value)}>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-8">
+          <FilterSelect label="Exam" value={examType} onChange={(e) => setExamType(e.target.value as 'pssa' | 'keystone')}>
             <option value="pssa">PSSA</option>
             <option value="keystone">Keystone</option>
           </FilterSelect>
-          <FilterSelect label="Year" value={selectedYear} onChange={(e: any) => setSelectedYear(Number(e.target.value))}>
+          <FilterSelect label="Year" value={selectedYear ?? ''} onChange={(e) => setYearChoice(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
-          <FilterSelect label="Subject" value={selectedSubject} onChange={(e: any) => setSelectedSubject(e.target.value)}>
+          <FilterSelect label="Subject" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
             {(examType === 'pssa'
               ? ['Mathematics', 'English Language Arts', 'Science']
               : ['Algebra I', 'Biology', 'Literature']
@@ -146,7 +141,7 @@ export default function StatePage() {
         {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="card-philly p-6 animate-pulse">
+              <div key={i} className="card-surface p-6 animate-pulse">
                 <div className="h-4 bg-stone-200 rounded w-3/4 mb-4" />
                 <div className="h-48 bg-stone-100 rounded" />
               </div>
@@ -155,11 +150,11 @@ export default function StatePage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trends Chart */}
-            <div className="card-philly p-6">
+            <div className="card-surface p-4 sm:p-6">
               <h2 className="text-base font-semibold text-stone-900 mb-4">
                 {selectedSubject} Proficiency Trends
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
@@ -172,11 +167,11 @@ export default function StatePage() {
             </div>
 
             {/* Subject Comparison */}
-            <div className="card-philly p-6">
+            <div className="card-surface p-4 sm:p-6">
               <h2 className="text-base font-semibold text-stone-900 mb-4">
                 Subject Comparison ({selectedYear})
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={subjectData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis dataKey="subject" angle={-20} textAnchor="end" height={70} tick={{ fontSize: 11, fill: '#78716c' }} />
@@ -188,39 +183,42 @@ export default function StatePage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Distribution */}
-            <div className="card-philly p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">
-                Proficiency Distribution ({selectedYear})
+            {/* Performance levels by grade */}
+            <div className="card-surface p-4 sm:p-6">
+              <h2 className="text-base font-semibold text-stone-900 mb-1">
+                {selectedSubject} Performance Levels by Grade ({selectedYear})
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={distributionData} cx="50%" cy="50%" labelLine={false}
-                    label={(entry) => `${entry.name.split(' ')[0]}: ${entry.count}`}
-                    outerRadius={90} innerRadius={40} dataKey="count" stroke="none">
-                    {distributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                </PieChart>
+              <p className="text-xs text-stone-400 mb-4">Share of students at each level, statewide</p>
+              <ResponsiveContainer width="100%" height={chartHeight}>
+                <BarChart data={levelsByGrade}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                  <XAxis dataKey="grade" tick={{ fontSize: 12, fill: '#78716c' }} />
+                  {/* Rounded level shares can sum to 100.1, so clip rather than stretch the axis. */}
+                  <YAxis domain={[0, 100]} allowDataOverflow ticks={[0, 25, 50, 75, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => `${value}%`} />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="Advanced" stackId="levels" fill="#243b5c" />
+                  <Bar dataKey="Proficient" stackId="levels" fill="#4a6d8c" />
+                  <Bar dataKey="Basic" stackId="levels" fill="#a8c3d8" />
+                  <Bar dataKey="Below Basic" stackId="levels" fill="#d6d3d1" radius={[3, 3, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
 
             {/* Key Stats */}
-            <div className="card-philly p-6">
+            <div className="card-surface p-4 sm:p-6">
               <h2 className="text-base font-semibold text-stone-900 mb-4">Key Statistics ({selectedYear})</h2>
               <div className="space-y-4">
                 {[
-                  { label: 'Total Assessments', value: stateData?.length || 0 },
+                  { label: 'Tests scored', value: testsScored ? testsScored.toLocaleString() : '—' },
                   { label: 'Average Proficiency', value: (() => {
-                    if (!stateData) return 'N/A';
+                    if (!stateData) return '—';
                     const valid = stateData.filter((d: any) => d.avgProficientOrAbove != null);
-                    if (valid.length === 0) return 'N/A';
+                    if (valid.length === 0) return '—';
                     return `${(valid.reduce((sum: number, d: any) => sum + d.avgProficientOrAbove, 0) / valid.length).toFixed(1)}%`;
                   })(), highlight: true },
-                  { label: 'Highest Subject', value: subjectData[0]?.subject || 'N/A' },
-                  { label: 'Lowest Subject', value: subjectData[subjectData.length - 1]?.subject || 'N/A' },
+                  { label: 'Highest Subject', value: subjectData[0]?.subject || '—' },
+                  { label: 'Lowest Subject', value: subjectData[subjectData.length - 1]?.subject || '—' },
                 ].map((stat, i) => (
                   <div key={i} className="flex justify-between items-center py-3 border-b border-stone-100 last:border-0">
                     <span className="text-sm text-stone-500">{stat.label}</span>
@@ -233,7 +231,7 @@ export default function StatePage() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }
