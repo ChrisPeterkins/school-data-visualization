@@ -55,7 +55,11 @@ Downloaded from the PDE Assessment Reporting page
 Layout: header on row 4 (1-based), a `Year` column, `Percent ...` column names, sheet named `PSSA` / `Keystone`.
 Demographic group spelling reverted to `American Indian / Alaskan Native (not Hispanic)` (spaced); the importer canonicalizes it.
 
-To import a new year once the files are in place: `cd backend && npx tsx src/scripts/importYear.ts <year>`.
+All-grades "Total" rows (labelled `Total`, `School Total`, or `District Total` in the files) are stored with `grade = 0` at every level so a school or district has one school-wide figure per subject. Student-weighted aggregates come from `GET /api/performance/summary`; `backend/src/scripts/backfillTotals.ts` adds the total rows to years imported before this was the rule.
+
+School addresses, coordinates, enrollment, grade span, and level-based type come from the NCES Common Core of Data (Urban Institute Education Data API), matched on AUN plus state school number: `npx tsx src/scripts/importSchoolMetadata.ts`. Schools that closed before the CCD year stay without location data.
+
+To import a new year once the files are in place: `cd backend && npx tsx src/scripts/importYear.ts <year>`. The script prints a coverage report at the end; the same report is at `/api/performance/data-status` and on the admin Import page.
 PDE announced the 2026 results release is on hold until later in fall 2026.
 
 ## Total Files

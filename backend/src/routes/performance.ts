@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { db } from '../db';
+import { db, sqliteDb } from '../db';
+import { buildDataStatus } from '../services/dataStatus';
 import { pssaResults, keystoneResults, schools, districts, counties } from '../db/newSchema';
 import { cache } from '../cache';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
@@ -50,6 +51,132 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       },
     };
 
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
+  // Coverage report (row counts, growth coverage, flags) for the admin page.
+  fastify.get('/data-status', async () => {
+    const cacheKey = cache.generateKey('data-status');
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+    const status = buildDataStatus();
+    await cache.set(cacheKey, status, 600);
+    return status;
+  });
+
+  /**
+   * Student-weighted yearly summary. Proficiency and level shares are weighted
+   * by students tested, so a large school counts more than a small one and the
+   * result is the share of students, not the mean of rows. With no `grade`,
+   * PSSA uses the all-grades total rows (grade 0); Keystone ignores grade.
+   */
+  const summaryQuerySchema = z.object({
+    exam: z.enum(['pssa', 'keystone']).default('pssa'),
+    level: z.enum(['school', 'district', 'state']).default('state'),
+    subject: z.string().optional(),
+    grade: z.coerce.number().optional(),
+    schoolId: z.coerce.number().optional(),
+    districtId: z.coerce.number().optional(),
+    countyId: z.coerce.number().optional(),
+    yearFrom: z.coerce.number().optional(),
+    yearTo: z.coerce.number().optional(),
+    demographicGroup: z.string().optional().default('All Students'),
+  });
+
+  fastify.get('/summary', async (request, _reply) => {
+    const q = summaryQuerySchema.parse(request.query);
+    const cacheKey = cache.generateKey('summary', JSON.stringify(q));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    // Rows without a students-tested count (some older state files) still carry
+    // a rate; they get weight 1 so a year is never dropped for a missing count.
+    const where: string[] = ['level = ?', 'demographic_group = ?', 'proficient_or_above_percent IS NOT NULL'];
+    const args: (string | number)[] = [q.level, q.demographicGroup];
+    if (q.subject) { where.push('subject = ?'); args.push(q.subject); }
+    if (q.exam === 'pssa') { where.push('grade = ?'); args.push(q.grade ?? 0); }
+    if (q.schoolId) { where.push('school_id = ?'); args.push(q.schoolId); }
+    if (q.districtId) { where.push('district_id = ?'); args.push(q.districtId); }
+    if (q.countyId) { where.push('county_id = ?'); args.push(q.countyId); }
+    if (q.yearFrom) { where.push('year >= ?'); args.push(q.yearFrom); }
+    if (q.yearTo) { where.push('year <= ?'); args.push(q.yearTo); }
+
+    const w = 'CASE WHEN total_tested > 0 THEN total_tested ELSE 1 END';
+    const weighted = (col: string) =>
+      `ROUND(SUM(CASE WHEN ${col} IS NOT NULL THEN ${col} * ${w} END) * 1.0 / NULLIF(SUM(CASE WHEN ${col} IS NOT NULL THEN ${w} END), 0), 1)`;
+
+    const series = sqliteDb.prepare(`
+      SELECT year,
+        SUM(CASE WHEN total_tested > 0 THEN total_tested ELSE 0 END) AS tested,
+        COUNT(*) AS rows,
+        COUNT(DISTINCT COALESCE(school_id, district_id, 0)) AS entities,
+        ${weighted('proficient_or_above_percent')} AS proficiency,
+        ${weighted('advanced_percent')} AS advanced,
+        ${weighted('proficient_percent')} AS proficient,
+        ${weighted('basic_percent')} AS basic,
+        ${weighted('below_basic_percent')} AS belowBasic,
+        ROUND(AVG(growth_score), 2) AS growth,
+        SUM(growth_score IS NOT NULL) AS growthRows
+      FROM ${table}
+      WHERE ${where.join(' AND ')}
+      GROUP BY year
+      ORDER BY year
+    `).all(...args);
+
+    const response = { filters: q, series };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
+  /**
+   * One point per school: student-weighted proficiency and mean PVAAS growth
+   * index, for the growth-versus-achievement view.
+   */
+  const growthQuerySchema = z.object({
+    year: z.coerce.number(),
+    examType: z.enum(['pssa', 'keystone']).default('pssa'),
+    subject: z.string().optional(),
+    grade: z.coerce.number().optional(),
+    countyId: z.coerce.number().optional(),
+    schoolType: z.string().optional(),
+    minTested: z.coerce.number().min(1).default(40),
+  });
+
+  fastify.get('/growth-achievement', async (request, _reply) => {
+    const q = growthQuerySchema.parse(request.query);
+    const cacheKey = cache.generateKey('growth-achievement', JSON.stringify(q));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.examType === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const where: string[] = [
+      'r.level = ?', 'r.year = ?', "r.demographic_group = 'All Students'",
+      'r.proficient_or_above_percent IS NOT NULL', 'r.total_tested > 0', 'r.growth_score IS NOT NULL',
+    ];
+    const args: (string | number)[] = ['school', q.year];
+    if (q.subject) { where.push('r.subject = ?'); args.push(q.subject); }
+    if (q.examType === 'pssa') { where.push('r.grade = ?'); args.push(q.grade ?? 0); }
+    if (q.countyId) { where.push('d.county_id = ?'); args.push(q.countyId); }
+    if (q.schoolType) { where.push('s.school_type = ?'); args.push(q.schoolType); }
+
+    const points = sqliteDb.prepare(`
+      SELECT s.id AS schoolId, s.name AS schoolName, s.school_type AS schoolType, d.name AS districtName,
+        ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested), 1) AS proficiency,
+        ROUND(AVG(r.growth_score), 2) AS growth,
+        SUM(r.total_tested) AS tested
+      FROM ${table} r
+      JOIN schools s ON s.id = r.school_id
+      JOIN districts d ON d.id = s.district_id
+      WHERE ${where.join(' AND ')}
+      GROUP BY s.id
+      HAVING SUM(r.total_tested) >= ?
+      ORDER BY tested DESC
+      LIMIT 4000
+    `).all(...args, q.minTested);
+
+    const response = { filters: q, points };
     await cache.set(cacheKey, response, 3600);
     return response;
   });
@@ -371,6 +498,8 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     schoolType: z.string().optional(),
     demographicGroup: z.string().optional().default('All Students'),
     limit: z.coerce.number().min(5).max(50).optional().default(10),
+    /** A school needs at least this many students tested across the matched rows to be ranked. */
+    minTested: z.coerce.number().min(1).optional().default(40),
   });
 
   fastify.get('/rankings', async (request, _reply) => {
@@ -396,7 +525,9 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     ];
 
     if (query.subject) conditions.push(eq(resultsTable.subject, query.subject));
-    if (isPssa && query.grade) conditions.push(eq(pssaResults.grade, query.grade));
+    // PSSA: a specific grade, otherwise the school's all-grades total (grade 0)
+    // so a school is one row per subject rather than one per grade.
+    if (isPssa) conditions.push(eq(pssaResults.grade, query.grade || 0));
     if (query.countyId) conditions.push(eq(districts.countyId, query.countyId));
     if (query.schoolType) conditions.push(eq(schools.schoolType, query.schoolType));
 
@@ -410,9 +541,11 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
           districtName: districts.name,
           countyName: counties.name,
           city: schools.city,
-          avgProficiency: sql<number>`ROUND(AVG(${resultsTable.proficientOrAbovePercent}), 1)`.as('avg_proficiency'),
+          // Weighted by students tested so subjects with more test-takers count more.
+          avgProficiency: sql<number>`ROUND(SUM(${resultsTable.proficientOrAbovePercent} * ${resultsTable.totalTested}) * 1.0 / SUM(${resultsTable.totalTested}), 1)`.as('avg_proficiency'),
           totalTested: sql<number>`SUM(${resultsTable.totalTested})`.as('total_tested'),
           subjectCount: sql<number>`COUNT(DISTINCT ${resultsTable.subject})`.as('subject_count'),
+          avgGrowth: sql<number | null>`ROUND(AVG(${resultsTable.growthScore}), 2)`.as('avg_growth'),
         })
         .from(resultsTable)
         .innerJoin(schools, eq(resultsTable.schoolId, schools.id))
@@ -420,6 +553,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
         .innerJoin(counties, eq(districts.countyId, counties.id))
         .where(and(...conditions))
         .groupBy(resultsTable.schoolId)
+        .having(sql`SUM(${resultsTable.totalTested}) >= ${query.minTested}`)
         .orderBy(order === 'desc' ? desc(sql`avg_proficiency`) : asc(sql`avg_proficiency`))
         .limit(query.limit);
     };
@@ -432,12 +566,13 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       sql`${resultsTable.proficientOrAbovePercent} IS NOT NULL`,
     ];
     if (query.subject) stateConditions.push(eq(resultsTable.subject, query.subject));
+    if (isPssa) stateConditions.push(eq(pssaResults.grade, query.grade || 0));
 
     const [topSchools, bottomSchools, stateAvgResult] = await Promise.all([
       buildRankingQuery('desc'),
       buildRankingQuery('asc'),
       db.select({
-        avg: sql<number>`ROUND(AVG(${resultsTable.proficientOrAbovePercent}), 1)`,
+        avg: sql<number>`ROUND(SUM(${resultsTable.proficientOrAbovePercent} * ${resultsTable.totalTested}) * 1.0 / SUM(${resultsTable.totalTested}), 1)`,
       })
       .from(resultsTable)
       .where(and(...stateConditions)),
@@ -453,6 +588,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
         schoolType: query.schoolType || null,
         demographicGroup: query.demographicGroup,
         limit: query.limit,
+        minTested: query.minTested,
       },
       top: topSchools.map((s, i) => ({ rank: i + 1, ...s })),
       bottom: bottomSchools.map((s, i) => ({ rank: i + 1, ...s })),

@@ -175,7 +175,8 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
         grade: pssaResults.grade,
         subject: pssaResults.subject,
         numberScored: sql<number>`SUM(${pssaResults.totalTested})`,
-        percentProficientOrAbove: sql<number>`AVG(${pssaResults.proficientOrAbovePercent})`,
+        percentProficientOrAbove: sql<number>`ROUND(SUM(${pssaResults.proficientOrAbovePercent} * ${pssaResults.totalTested}) * 1.0 / NULLIF(SUM(${pssaResults.totalTested}), 0), 1)`,
+        growthScore: sql<number | null>`ROUND(AVG(${pssaResults.growthScore}), 2)`,
       })
       .from(pssaResults)
       .where(and(
@@ -192,7 +193,8 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
         year: keystoneResults.year,
         subject: keystoneResults.subject,
         numberScored: sql<number>`SUM(${keystoneResults.totalTested})`,
-        percentProficientOrAbove: sql<number>`AVG(${keystoneResults.proficientOrAbovePercent})`,
+        percentProficientOrAbove: sql<number>`ROUND(SUM(${keystoneResults.proficientOrAbovePercent} * ${keystoneResults.totalTested}) * 1.0 / NULLIF(SUM(${keystoneResults.totalTested}), 0), 1)`,
+        growthScore: sql<number | null>`ROUND(AVG(${keystoneResults.growthScore}), 2)`,
       })
       .from(keystoneResults)
       .where(and(

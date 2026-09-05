@@ -1,9 +1,11 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { performanceApi } from '../services/api';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
+import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
+import DataNotes from '../components/DataNotes';
+import { fillYearGaps, standardsChangeLine } from '../lib/chartUtils';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -29,10 +31,20 @@ export default function StatePage() {
   const smUp = useIsSmUp();
   const chartHeight = smUp ? 300 : 260;
   // null = latest year in the database; becomes a number once the user picks one.
-  const [yearChoice, setYearChoice] = useState<number | null>(null);
+  const [yearChoice, setYearChoice] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const selectedYear = yearChoice ?? latest;
-  const [selectedSubject, setSelectedSubject] = useState('Mathematics');
-  const [examType, setExamType] = useState<'pssa' | 'keystone'>('pssa');
+  const [examType, setExamType] = useUrlState<'pssa' | 'keystone'>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const subjectOptions = examType === 'pssa' ? ['Mathematics', 'English Language Arts', 'Science'] : ['Algebra I', 'Biology', 'Literature'];
+  const [subjectParam, setSelectedSubject] = useUrlState<string>('subject', subjectOptions[0], parseString);
+  const selectedSubject = subjectOptions.includes(subjectParam) ? subjectParam : subjectOptions[0];
+
+  // Student-weighted statewide series for the trend line (one total row per year).
+  const { data: summary } = useQuery({
+    queryKey: ['summary', examType, 'state', selectedSubject],
+    queryFn: () => performanceApi.getSummary({ exam: examType, level: 'state', subject: selectedSubject }),
+  });
+  const trendSeries = summary?.series ?? [];
+  const trendYears = trendSeries.map((d) => d.year);
 
   const { data: statePerformance, isLoading } = useQuery({
     queryKey: ['state-performance', selectedYear],
@@ -54,24 +66,6 @@ export default function StatePage() {
     },
     enabled: earliest != null && latest != null,
   });
-
-  const processDataForChart = () => {
-    if (!trendData) return [];
-    const dataByYear = trendData.reduce((acc: any, item: any) => {
-      const year = item.year;
-      if (!acc[year]) acc[year] = { year, proficiency: 0, count: 0 };
-      const profValue = item.proficientOrAbovePercent ?? item.avgProficientOrAbove;
-      if (profValue != null) {
-        acc[year].proficiency += profValue;
-        acc[year].count += 1;
-      }
-      return acc;
-    }, {});
-    return Object.values(dataByYear)
-      .filter((d: any) => d.count > 0)
-      .map((d: any) => ({ year: d.year, proficiency: parseFloat((d.proficiency / d.count).toFixed(1)) }))
-      .sort((a: any, b: any) => a.year - b.year);
-  };
 
   const processSubjectData = () => {
     if (!stateData) return [];
@@ -111,7 +105,7 @@ export default function StatePage() {
     return n || null;
   })();
 
-  const chartData = processDataForChart();
+  const chartData = fillYearGaps(trendSeries.map((d) => ({ year: d.year, proficiency: d.proficiency })));
   const subjectData = processSubjectData();
 
   return (
@@ -131,11 +125,12 @@ export default function StatePage() {
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
           <FilterSelect label="Subject" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
-            {(examType === 'pssa'
-              ? ['Mathematics', 'English Language Arts', 'Science']
-              : ['Algebra I', 'Biology', 'Literature']
-            ).map(s => <option key={s} value={s}>{s}</option>)}
+            {subjectOptions.map(s => <option key={s} value={s}>{s}</option>)}
           </FilterSelect>
+        </div>
+
+        <div className="mb-6">
+          <DataNotes subject={selectedSubject} exam={examType} years={trendYears} latestAvailable={latest} />
         </div>
 
         {isLoading ? (
@@ -151,17 +146,18 @@ export default function StatePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trends Chart */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">
-                {selectedSubject} Proficiency Trends
+              <h2 className="text-base font-semibold text-stone-900 mb-1">
+                {selectedSubject} proficient or above, statewide
               </h2>
+              <p className="text-xs text-stone-400 mb-4">All grades combined</p>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }}
-                    label={{ value: '% Proficient', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#78716c' } }} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="proficiency" stroke={CHART_COLORS.navy} strokeWidth={2.5} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, 'Proficient or above']} />
+                  {examType === 'pssa' ? standardsChangeLine(trendYears) : null}
+                  <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={2.5} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -211,11 +207,13 @@ export default function StatePage() {
               <div className="space-y-4">
                 {[
                   { label: 'Tests scored', value: testsScored ? testsScored.toLocaleString() : '—' },
-                  { label: 'Average Proficiency', value: (() => {
+                  { label: 'Proficient or above, all subjects', value: (() => {
+                    // Weight each subject's all-grades total by its students tested.
                     if (!stateData) return '—';
-                    const valid = stateData.filter((d: any) => d.avgProficientOrAbove != null);
-                    if (valid.length === 0) return '—';
-                    return `${(valid.reduce((sum: number, d: any) => sum + d.avgProficientOrAbove, 0) / valid.length).toFixed(1)}%`;
+                    const totals = stateData.filter((d: any) => d.avgProficientOrAbove != null && (examType === 'keystone' || d.grade === 0) && d.totalStudents > 0);
+                    const tested = totals.reduce((s: number, d: any) => s + d.totalStudents, 0);
+                    if (!tested) return '—';
+                    return `${(totals.reduce((s: number, d: any) => s + d.avgProficientOrAbove * d.totalStudents, 0) / tested).toFixed(1)}%`;
                   })(), highlight: true },
                   { label: 'Highest Subject', value: subjectData[0]?.subject || '—' },
                   { label: 'Lowest Subject', value: subjectData[subjectData.length - 1]?.subject || '—' },

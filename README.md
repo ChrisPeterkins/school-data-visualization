@@ -10,6 +10,8 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Comparison Tools**: Compare performance across schools and districts
 - **Real-time Import Progress**: Visual tracking of data import operations
 - **State-level Analytics**: Aggregate performance data at state level
+- **Growth**: PVAAS growth index on school and district results, rankings, and a growth-vs-achievement view
+- **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested
 
 ## 🛠 Tech Stack
 

@@ -19,8 +19,17 @@ const districtCache = new Map<string, number>(); // aun -> districts.id
 const countyCache = new Map<string, number>(); // county_code -> counties.id
 
 export class DataImporterFixed {
-  async importFile(filePath: string): Promise<ImportResult> {
+  /**
+   * Import one PSSA/Keystone workbook.
+   *
+   * `totalsOnly` backfills just the all-grades "Total" rows (stored as grade 0)
+   * for school/district files without touching the rows already loaded. Older
+   * imports dropped those rows, so this lets them be added without a full
+   * re-import that would wipe propagated PVAAS growth scores.
+   */
+  async importFile(filePath: string, options: { totalsOnly?: boolean } = {}): Promise<ImportResult> {
     const fileName = path.basename(filePath);
+    const totalsOnly = options.totalsOnly === true;
     const result: ImportResult = {
       success: false,
       recordsProcessed: 0,
@@ -55,14 +64,20 @@ export class DataImporterFixed {
       const worksheet = workbook.Sheets[sheetName];
 
       // Parse data with configuration-specific header row
-      const data = XLSX.utils.sheet_to_json(worksheet, { range: config.headerRow });
+      let data = XLSX.utils.sheet_to_json(worksheet, { range: config.headerRow });
 
-      logger.info(`Found ${data.length} rows to process`);
+      if (totalsOnly) {
+        const gradeCol = config.gradeColumn || 'Grade';
+        data = data.filter((row: any) => this.parseGrade(row[gradeCol]) === 0);
+        logger.info(`Totals-only backfill: ${data.length} all-grades rows`);
+      } else {
+        logger.info(`Found ${data.length} rows to process`);
+      }
 
       // Delete any existing records from this source file to prevent duplicates on re-import
       const isPSSA = fileName.toLowerCase().includes('pssa');
       const targetTable = isPSSA ? pssaResults : keystoneResults;
-      const existingCount = db.select({ count: sql<number>`COUNT(*)` })
+      const existingCount = totalsOnly ? null : db.select({ count: sql<number>`COUNT(*)` })
         .from(targetTable)
         .where(eq(targetTable.sourceFile, fileName))
         .get();
@@ -193,8 +208,9 @@ export class DataImporterFixed {
           sourceFile: fileName
         };
 
-        // Skip if missing critical data
-        if (!record.year || !record.subject || (level !== 'state' && !record.grade)) {
+        // Skip if missing critical data. Grade 0 is the all-grades "Total" row
+        // and is kept at every level; only an unparseable grade is dropped.
+        if (!record.year || !record.subject || (level !== 'state' && record.grade == null)) {
           skipped++;
           continue;
         }
@@ -550,10 +566,15 @@ export class DataImporterFixed {
     return value;
   }
 
-  private parseGrade(value: any): number {
-    if (!value) return 0;
-    const grade = String(value).replace(/\D/g, '');
-    return parseInt(grade) || 0;
+  /** Numeric grade, 0 for the all-grades "Total" row, null when unparseable. */
+  private parseGrade(value: any): number | null {
+    if (value === undefined || value === null || value === '') return null;
+    const str = String(value).trim();
+    // 'Total', 'School Total', 'District Total', 'All Grades' are all the all-grades row.
+    if (/total|^all/i.test(str)) return 0;
+    const digits = str.replace(/\D/g, '');
+    if (digits === '') return null;
+    return parseInt(digits);
   }
 
   private parseNumber(value: any): number | null {

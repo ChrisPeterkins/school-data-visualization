@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { performanceApi } from '../services/api';
 
 interface ImportStatus {
   isRunning: boolean;
@@ -81,6 +82,12 @@ export default function ImportProgressPage() {
     const d = new Date(date);
     return d.toLocaleTimeString();
   };
+
+  const { data: dataStatus } = useQuery({
+    queryKey: ['data-status'],
+    queryFn: performanceApi.getDataStatus,
+    staleTime: 10 * 60 * 1000,
+  });
 
   const getProgressBarColor = () => {
     if (status.errors && status.errors.length > 0) return 'bg-brick-500';
@@ -172,6 +179,51 @@ export default function ImportProgressPage() {
           </div>
           <div className="mt-4 pt-4 border-t border-stone-100">
             <div className="text-xs text-stone-400 text-center">Last Updated: {new Date(status.stats.lastUpdate).toLocaleString()}</div>
+          </div>
+        </div>
+      )}
+
+      {dataStatus && (
+        <div className="card-surface p-6 mt-6">
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Data Coverage</h2>
+          <p className="text-sm text-stone-500 mb-4">
+            Rows per year for "All Students" at each level, PVAAS growth coverage of school rows, and anything that looks off.
+            Generated {new Date(dataStatus.generatedAt).toLocaleString()}.
+          </p>
+          {(dataStatus.flags.length > 0) && (
+            <ul className="mb-4 text-sm text-brick-700 bg-brick-50 border border-brick-200 rounded-lg p-3 space-y-1">
+              {dataStatus.flags.map((f) => <li key={f}>{f}</li>)}
+            </ul>
+          )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-stone-50 border-b border-stone-200 text-xs text-stone-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left">Year</th>
+                  <th className="px-3 py-2 text-right" colSpan={3}>PSSA school / district / state</th>
+                  <th className="px-3 py-2 text-right">Growth</th>
+                  <th className="px-3 py-2 text-right" colSpan={3}>Keystone school / district / state</th>
+                  <th className="px-3 py-2 text-right">Growth</th>
+                  <th className="px-3 py-2 text-left">Flags</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {dataStatus.years.map((y) => (
+                  <tr key={y.year} className={y.flags.length ? 'bg-gold-50/40' : ''}>
+                    <td className="px-3 py-2 font-medium text-stone-900">{y.year}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.pssa.school.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.pssa.district.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.pssa.state}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.pssa.growthCoverage == null ? '—' : `${y.pssa.growthCoverage}%`}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.keystone.school.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.keystone.district.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.keystone.state}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{y.keystone.growthCoverage == null ? '—' : `${y.keystone.growthCoverage}%`}</td>
+                    <td className="px-3 py-2 text-xs text-stone-600">{y.flags.join('; ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

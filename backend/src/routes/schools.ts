@@ -158,6 +158,11 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         address: schools.address,
         city: schools.city,
         zipCode: schools.zipCode,
+        latitude: schools.latitude,
+        longitude: schools.longitude,
+        enrollment: schools.enrollment,
+        gradeRange: schools.gradeRange,
+        isCharter: schools.isCharter,
       })
       .from(schools)
       .innerJoin(districts, eq(schools.districtId, districts.id))
@@ -186,6 +191,7 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         percentBasic: pssaResults.basicPercent,
         percentBelowBasic: pssaResults.belowBasicPercent,
         percentProficientOrAbove: pssaResults.proficientOrAbovePercent,
+        growthScore: pssaResults.growthScore,
       })
       .from(pssaResults)
       .where(and(
@@ -206,6 +212,7 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         percentBasic: keystoneResults.basicPercent,
         percentBelowBasic: keystoneResults.belowBasicPercent,
         percentProficientOrAbove: keystoneResults.proficientOrAbovePercent,
+        growthScore: keystoneResults.growthScore,
       })
       .from(keystoneResults)
       .where(and(

@@ -1,238 +1,195 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell,
+} from 'recharts';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { performanceApi } from '../services/api';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
+import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
+import DataNotes from '../components/DataNotes';
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell
-} from 'recharts';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from '@heroicons/react/24/solid';
+  fillYearGaps, standardsChangeLine, CHART_COLORS, tooltipStyle, formatPct,
+} from '../lib/chartUtils';
 
-const COLORS = {
-  navy: '#2d4a6f',
-  civic: '#27ab83',
-  gold: '#d4aa3c',
-  brick: '#c53030',
-};
+const PSSA_SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
+const KEYSTONE_SUBJECTS = ['Algebra I', 'Biology', 'Literature'];
+type Level = 'state' | 'district' | 'school';
+type Exam = 'pssa' | 'keystone';
 
-const tooltipStyle = {
-  backgroundColor: '#fff',
-  border: '1px solid #e7e5e4',
-  borderRadius: '0.5rem',
-  fontSize: '13px',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-};
+const LEVEL_NOUN: Record<Level, string> = { state: 'statewide', district: 'districts', school: 'schools' };
 
 export default function TrendsPage() {
-  const [level, setLevel] = useState<'state' | 'district' | 'school'>('state');
-  const [examType, setExamType] = useState<'pssa' | 'keystone'>('pssa');
-  const [subject, setSubject] = useState('Mathematics');
-  const [grade, setGrade] = useState<number | null>(null);
+  const [level, setLevel] = useUrlState<Level>('level', 'state', (r) => (['state', 'district', 'school'].includes(r) ? (r as Level) : null));
+  const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (r === 'pssa' || r === 'keystone' ? r : null));
+  const subjects = examType === 'pssa' ? PSSA_SUBJECTS : KEYSTONE_SUBJECTS;
+  const [subjectParam, setSubject] = useUrlState<string>('subject', subjects[0], parseString);
+  const subject = subjects.includes(subjectParam) ? subjectParam : subjects[0];
+  const [grade, setGrade] = useUrlState<number | null>('grade', null, parseNumber, (v) => (v == null ? '' : String(v)));
+
   const availableYears = useAvailableYears();
   const { earliest, latest } = availableYears;
   const yearRange = formatYearRange(availableYears);
   const smUp = useIsSmUp();
   const bigChartHeight = smUp ? 400 : 300;
 
-  const { data: trendsData, isLoading } = useQuery({
-    queryKey: ['trends-analysis', level, examType, subject, grade, earliest, latest],
-    queryFn: async () => {
-      const params: any = { level, subject, yearFrom: earliest, yearTo: latest };
-      if (examType === 'pssa' && grade) params.grade = grade;
-      return examType === 'pssa'
-        ? performanceApi.getPSSAResults(params)
-        : performanceApi.getKeystoneResults(params);
-    },
+  const { data, isLoading } = useQuery({
+    queryKey: ['summary', examType, level, subject, grade, earliest, latest],
+    queryFn: () => performanceApi.getSummary({
+      exam: examType,
+      level,
+      subject,
+      grade: examType === 'pssa' && grade ? grade : undefined,
+      yearFrom: earliest!,
+      yearTo: latest!,
+    }),
     enabled: earliest != null && latest != null,
   });
 
-  const processYearlyTrends = () => {
-    if (!trendsData) return [];
-    const yearlyData = trendsData.reduce((acc: any, item: any) => {
-      const year = item.year;
-      if (!acc[year]) acc[year] = {
-        year,
-        totalProficiency: 0, count: 0,
-        advancedSum: 0, advancedCount: 0,
-        proficientSum: 0, proficientCount: 0,
-        basicSum: 0, basicCount: 0,
-        belowBasicSum: 0, belowBasicCount: 0,
-      };
-      if (item.proficientOrAbovePercent != null) {
-        acc[year].totalProficiency += item.proficientOrAbovePercent;
-        acc[year].count += 1;
-      }
-      if (item.advancedPercent != null) { acc[year].advancedSum += item.advancedPercent; acc[year].advancedCount += 1; }
-      if (item.proficientPercent != null) { acc[year].proficientSum += item.proficientPercent; acc[year].proficientCount += 1; }
-      if (item.basicPercent != null) { acc[year].basicSum += item.basicPercent; acc[year].basicCount += 1; }
-      if (item.belowBasicPercent != null) { acc[year].belowBasicSum += item.belowBasicPercent; acc[year].belowBasicCount += 1; }
-      return acc;
-    }, {});
-    return Object.values(yearlyData)
-      .map((d: any) => ({
-        year: d.year,
-        proficiency: d.count > 0 ? parseFloat((d.totalProficiency / d.count).toFixed(1)) : null,
-        advanced: d.advancedCount > 0 ? parseFloat((d.advancedSum / d.advancedCount).toFixed(1)) : null,
-        proficient: d.proficientCount > 0 ? parseFloat((d.proficientSum / d.proficientCount).toFixed(1)) : null,
-        basic: d.basicCount > 0 ? parseFloat((d.basicSum / d.basicCount).toFixed(1)) : null,
-        belowBasic: d.belowBasicCount > 0 ? parseFloat((d.belowBasicSum / d.belowBasicCount).toFixed(1)) : null,
-        count: d.count
-      }))
-      .sort((a: any, b: any) => a.year - b.year);
-  };
+  const series = data?.series ?? [];
+  const chartData = fillYearGaps(series);
+  const years = series.map((d) => d.year);
+  const latestPoint = series[series.length - 1];
+  const previousPoint = series[series.length - 2];
+  const change = latestPoint?.proficiency != null && previousPoint?.proficiency != null
+    ? latestPoint.proficiency - previousPoint.proficiency
+    : null;
+  const trend = change == null ? 'neutral' : change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'neutral';
 
-  const calculateGrowth = (data: any[]) => {
-    if (data.length < 2) return { value: '0', trend: 'neutral' as const };
-    const recent = data[data.length - 1].proficiency;
-    const previous = data[data.length - 2].proficiency;
-    const change = recent - previous;
-    return {
-      value: Math.abs(change).toFixed(1),
-      trend: (change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral'
-    };
-  };
+  const yoy = series.slice(1).map((d, i) => {
+    const prev = series[i];
+    const delta = d.proficiency != null && prev.proficiency != null ? parseFloat((d.proficiency - prev.proficiency).toFixed(1)) : null;
+    return { label: d.year - prev.year > 1 ? `${prev.year}–${d.year}` : String(d.year), change: delta };
+  }).filter((d) => d.change != null) as Array<{ label: string; change: number }>;
+  const yoyMax = Math.max(5, ...yoy.map((d) => Math.abs(d.change)));
 
-  const yearlyTrends = processYearlyTrends();
-  const growth = calculateGrowth(yearlyTrends);
+  const hasLevels = series.some((d) => d.advanced != null);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div>
-        <div className="mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Performance Trends</h1>
-            <p className="mt-1 text-sm text-stone-500">
-              Analyze academic performance trends{earliest && latest ? ` from ${earliest} to ${latest}` : ''}
-            </p>
-          </div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Performance Trends</h1>
+        <p className="mt-1 text-sm text-stone-500">
+          Share of students proficient or above{earliest && latest ? `, ${earliest} to ${latest}` : ''}, weighted by students tested
+        </p>
+      </div>
 
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-8">
-          <FilterSelect label="Level" value={level} onChange={(e) => setLevel(e.target.value as 'state' | 'district' | 'school')}>
-            <option value="state">State</option>
-            <option value="district">District</option>
-            <option value="school">School</option>
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-8">
+        <FilterSelect label="Level" value={level} onChange={(e) => setLevel(e.target.value as Level)}>
+          <option value="state">State</option>
+          <option value="district">District</option>
+          <option value="school">School</option>
+        </FilterSelect>
+        <FilterSelect label="Exam" value={examType} onChange={(e) => { const v = e.target.value as Exam; setExamType(v); setGrade(null); setSubject(v === 'pssa' ? 'Mathematics' : 'Algebra I'); }}>
+          <option value="pssa">PSSA</option>
+          <option value="keystone">Keystone</option>
+        </FilterSelect>
+        <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
+          {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+        </FilterSelect>
+        {examType === 'pssa' && (
+          <FilterSelect label="Grade" value={grade ?? ''} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">All grades</option>
+            {[3, 4, 5, 6, 7, 8].map((g) => <option key={g} value={g}>Grade {g}</option>)}
           </FilterSelect>
-          <FilterSelect label="Exam" value={examType} onChange={(e) => { const v = e.target.value as 'pssa' | 'keystone'; setExamType(v); setGrade(null); setSubject(v === 'pssa' ? 'Mathematics' : 'Algebra I'); }}>
-            <option value="pssa">PSSA</option>
-            <option value="keystone">Keystone</option>
-          </FilterSelect>
-          <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
-            {(examType === 'pssa' ? ['Mathematics', 'English Language Arts', 'Science'] : ['Algebra I', 'Biology', 'Literature']).map(s => <option key={s} value={s}>{s}</option>)}
-          </FilterSelect>
-          {examType === 'pssa' && (
-            <FilterSelect label="Grade" value={grade || ''} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)}>
-              <option value="">All Grades</option>
-              {[3, 4, 5, 6, 7, 8].map(g => <option key={g} value={g}>Grade {g}</option>)}
-            </FilterSelect>
-          )}
-        </div>
+        )}
+      </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="card-surface p-6 animate-pulse">
-                <div className="h-4 bg-stone-200 rounded w-3/4 mb-4" />
-                <div className="h-48 bg-stone-100 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="card-surface p-5">
-                <p className="text-sm text-stone-500">Latest proficiency</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{yearlyTrends[yearlyTrends.length - 1]?.proficiency ?? 'N/A'}%</p>
-                <p className={`mt-2 inline-flex items-center gap-1 text-sm ${growth.trend === 'up' ? 'text-civic-700' : growth.trend === 'down' ? 'text-brick-600' : 'text-stone-500'}`}>
-                  {growth.trend === 'up' ? <ArrowUpIcon className="h-3.5 w-3.5" /> :
-                   growth.trend === 'down' ? <ArrowDownIcon className="h-3.5 w-3.5" /> :
-                   <MinusIcon className="h-3.5 w-3.5" />}
-                  {growth.value} pts from the previous year
-                </p>
-              </div>
-
-              <div className="card-surface p-5">
-                <p className="text-sm text-stone-500">{yearRange ? `Average, ${yearRange}` : 'Average, all years'}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">
-                  {yearlyTrends.length > 0 ? (yearlyTrends.filter(d => d.proficiency != null).reduce((sum, d) => sum + (d.proficiency ?? 0), 0) / (yearlyTrends.filter(d => d.proficiency != null).length || 1)).toFixed(1) : 'N/A'}%
-                </p>
-                <p className="mt-2 text-sm text-stone-500">Mean of yearly proficiency rates</p>
-              </div>
-
-              <div className="card-surface p-5">
-                <p className="text-sm text-stone-500">Result rows</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{(trendsData?.length || 0).toLocaleString()}</p>
-                <p className="mt-2 text-sm text-stone-500">Assessment records behind these charts</p>
+      {isLoading || series.length === 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={`card-surface p-6 ${isLoading ? 'animate-pulse' : ''}`}>
+              <div className="h-4 bg-stone-200 rounded w-3/4 mb-4" />
+              <div className="h-48 bg-stone-100 rounded flex items-center justify-center text-sm text-stone-400">
+                {isLoading ? '' : 'No results for this selection'}
               </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card-surface p-5">
+              <p className="text-sm text-stone-500">Proficient or above, {latestPoint.year}</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">{formatPct(latestPoint.proficiency)}</p>
+              <p className={`mt-2 inline-flex items-center gap-1 text-sm ${trend === 'up' ? 'text-teal-700' : trend === 'down' ? 'text-brick-600' : 'text-stone-500'}`}>
+                {trend === 'up' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : trend === 'down' ? <ArrowDownIcon className="h-3.5 w-3.5" /> : <MinusIcon className="h-3.5 w-3.5" />}
+                {change == null ? 'No prior year' : `${Math.abs(change).toFixed(1)} pts vs ${previousPoint.year}`}
+              </p>
+            </div>
+            <div className="card-surface p-5">
+              <p className="text-sm text-stone-500">Students tested, {latestPoint.year}</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1 tabular-nums">{latestPoint.tested.toLocaleString()}</p>
+              <p className="mt-2 text-sm text-stone-500">
+                {level === 'state' ? 'Statewide' : `Across ${latestPoint.entities.toLocaleString()} ${LEVEL_NOUN[level]}`}
+              </p>
+            </div>
+            <div className="card-surface p-5">
+              <p className="text-sm text-stone-500">{yearRange ? `Average, ${yearRange}` : 'Average, all years'}</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">
+                {formatPct(series.filter((d) => d.proficiency != null).reduce((s, d) => s + (d.proficiency ?? 0), 0) / (series.filter((d) => d.proficiency != null).length || 1))}
+              </p>
+              <p className="mt-2 text-sm text-stone-500">Mean of the yearly rates</p>
+            </div>
+          </div>
 
-            {/* Main Trend Line */}
+          <DataNotes subject={subject} exam={examType} years={years} latestAvailable={latest} />
+
+          <div className="card-surface p-4 sm:p-6">
+            <h2 className="text-base font-semibold text-stone-900 mb-4">Proficient or above{yearRange ? ` (${yearRange})` : ''}</h2>
+            <ResponsiveContainer width="100%" height={bigChartHeight}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+                <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, 'Proficient or above']} />
+                {standardsChangeLine(years)}
+                <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} name="Proficient or above" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {hasLevels && (
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Proficiency Rate{yearRange ? ` (${yearRange})` : ''}</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">Performance levels</h2>
               <ResponsiveContainer width="100%" height={bigChartHeight}>
-                <LineChart data={yearlyTrends}>
+                <AreaChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }}
-                    label={{ value: '% Proficient or Above', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#78716c' } }} />
-                  <Tooltip contentStyle={tooltipStyle} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="proficiency" stroke={COLORS.navy} strokeWidth={3} dot={{ r: 5, fill: COLORS.navy }} activeDot={{ r: 7 }} name="Overall Proficiency" />
-                </LineChart>
+                  {standardsChangeLine(years, '')}
+                  <Area type="monotone" dataKey="advanced" stackId="1" stroke={CHART_COLORS.navyDark} fill={CHART_COLORS.navyDark} fillOpacity={0.9} name="Advanced" connectNulls={false} />
+                  <Area type="monotone" dataKey="proficient" stackId="1" stroke={CHART_COLORS.navyMid} fill={CHART_COLORS.navyMid} fillOpacity={0.9} name="Proficient" connectNulls={false} />
+                  <Area type="monotone" dataKey="basic" stackId="1" stroke={CHART_COLORS.navyLight} fill={CHART_COLORS.navyLight} fillOpacity={0.9} name="Basic" connectNulls={false} />
+                  <Area type="monotone" dataKey="belowBasic" stackId="1" stroke={CHART_COLORS.stone} fill={CHART_COLORS.stone} fillOpacity={0.9} name="Below Basic" connectNulls={false} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
+          )}
 
-            {/* Stacked Area */}
-            {yearlyTrends.some(d => d.advanced != null && d.advanced > 0) && (
-              <div className="card-surface p-4 sm:p-6">
-                <h2 className="text-base font-semibold text-stone-900 mb-4">Performance Level Distribution</h2>
-                <ResponsiveContainer width="100%" height={bigChartHeight}>
-                  <AreaChart data={yearlyTrends}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-                    <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }}
-                      label={{ value: 'Percentage', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#78716c' } }} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Area type="monotone" dataKey="advanced" stackId="1" stroke={COLORS.civic} fill={COLORS.civic} fillOpacity={0.8} name="Advanced" />
-                    <Area type="monotone" dataKey="proficient" stackId="1" stroke={COLORS.navy} fill={COLORS.navy} fillOpacity={0.8} name="Proficient" />
-                    <Area type="monotone" dataKey="basic" stackId="1" stroke={COLORS.gold} fill={COLORS.gold} fillOpacity={0.8} name="Basic" />
-                    <Area type="monotone" dataKey="belowBasic" stackId="1" stroke={COLORS.brick} fill={COLORS.brick} fillOpacity={0.8} name="Below Basic" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* YoY Change */}
+          {yoy.length > 0 && (
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Year-over-Year Change</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-1">Change from the previous results</h2>
+              <p className="text-xs text-stone-400 mb-4">Percentage points. The 2019 to 2021 bar spans the year with no testing.</p>
               <ResponsiveContainer width="100%" height={smUp ? 300 : 260}>
-                <BarChart data={yearlyTrends.slice(1).map((d, i) => ({
-                  year: d.year,
-                  change: (d.proficiency != null && yearlyTrends[i].proficiency != null)
-                    ? parseFloat((d.proficiency - yearlyTrends[i].proficiency).toFixed(1))
-                    : null,
-                })).filter(d => d.change != null)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-                  <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
-                  <YAxis domain={[-20, 20]} tick={{ fontSize: 12, fill: '#78716c' }}
-                    label={{ value: 'Change (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#78716c' } }} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="change" name="YoY Change" radius={[4, 4, 0, 0]}>
-                    {yearlyTrends.slice(1)
-                      .filter((d, i) => d.proficiency != null && yearlyTrends[i].proficiency != null)
-                      .map((d, i) => {
-                      const change = (d.proficiency ?? 0) - (yearlyTrends[i].proficiency ?? 0);
-                      return <Cell key={i} fill={change >= 0 ? COLORS.civic : COLORS.brick} />;
-                    })}
+                <BarChart data={yoy}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#78716c' }} />
+                  <YAxis domain={[-Math.ceil(yoyMax), Math.ceil(yoyMax)]} tick={{ fontSize: 12, fill: '#78716c' }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v > 0 ? '+' : ''}${v} pts`, 'Change']} />
+                  <Bar dataKey="change" name="Change" radius={[3, 3, 0, 0]}>
+                    {yoy.map((d, i) => <Cell key={i} fill={d.change >= 0 ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
