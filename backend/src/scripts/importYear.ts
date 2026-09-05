@@ -13,6 +13,7 @@ import fs from 'fs';
 import { DataImporterFixed } from '../services/dataImporterFixed';
 import { PVAASImporter } from '../services/pvaasImporter';
 import { logger } from '../utils/logger';
+import { refreshSearchIndex } from '../services/searchIndex';
 import { buildDataStatus, printDataStatus } from '../services/dataStatus';
 import { refreshMapPoints } from '../services/mapPoints';
 
@@ -68,6 +69,7 @@ async function main() {
   for (const line of summary) logger.info(line);
 
   refreshMapPoints(parseInt(year, 10));
+  refreshSearchIndex();
 
   // Coverage report so a bad year is obvious before anyone looks at a chart.
   printDataStatus(buildDataStatus());

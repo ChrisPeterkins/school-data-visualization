@@ -7,7 +7,7 @@ import FilterSelect from '../components/FilterSelect';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { fillYearGaps, standardsChangeLine } from '../lib/chartUtils';
+import { fillYearGaps, standardsChangeLine, covidGapArea } from '../lib/chartUtils';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -161,6 +161,7 @@ export default function StatePage() {
                   <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, 'Proficient or above']} />
+                  {covidGapArea(trendYears)}
                   {examType === 'pssa' ? standardsChangeLine(trendYears) : null}
                   <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={2.5} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} />
                 </LineChart>

@@ -75,6 +75,19 @@ async function main() {
     }
   }
 
+  // Optional push: NOTIFY_URL can be an ntfy.sh topic (https://ntfy.sh/<topic>)
+  // or any webhook that accepts a plain-text POST body.
+  if (newYears.length && process.env.NOTIFY_URL) {
+    const body = `PA School Data: PDE published ${newYears.join(', ')} (${downloaded.length} files)` +
+      (imported.length ? ` — imported ${imported.join(', ')}` : ' — not imported yet') + `. ${PAGE}`;
+    try {
+      await fetch(process.env.NOTIFY_URL, { method: 'POST', body, headers: { 'Title': 'New PDE assessment release', 'Tags': 'school', 'User-Agent': UA } });
+      logger.info('notification sent');
+    } catch (err) {
+      logger.warn(`notification failed: ${(err as Error).message}`);
+    }
+  }
+
   fs.mkdirSync(path.dirname(statusFile), { recursive: true });
   const status = {
     checkedAt: new Date().toISOString(),
@@ -90,4 +103,10 @@ async function main() {
   logger.info(`status written to ${statusFile}`);
 }
 
-main().catch((err) => { console.error('release check failed:', err); process.exit(1); });
+main().catch(async (err) => {
+  console.error('release check failed:', err);
+  if (process.env.NOTIFY_URL) {
+    try { await fetch(process.env.NOTIFY_URL, { method: 'POST', body: `PA School Data: release check failed: ${err?.message ?? err}`, headers: { 'Title': 'PDE release check failed', 'Priority': 'high', 'User-Agent': UA } }); } catch { /* ignore */ }
+  }
+  process.exit(1);
+});

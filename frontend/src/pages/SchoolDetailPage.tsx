@@ -11,6 +11,8 @@ import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
 import SimilarSchools from '../components/SimilarSchools';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import PercentileBadges from '../components/PercentileBadges';
+import ExportCsvButton from '../components/ExportCsvButton';
 import { formatPct, growthBand } from '../lib/chartUtils';
 
 export default function SchoolDetailPage() {
@@ -118,6 +120,16 @@ export default function SchoolDetailPage() {
               </div>
             </div>
 
+            <div className="mt-4">
+              <PercentileBadges
+                entity="school"
+                id={Number(s.id)}
+                year={activeYear}
+                exam={selectedPssa.length ? 'pssa' : 'keystone'}
+                subject={selectedPssa.length ? 'Mathematics' : 'Algebra I'}
+              />
+            </div>
+
             <dl className="mt-5 grid grid-cols-3 gap-3 sm:gap-4 text-sm">
               <div>
                 <dt className="text-stone-500 truncate">{math?.subject === 'Algebra I' ? 'Algebra I' : 'Math'}{activeYear ? `, ${activeYear}` : ''}</dt>
@@ -157,20 +169,26 @@ export default function SchoolDetailPage() {
 
       {selectedPssa.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
-            PSSA Results
-            <span className="text-sm font-normal text-stone-400">({activeYear})</span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+              PSSA Results
+              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
+            </h2>
+            <ExportCsvButton filename={`${s.name}-pssa-${activeYear}`} rows={selectedPssa} />
+          </div>
           <ResultsTable results={selectedPssa} showGrade />
         </div>
       )}
 
       {selectedKeystone.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-stone-900 mb-3 flex items-center gap-2">
-            Keystone Exam Results
-            <span className="text-sm font-normal text-stone-400">({activeYear})</span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+              Keystone Exam Results
+              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
+            </h2>
+            <ExportCsvButton filename={`${s.name}-keystone-${activeYear}`} rows={selectedKeystone} />
+          </div>
           <ResultsTable results={selectedKeystone} showGrade={false} />
         </div>
       )}

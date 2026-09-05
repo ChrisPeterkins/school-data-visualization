@@ -12,6 +12,7 @@ import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import FilterSelect from '../components/FilterSelect';
 import ClusterLayer from '../components/map/ClusterLayer';
+import PercentileBadges from '../components/PercentileBadges';
 import { formatPct, growthBand, fillYearGaps, tooltipStyle } from '../lib/chartUtils';
 
 type Exam = 'pssa' | 'keystone';
@@ -381,6 +382,9 @@ export default function MapPage() {
                     );
                   })}
                 </dl>
+                <div className="mt-3">
+                  <PercentileBadges entity="school" id={sel.id} year={year} exam={exam} subject={subject} compact />
+                </div>
                 {spark.length > 1 && (
                   <div className="mt-3">
                     <div className="text-[11px] text-stone-500 mb-1">{subject} proficient or above, {spark[0].year}-{spark[spark.length - 1].year}</div>

@@ -10,7 +10,9 @@ import ResultsTable from '../components/ResultsTable';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { fillYearGaps, standardsChangeLine, tooltipStyle, formatPct } from '../lib/chartUtils';
+import PercentileBadges from '../components/PercentileBadges';
+import ExportCsvButton from '../components/ExportCsvButton';
+import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle, formatPct } from '../lib/chartUtils';
 
 const SUBJECT_COLORS: Record<string, string> = {
   'Mathematics': '#2d4a6f', 'English Language Arts': '#27ab83', 'Science': '#c53030',
@@ -30,6 +32,7 @@ function TrendCard({ title, data, subjects, years, exam, smUp }: { title: string
             <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
             <Legend wrapperStyle={{ fontSize: '12px' }} />
+            {covidGapArea(years)}
             {exam === 'pssa' ? standardsChangeLine(years) : null}
             {subjects.map((s) => (
               <Line key={s} type="monotone" dataKey={s} connectNulls={false} stroke={SUBJECT_COLORS[s]} strokeWidth={2} dot={{ r: 3 }} />
@@ -123,6 +126,9 @@ export default function DistrictDetailPage() {
       <div className="card-surface p-4 sm:p-6 mb-8">
         <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{d.name}</h1>
         <p className="text-sm text-stone-400 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>
+        <div className="mt-3">
+          <PercentileBadges entity="district" id={Number(d.id)} year={activeYear} exam={pssaForYear.length ? 'pssa' : 'keystone'} subject={pssaForYear.length ? 'Mathematics' : 'Algebra I'} />
+        </div>
         <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           <div>
             <dt className="text-stone-500">Schools</dt>
@@ -163,7 +169,10 @@ export default function DistrictDetailPage() {
 
       {pssaForYear.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-stone-900 mb-3">PSSA Results <span className="text-sm font-normal text-stone-400">({activeYear})</span></h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 className="text-lg font-bold text-stone-900">PSSA Results <span className="text-sm font-normal text-stone-400">({activeYear})</span></h2>
+            <ExportCsvButton filename={`${d.name}-pssa-${activeYear}`} rows={pssaForYear} />
+          </div>
           <ResultsTable results={pssaForYear} showGrade compact />
         </div>
       )}

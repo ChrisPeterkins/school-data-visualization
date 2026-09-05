@@ -14,7 +14,12 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Achievement gaps**: proficiency and growth by student group on state, county, district, and school pages
 - **Map**: every school on a clustered Leaflet map with district boundaries, colored by proficiency, growth, or growth-vs-achievement quadrant; search, locate, click-through detail panel, and a shareable viewport
 - **Counties** and **similar schools**: county pages roll up districts; each school page suggests comparable schools nearby
-- **Ops**: weekly PDE release check (cron), nightly rotated backups, coverage report on the admin page, CI on push
+- **Percentiles**: every school and district shows where it stands statewide, in its county, and among its level
+- **Search everywhere**: nav autocomplete across schools, districts, and counties (FTS5, typo-tolerant on spacing)
+- **Compare** schools or districts, for any student group, against the statewide figure for that group
+- **CSV export** on results, rankings, gaps, compare, and the schools list
+- **About the data** page (`/about`) explaining sources, weighting, totals, derived rows, and year caveats
+- **Ops**: weekly PDE release check with optional push notification (`NOTIFY_URL`), nightly rotated backups, coverage report on the admin page, CI on push, `scripts/deploy.sh` for one-command deploys with rollback, API responses cached for an hour with ETags
 - **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested
 
 ## 🛠 Tech Stack

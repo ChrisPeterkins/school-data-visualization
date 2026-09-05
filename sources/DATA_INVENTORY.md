@@ -61,6 +61,8 @@ District boundaries on the map are the Census Bureau's 2023 cartographic (500k) 
 
 Parsed workbooks are cached as gzipped JSON in a `.cache/` folder beside each file (gitignored, keyed by size and mtime), so re-imports and the verifier skip the slow spreadsheet parse.
 
+Search uses an FTS5 table (`search_index`) rebuilt by the metadata and import scripts. Percentiles (`/api/performance/percentile`) rank an entity's all-grades proficiency among peers with at least 20 students tested. Derived district rows also exist for 2013 and 2014 Keystone (no district files were archived).
+
 To import a new year once the files are in place: `cd backend && npx tsx src/scripts/importYear.ts <year>`. The script prints a coverage report at the end; the same report is at `/api/performance/data-status` and on the admin Import page.
 PDE announced the 2026 results release is on hold until later in fall 2026. A weekly cron job (`checkPdeReleases.ts --import`, Mondays 06:00) downloads and imports any new year automatically; the admin Import page shows the last check.
 

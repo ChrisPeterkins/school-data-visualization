@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUpIcon, ChevronDownIcon, FunnelIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import type { School } from '@shared';
+import { growthBand } from '../lib/chartUtils';
 
 interface EnhancedSchoolTableProps {
   schools: School[];
@@ -96,6 +97,9 @@ export default function EnhancedSchoolTable({
                   { field: 'districtName', label: 'District', visibility: 'hidden md:table-cell' },
                   { field: 'countyName', label: 'County', visibility: 'hidden md:table-cell' },
                   { field: 'type', label: 'Type', visibility: 'hidden sm:table-cell' },
+                  { field: 'enrollment', label: 'Students', visibility: 'hidden lg:table-cell text-right' },
+                  { field: 'proficiency', label: 'Math prof.', visibility: 'text-right' },
+                  { field: 'growth', label: 'Growth', visibility: 'hidden sm:table-cell text-right' },
                 ].map(col => (
                   <th key={col.field} className={`px-3 sm:px-5 py-3 text-left ${col.visibility}`}>
                     <button
@@ -118,6 +122,9 @@ export default function EnhancedSchoolTable({
                     { field: 'districtName', visibility: 'hidden md:table-cell' },
                     { field: 'countyName', visibility: 'hidden md:table-cell' },
                     { field: 'type', visibility: 'hidden sm:table-cell' },
+                    { field: 'enrollment', visibility: 'hidden lg:table-cell' },
+                    { field: 'proficiency', visibility: '' },
+                    { field: 'growth', visibility: 'hidden sm:table-cell' },
                     { field: 'city', visibility: 'hidden lg:table-cell' },
                   ].map(({ field, visibility }) => (
                     <th key={field} className={`px-3 sm:px-5 py-2 ${visibility}`}>
@@ -137,7 +144,7 @@ export default function EnhancedSchoolTable({
             <tbody className="divide-y divide-stone-100">
               {filteredSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 sm:px-5 py-12 text-center text-stone-400">
+                  <td colSpan={9} className="px-3 sm:px-5 py-12 text-center text-stone-400">
                     No schools found matching your filters
                   </td>
                 </tr>
@@ -163,6 +170,9 @@ export default function EnhancedSchoolTable({
                         {school.type || 'N/A'}
                       </span>
                     </td>
+                    <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 text-sm text-stone-600 text-right tabular-nums">{(school as any).enrollment ? (school as any).enrollment.toLocaleString() : '—'}</td>
+                    <td className="px-3 sm:px-5 py-3.5 text-sm text-right tabular-nums font-medium text-navy-800">{(school as any).proficiency != null ? `${(school as any).proficiency.toFixed(1)}%` : '—'}</td>
+                    <td className={`hidden sm:table-cell px-3 sm:px-5 py-3.5 text-sm text-right tabular-nums ${growthBand((school as any).growth).className}`}>{(school as any).growth != null ? (school as any).growth.toFixed(1) : '—'}</td>
                     <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 text-sm text-stone-500">{school.city || 'N/A'}</td>
                     <td className="px-3 sm:px-5 py-3.5 text-right whitespace-nowrap">
                       <Link

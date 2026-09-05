@@ -16,7 +16,14 @@ const schoolQuerySchema = z.object({
   countyName: z.string().optional(),
   districtName: z.string().optional(),
   schoolType: z.string().optional(),
-  sortBy: z.enum(['name', 'districtName', 'countyName', 'type']).optional().default('name'),
+  sortBy: z.enum(['name', 'districtName', 'countyName', 'type', 'enrollment', 'proficiency', 'growth']).optional().default('name'),
+  charter: z.coerce.boolean().optional(),
+  minEnrollment: z.coerce.number().optional(),
+  maxEnrollment: z.coerce.number().optional(),
+  /** Year/exam/subject behind the proficiency and growth columns; defaults to the latest PSSA Math. */
+  metricYear: z.coerce.number().optional(),
+  metricExam: z.enum(['pssa', 'keystone']).optional().default('pssa'),
+  metricSubject: z.string().optional().default('Mathematics'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
 });
 
@@ -61,6 +68,18 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
     if (!query.includeInactive) {
       conditions.push(eq(schools.isActive, true));
     }
+    if (query.charter != null) conditions.push(eq(schools.isCharter, query.charter));
+    if (query.minEnrollment != null) conditions.push(sql`${schools.enrollment} >= ${query.minEnrollment}`);
+    if (query.maxEnrollment != null) conditions.push(sql`${schools.enrollment} <= ${query.maxEnrollment}`);
+
+    // Latest-year metric columns come from the precomputed map points table.
+    ensureMapPointsTable();
+    const metricYear = query.metricYear
+      ?? (sqliteDb.prepare(`SELECT MAX(year) AS y FROM school_map_points WHERE exam = ?`).get(query.metricExam) as any)?.y ?? 0;
+    const metric = (col: 'proficiency' | 'growth') => sql<number | null>`(
+      SELECT smp.${sql.raw(col)} FROM school_map_points smp
+      WHERE smp.school_id = ${schools.id} AND smp.year = ${metricYear} AND smp.exam = ${query.metricExam} AND smp.subject = ${query.metricSubject}
+    )`;
 
     if (query.districtName) {
       conditions.push(like(districts.name, `%${query.districtName}%`));
@@ -81,6 +100,15 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         break;
       case 'type':
         orderByColumn = schools.schoolType;
+        break;
+      case 'enrollment':
+        orderByColumn = schools.enrollment;
+        break;
+      case 'proficiency':
+        orderByColumn = sql`proficiency`;
+        break;
+      case 'growth':
+        orderByColumn = sql`growth`;
         break;
       default:
         orderByColumn = schools.name;
@@ -108,6 +136,10 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
         address: schools.address,
         city: schools.city,
         zipCode: schools.zipCode,
+        enrollment: schools.enrollment,
+        isCharter: schools.isCharter,
+        proficiency: metric('proficiency').as('proficiency'),
+        growth: metric('growth').as('growth'),
       })
       .from(schools)
       .innerJoin(districts, eq(schools.districtId, districts.id))

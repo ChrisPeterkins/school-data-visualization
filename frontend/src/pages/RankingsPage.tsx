@@ -11,6 +11,7 @@ import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import ExportCsvButton from '../components/ExportCsvButton';
 import { CHART_COLORS, tooltipStyle, growthBand } from '../lib/chartUtils';
 
 type Exam = 'pssa' | 'keystone';
@@ -201,7 +202,14 @@ export default function RankingsPage() {
           </div>
 
           <div className="card-surface p-4 sm:p-6 mb-8">
-            <h2 className="text-base font-semibold text-stone-900 mb-1">Proficiency Rankings</h2>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className="text-base font-semibold text-stone-900 mb-1">Proficiency Rankings</h2>
+              <ExportCsvButton
+                filename={`rankings-${examType}-${subject || 'all-subjects'}-${year}`}
+                rows={[...rankings.top.map((r) => ({ list: 'highest', ...r })), ...rankings.bottom.map((r) => ({ list: 'lowest', ...r }))]}
+                columns={[{ key: 'list', label: 'List' }, { key: 'rank', label: 'Rank' }, { key: 'schoolName', label: 'School' }, { key: 'districtName', label: 'District' }, { key: 'countyName', label: 'County' }, { key: 'schoolType', label: 'Type' }, { key: 'avgProficiency', label: '% proficient or above' }, { key: 'avgGrowth', label: 'Growth index' }, { key: 'totalTested', label: 'Students tested' }]}
+              />
+            </div>
             <p className="text-xs text-stone-400 mb-4">
               Highest {rankings.top.length} and lowest {rankings.bottom.length} schools by % proficient or above
             </p>

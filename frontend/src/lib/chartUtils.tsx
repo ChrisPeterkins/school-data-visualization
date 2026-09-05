@@ -1,4 +1,4 @@
-import { ReferenceLine } from 'recharts';
+import { ReferenceLine, ReferenceArea } from 'recharts';
 
 /** PDE raised the PSSA performance standards starting with the 2025 results. */
 export const STANDARDS_CHANGE_YEAR = 2025;
@@ -53,6 +53,28 @@ export function standardsChangeLine(years: number[], label = 'New standards') {
       stroke={CHART_COLORS.gold}
       strokeDasharray="4 3"
       label={{ value: label, position: 'insideTopRight', fill: '#997321', fontSize: 11 }}
+    />
+  );
+}
+
+/**
+ * Shaded band over 2020, when PDE cancelled all PSSA and Keystone testing, so a
+ * gap between 2019 and 2021 reads as "no data" rather than a missing year.
+ * Requires the 2020 placeholder row from fillYearGaps to be in the data.
+ */
+export function covidGapArea(years: number[], label = 'No testing (COVID-19)') {
+  if (!years.includes(2019) || !years.includes(2021) || years.includes(COVID_GAP_YEAR)) return null;
+  return (
+    <ReferenceArea
+      key="covid-gap"
+      x1={COVID_GAP_YEAR}
+      x2={COVID_GAP_YEAR}
+      fill="#a8a29e"
+      fillOpacity={0.12}
+      stroke="#a8a29e"
+      strokeDasharray="3 3"
+      strokeOpacity={0.6}
+      label={{ value: label, position: 'insideTop', fill: '#78716c', fontSize: 10 }}
     />
   );
 }

@@ -8,7 +8,7 @@ import { useAvailableYears } from '../hooks/useAvailableYears';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import GapsPanel from '../components/GapsPanel';
 import DataNotes from '../components/DataNotes';
-import { fillYearGaps, standardsChangeLine, tooltipStyle, formatPct } from '../lib/chartUtils';
+import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle, formatPct } from '../lib/chartUtils';
 
 const SUBJECT_COLORS: Record<string, string> = {
   'Mathematics': '#2d4a6f', 'English Language Arts': '#27ab83', 'Science': '#c53030',
@@ -28,7 +28,8 @@ function TrendCard({ title, data, subjects, years, exam, smUp }: { title: string
           <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
           <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
-          {exam === 'pssa' ? standardsChangeLine(years) : null}
+          {covidGapArea(years)}
+            {exam === 'pssa' ? standardsChangeLine(years) : null}
           {subjects.map((s) => <Line key={s} type="monotone" dataKey={s} connectNulls={false} stroke={SUBJECT_COLORS[s]} strokeWidth={2} dot={{ r: 3 }} />)}
         </LineChart>
       </ResponsiveContainer>

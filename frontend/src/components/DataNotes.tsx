@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { STANDARDS_CHANGE_YEAR } from '../lib/chartUtils';
 
 interface DataNotesProps {
@@ -31,6 +32,7 @@ export default function DataNotes({ subject, exam = 'pssa', years, latestAvailab
   return (
     <ul className="text-xs text-stone-500 space-y-1 border-l-2 border-gold-300 pl-3">
       {notes.map((n) => <li key={n}>{n}</li>)}
+      <li><Link to="/about#caveats" className="text-navy-600 hover:underline">About the data</Link></li>
     </ul>
   );
 }

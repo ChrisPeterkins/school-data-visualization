@@ -11,6 +11,7 @@
  */
 import { sqliteDb } from '../db';
 import { logger } from '../utils/logger';
+import { refreshSearchIndex } from '../services/searchIndex';
 
 const API = 'https://educationdata.urban.org/api/v1';
 const dryRun = process.argv.includes('--dry-run');
@@ -167,6 +168,7 @@ async function main() {
   });
   dTxn();
   logger.info(`Districts: ${dMatched} of ${districts.length} matched by AUN${dryRun ? ' (dry run)' : ''}`);
+  refreshSearchIndex();
 }
 
 main().catch(err => { console.error('metadata import failed:', err); process.exit(1); });

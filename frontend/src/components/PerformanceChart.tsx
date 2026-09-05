@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import type { SchoolPerformanceTrends } from '@shared';
-import { fillYearGaps, standardsChangeLine, tooltipStyle } from '../lib/chartUtils';
+import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle } from '../lib/chartUtils';
 
 interface PerformanceChartProps {
   data: SchoolPerformanceTrends;
@@ -36,7 +36,8 @@ function ChartCard({ title, chartData, years, exam, action }: { title: string; c
           <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
           <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
-          {exam === 'pssa' ? standardsChangeLine(years) : null}
+          {covidGapArea(years)}
+            {exam === 'pssa' ? standardsChangeLine(years) : null}
           {seriesKeys(chartData).map((key, index) => (
             <Line
               key={key}

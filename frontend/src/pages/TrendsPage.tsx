@@ -12,7 +12,7 @@ import FilterSelect from '../components/FilterSelect';
 import DataNotes from '../components/DataNotes';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
-  fillYearGaps, standardsChangeLine, CHART_COLORS, tooltipStyle, formatPct,
+  fillYearGaps, standardsChangeLine, covidGapArea, CHART_COLORS, tooltipStyle, formatPct,
 } from '../lib/chartUtils';
 
 const PSSA_SUBJECTS = ['Mathematics', 'English Language Arts', 'Science'];
@@ -147,6 +147,7 @@ export default function TrendsPage() {
                 <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#78716c' }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, 'Proficient or above']} />
+                {covidGapArea(years)}
                 {standardsChangeLine(years)}
                 <Line type="monotone" dataKey="proficiency" connectNulls={false} stroke={CHART_COLORS.navy} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.navy }} activeDot={{ r: 6 }} name="Proficient or above" />
               </LineChart>
@@ -163,6 +164,7 @@ export default function TrendsPage() {
                   <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  {covidGapArea(years, '')}
                   {standardsChangeLine(years, '')}
                   <Area type="monotone" dataKey="advanced" stackId="1" stroke={CHART_COLORS.navyDark} fill={CHART_COLORS.navyDark} fillOpacity={0.9} name="Advanced" connectNulls={false} />
                   <Area type="monotone" dataKey="proficient" stackId="1" stroke={CHART_COLORS.navyMid} fill={CHART_COLORS.navyMid} fillOpacity={0.9} name="Proficient" connectNulls={false} />

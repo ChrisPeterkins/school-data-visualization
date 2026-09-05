@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
+import GlobalSearch from './GlobalSearch';
 import {
   BuildingLibraryIcon,
   AcademicCapIcon,
@@ -52,6 +53,11 @@ export default function Layout() {
               </div>
             </Link>
 
+            {/* Desktop search */}
+            <div className="hidden lg:block flex-1 max-w-xs mx-6">
+              <GlobalSearch />
+            </div>
+
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
               {mainNav.map(({ path, label, icon: Icon }) => (
@@ -93,6 +99,9 @@ export default function Layout() {
               className="md:hidden overflow-hidden border-t border-navy-700/50"
             >
               <div className="px-4 py-3 space-y-1">
+                <div className="pb-2">
+                  <GlobalSearch onNavigate={() => setMobileOpen(false)} />
+                </div>
                 {mainNav.map(({ path, label, icon: Icon }) => (
                   <Link
                     key={path}
@@ -142,6 +151,7 @@ export default function Layout() {
                 Data sourced from Pennsylvania Department of Education.
                 {yearRange ? ` PSSA & Keystone results ${yearRange}.` : ''}
               </p>
+              <Link to="/about" className="text-navy-300 hover:text-white transition-colors">About the data</Link>
               {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
               <Link to="/import" className="text-navy-500 hover:text-navy-300 transition-colors">Admin</Link>
             </div>

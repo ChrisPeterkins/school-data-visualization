@@ -18,8 +18,11 @@ export function useUrlState<T>(
   const value = parsed ?? fallback;
 
   const setValue = useCallback((next: T) => {
-    setParams((prev) => {
-      const out = new URLSearchParams(prev);
+    // Start from the live URL, not the hook's snapshot: react-router's
+    // functional setSearchParams reads a stale copy, so several setters in one
+    // handler (change exam, reset subject and grade) would overwrite each other.
+    setParams(() => {
+      const out = new URLSearchParams(window.location.search);
       const s = serialize(next);
       if (s === '' || s === serialize(fallback)) out.delete(key); else out.set(key, s);
       return out;

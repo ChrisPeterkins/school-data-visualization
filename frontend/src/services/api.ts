@@ -106,6 +106,28 @@ export interface CountyDetail extends Omit<CountySummary, 'districtCount' | 'sch
   districts: Array<{ id: number; name: string; enrollment: number | null; city: string | null; schoolCount: number }>;
 }
 
+export interface SearchHit { kind: 'school' | 'district' | 'county'; id: number; name: string; detail: string; score: number }
+export const searchApi = {
+  search: async (q: string, limit = 10) => {
+    const { data } = await api.get<{ query: string; results: SearchHit[] }>('/api/search', { params: { q, limit } });
+    return data.results;
+  },
+};
+
+export interface PercentileBucket { percentile: number; n: number }
+export interface PercentileResponse {
+  entity: 'school' | 'district'; id: number; year: number; exam: 'pssa' | 'keystone'; subject: string; value: number;
+  statewide: PercentileBucket | null;
+  sameType: ({ type: string } & Partial<PercentileBucket>) | null;
+  county: PercentileBucket | null;
+  sameTypeInCounty: PercentileBucket | null;
+}
+
+export interface FigureEntity {
+  id: number; name: string; parent: string; type: string | null; enrollment: number | null;
+  subjects: Record<string, { proficiency: number | null; tested: number | null; growth: number | null }>;
+}
+
 export const countyApi = {
   getCounties: async () => {
     const { data } = await api.get<{ data: CountySummary[] }>('/api/counties');
@@ -182,6 +204,16 @@ export const performanceApi = {
   }) => {
     const { data } = await api.get<{ filters: any; points: GrowthPoint[] }>('/api/performance/growth-achievement', { params });
     return data;
+  },
+
+  getPercentile: async (params: { entity: 'school' | 'district'; id: number; year: number; exam: 'pssa' | 'keystone'; subject: string }) => {
+    const { data } = await api.get<PercentileResponse>('/api/performance/percentile', { params });
+    return data;
+  },
+
+  getFigures: async (params: { entity: 'school' | 'district'; ids: number[]; year: number; exam: 'pssa' | 'keystone'; group?: string }) => {
+    const { data } = await api.get<{ entities: FigureEntity[] }>('/api/performance/figures', { params: { ...params, ids: params.ids.join(',') } });
+    return data.entities;
   },
 
   getGaps: async (params: {

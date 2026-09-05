@@ -12,6 +12,7 @@ const DistrictDetailPage = lazy(() => import('./pages/DistrictDetailPage'));
 const CountiesPage = lazy(() => import('./pages/CountiesPage'));
 const CountyDetailPage = lazy(() => import('./pages/CountyDetailPage'));
 const MapPage = lazy(() => import('./pages/MapPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 const StatePage = lazy(() => import('./pages/StatePage'));
 const ComparePage = lazy(() => import('./pages/ComparePage'));
 const TrendsPage = lazy(() => import('./pages/TrendsPage'));
@@ -41,6 +42,7 @@ function App() {
         <Route path="counties" element={<Suspense fallback={<PageFallback />}><CountiesPage /></Suspense>} />
         <Route path="counties/:id" element={<Suspense fallback={<PageFallback />}><CountyDetailPage /></Suspense>} />
         <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
+        <Route path="about" element={<Suspense fallback={<PageFallback />}><AboutPage /></Suspense>} />
         <Route path="state" element={<Suspense fallback={<PageFallback />}><StatePage /></Suspense>} />
         <Route path="compare" element={<Suspense fallback={<PageFallback />}><ComparePage /></Suspense>} />
         <Route path="trends" element={<Suspense fallback={<PageFallback />}><TrendsPage /></Suspense>} />

@@ -300,6 +300,113 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     return response;
   });
 
+  /**
+   * Where an entity stands among its peers: percentile of its all-grades
+   * proficiency for a subject and year, statewide and (for schools) within
+   * its county and among schools of the same type.
+   */
+  const percentileSchema = z.object({
+    entity: z.enum(['school', 'district']).default('school'),
+    id: z.coerce.number(),
+    year: z.coerce.number(),
+    exam: z.enum(['pssa', 'keystone']).default('pssa'),
+    subject: z.string().default('Mathematics'),
+    minTested: z.coerce.number().default(20),
+  });
+
+  fastify.get('/percentile', async (request, reply) => {
+    const q = percentileSchema.parse(request.query);
+    const cacheKey = cache.generateKey('percentile', JSON.stringify(q));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const idCol = q.entity === 'school' ? 'r.school_id' : 'r.district_id';
+    const gradeClause = q.exam === 'pssa' ? 'AND r.grade = 0' : '';
+    const rows = sqliteDb.prepare(`
+      SELECT ${idCol} AS id, r.proficient_or_above_percent AS value,
+        ${q.entity === 'school' ? 's.school_type AS type, d.county_id AS countyId' : 'NULL AS type, d.county_id AS countyId'}
+      FROM ${table} r
+      ${q.entity === 'school' ? 'JOIN schools s ON s.id = r.school_id JOIN districts d ON d.id = s.district_id' : 'JOIN districts d ON d.id = r.district_id'}
+      WHERE r.level = ? AND r.year = ? AND r.subject = ? AND r.demographic_group = 'All Students'
+        AND r.proficient_or_above_percent IS NOT NULL AND r.total_tested >= ? ${gradeClause}
+    `).all(q.entity, q.year, q.subject, q.minTested) as Array<{ id: number; value: number; type: string | null; countyId: number }>;
+
+    const me = rows.find((r) => r.id === q.id);
+    if (!me) return reply.status(404).send({ error: 'No result for that entity, year, and subject' });
+
+    const pct = (peers: typeof rows) => {
+      if (peers.length < 5) return null;
+      const below = peers.filter((r) => r.value < me.value).length;
+      const equal = peers.filter((r) => r.value === me.value).length;
+      return { percentile: Math.round(((below + equal / 2) / peers.length) * 100), n: peers.length };
+    };
+    const response = {
+      ...q,
+      value: me.value,
+      statewide: pct(rows),
+      sameType: q.entity === 'school' && me.type ? { type: me.type, ...pct(rows.filter((r) => r.type === me.type)) } : null,
+      county: pct(rows.filter((r) => r.countyId === me.countyId)),
+      sameTypeInCounty: q.entity === 'school' && me.type ? pct(rows.filter((r) => r.countyId === me.countyId && r.type === me.type)) : null,
+    };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
+  /**
+   * Compare figures for several schools or districts in one year: per
+   * subject proficiency for a chosen student group (weighted from the
+   * all-grades rows) and growth for All Students.
+   */
+  const figuresSchema = z.object({
+    entity: z.enum(['school', 'district']).default('school'),
+    ids: z.string(),
+    year: z.coerce.number(),
+    exam: z.enum(['pssa', 'keystone']).default('pssa'),
+    group: z.string().default('All Students'),
+  });
+
+  fastify.get('/figures', async (request, _reply) => {
+    const q = figuresSchema.parse(request.query);
+    const ids = q.ids.split(',').map(Number).filter((n) => Number.isFinite(n) && n > 0).slice(0, 8);
+    if (ids.length === 0) return { ...q, entities: [] };
+    const cacheKey = cache.generateKey('figures', JSON.stringify({ ...q, ids }));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const table = q.exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const idCol = q.entity === 'school' ? 'r.school_id' : 'r.district_id';
+    const gradeClause = q.exam === 'pssa' ? 'AND r.grade = 0' : '';
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = sqliteDb.prepare(`
+      SELECT ${idCol} AS id, r.subject, r.demographic_group AS grp,
+        r.proficient_or_above_percent AS proficiency, r.total_tested AS tested, r.growth_score AS growth
+      FROM ${table} r
+      WHERE r.level = ? AND r.year = ? AND ${idCol} IN (${placeholders})
+        AND r.demographic_group IN (?, 'All Students') AND r.proficient_or_above_percent IS NOT NULL ${gradeClause}
+    `).all(q.entity, q.year, ...ids, q.group) as any[];
+
+    const names = q.entity === 'school'
+      ? sqliteDb.prepare(`SELECT s.id, s.name, d.name AS parent, s.school_type AS type, s.enrollment FROM schools s JOIN districts d ON d.id = s.district_id WHERE s.id IN (${placeholders})`).all(...ids) as any[]
+      : sqliteDb.prepare(`SELECT d.id, d.name, c.name || ' County' AS parent, NULL AS type, d.total_enrollment AS enrollment FROM districts d JOIN counties c ON c.id = d.county_id WHERE d.id IN (${placeholders})`).all(...ids) as any[];
+
+    const entities = ids.map((id) => {
+      const meta = names.find((n) => n.id === id);
+      const mine = rows.filter((r) => r.id === id);
+      const subjects: Record<string, { proficiency: number | null; tested: number | null; growth: number | null }> = {};
+      for (const r of mine) {
+        subjects[r.subject] = subjects[r.subject] ?? { proficiency: null, tested: null, growth: null };
+        if (r.grp === q.group) { subjects[r.subject].proficiency = r.proficiency; subjects[r.subject].tested = r.tested; }
+        if (r.grp === 'All Students') subjects[r.subject].growth = r.growth;
+      }
+      return { id, name: meta?.name ?? `#${id}`, parent: meta?.parent ?? '', type: meta?.type ?? null, enrollment: meta?.enrollment ?? null, subjects };
+    });
+
+    const response = { ...q, ids, entities };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
+
   // Get PSSA performance data
   fastify.get('/pssa', async (request, _reply) => {
     const query = performanceQuerySchema.parse(request.query);

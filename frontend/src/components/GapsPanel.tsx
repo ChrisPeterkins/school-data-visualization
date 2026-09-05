@@ -4,7 +4,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { performanceApi } from '../services/api';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import FilterSelect from './FilterSelect';
-import { fillYearGaps, standardsChangeLine, tooltipStyle, formatPct, growthBand } from '../lib/chartUtils';
+import ExportCsvButton from './ExportCsvButton';
+import { fillYearGaps, standardsChangeLine, covidGapArea, tooltipStyle, formatPct, growthBand } from '../lib/chartUtils';
 
 type Exam = 'pssa' | 'keystone';
 interface GapsPanelProps {
@@ -95,11 +96,14 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
       ) : (
         <>
           <div className="card-surface overflow-hidden">
-            <div className="px-4 sm:px-6 py-4 border-b border-stone-100">
+            <div className="px-4 sm:px-6 py-4 border-b border-stone-100 flex flex-wrap items-start justify-between gap-2">
+              <div>
               <h3 className="text-base font-semibold text-stone-900">{subject} by student group ({data?.year})</h3>
               <p className="text-xs text-stone-400 mt-0.5">
                 Gap is percentage points from All Students ({formatPct(data?.allStudents)}). Groups under 11 students are suppressed by PDE and do not appear.
               </p>
+              </div>
+              <ExportCsvButton filename={`gaps-${subject}-${data?.year}`} rows={groups as unknown as Array<Record<string, unknown>>} columns={[{ key: 'group', label: 'Group' }, { key: 'proficiency', label: '% proficient or above' }, { key: 'gap', label: 'Gap vs All Students' }, { key: 'tested', label: 'Students tested' }, { key: 'growth', label: 'Growth index' }]} />
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full">
@@ -160,6 +164,7 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
                   <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
                   <Legend wrapperStyle={{ fontSize: '11px' }} formatter={(v) => SHORT[v] ?? v} />
+                  {covidGapArea(years)}
                   {activeExam === 'pssa' ? standardsChangeLine(years) : null}
                   {trendGroupsPresent.map((g) => (
                     <Line key={g} type="monotone" dataKey={g} connectNulls={false} stroke={TREND_COLORS[g]} strokeWidth={g === 'All Students' ? 3 : 2} dot={{ r: 2.5 }} />
