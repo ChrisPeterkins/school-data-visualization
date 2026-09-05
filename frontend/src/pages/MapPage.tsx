@@ -13,6 +13,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import FilterSelect from '../components/FilterSelect';
 import ClusterLayer from '../components/map/ClusterLayer';
 import PercentileBadges from '../components/PercentileBadges';
+import DetailSheet from '../components/map/DetailSheet';
 import { formatPct, growthBand, fillYearGaps, tooltipStyle } from '../lib/chartUtils';
 
 type Exam = 'pssa' | 'keystone';
@@ -23,6 +24,7 @@ const SUBJECTS: Record<Exam, string[]> = {
 };
 const PA_CENTER: [number, number] = [40.9, -77.75];
 const PA_ZOOM = 7;
+const SHORT_SUBJECT: Record<string, string> = { 'Mathematics': 'Math', 'English Language Arts': 'ELA', 'Science': 'Science', 'Algebra I': 'Algebra I', 'Biology': 'Biology', 'Literature': 'Literature' };
 const NO_RESULT = '#f5f5f4';
 
 // Sequential navy ramp for proficiency; diverging brick/gold/grey/navy for growth.
@@ -84,6 +86,18 @@ function FitTo({ target, points }: { target: string; points: MapPoint[] }) {
     const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
     map.flyToBounds(bounds, { padding: [24, 24], maxZoom: 12, duration: 0.8 });
   }, [target, points, map]);
+  return null;
+}
+
+/** On phones the bottom sheet covers the lower map, so pan the selected dot into the upper part. */
+function PanToSelected({ point }: { point: MapPoint | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!point || window.innerWidth >= 640) return;
+    const size = map.getSize();
+    const target = map.latLngToContainerPoint([point.lat, point.lng]);
+    map.panBy([target.x - size.x / 2, target.y - size.y * 0.35], { animate: true, duration: 0.5 });
+  }, [point?.id, map]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -336,12 +350,13 @@ export default function MapPage() {
           </button>
         </div>
 
-        <div className="h-[calc(100vh-9.5rem)] sm:h-[62vh] sm:min-h-[24rem]">
+        <div className="relative h-[calc(100vh-13rem)] sm:h-[62vh] sm:min-h-[24rem] overflow-hidden">
           <MapContainer center={PA_CENTER} zoom={PA_ZOOM} preferCanvas scrollWheelZoom style={{ height: '100%', width: '100%' }}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <ViewSync view={view} onChange={setView} />
             <FitTo target={fitTarget} points={fitTarget.startsWith('county:') ? points.filter((p) => p.countyId === countyId) : fitTarget.startsWith('district:') ? points.filter((p) => p.districtId === Number(fitTarget.split(':')[1])) : points} />
             <ZoomWatcher onZoom={setZoom} />
+            <PanToSelected point={selectedId != null ? points.find((p) => p.id === selectedId) ?? null : null} />
             {showBoundaries && (
               <GeoJSON key={`${metric}-${year}-${exam}-${subject}-${districtValues.length}`} data={geojson} style={boundaryStyle} onEachFeature={onEachDistrict} />
             )}
@@ -356,18 +371,15 @@ export default function MapPage() {
               onSelect={setSelectedId}
             />
           </MapContainer>
-        </div>
-
-        {/* Selected school panel: over the map on desktop, below it on phones. */}
+        {/* Selected school: bottom sheet on phones, floating card on desktop. */}
         {selectedId != null && (
-          <div className="sm:absolute sm:z-[1000] sm:top-16 sm:right-3 sm:w-80 bg-white sm:rounded-xl sm:shadow-lg border-t sm:border border-stone-200 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-stone-900 leading-snug">{sel?.name ?? 'Loading…'}</div>
-                {sel && <div className="text-xs text-stone-500 truncate">{sel.districtName}{sel.type ? ` · ${sel.type}` : ''}{sel.enrollment ? ` · ${sel.enrollment.toLocaleString()} students` : ''}</div>}
-              </div>
-              <button onClick={() => setSelectedId(null)} aria-label="Close" className="text-stone-400 hover:text-stone-600"><XMarkIcon className="w-5 h-5" /></button>
-            </div>
+          <DetailSheet
+            itemKey={`school-${selectedId}`}
+            title={sel?.name ?? 'Loading…'}
+            subtitle={sel ? `${sel.districtName}${sel.type ? ` · ${sel.type}` : ''}${sel.enrollment ? ` · ${sel.enrollment.toLocaleString()} students` : ''}` : undefined}
+            peek={sel ? `${SHORT_SUBJECT[subject] ?? subject} ${formatPct(selFor(subject)?.percentProficientOrAbove)}${selFor(subject)?.growthScore != null ? ` · growth ${selFor(subject).growthScore.toFixed(1)}` : ''}` : undefined}
+            onClose={() => setSelectedId(null)}
+          >
             {sel && (
               <>
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -406,19 +418,18 @@ export default function MapPage() {
                 </div>
               </>
             )}
-          </div>
+          </DetailSheet>
         )}
 
         {selectedDistrictId != null && selectedId == null && (
-          <div className="sm:absolute sm:z-[1000] sm:top-16 sm:right-3 sm:w-80 bg-white sm:rounded-xl sm:shadow-lg border-t sm:border border-stone-200 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-wide text-stone-400">District</div>
-                <div className="text-sm font-semibold text-stone-900 leading-snug">{dsel?.name ?? 'Loading…'}</div>
-                {dsel && <div className="text-xs text-stone-500 truncate">{dsel.countyName} County · {(dsel.schools ?? []).length} schools{dsel.totalEnrollment ? ` · ${dsel.totalEnrollment.toLocaleString()} students` : ''}</div>}
-              </div>
-              <button onClick={() => setSelectedDistrictId(null)} aria-label="Close" className="text-stone-400 hover:text-stone-600"><XMarkIcon className="w-5 h-5" /></button>
-            </div>
+          <DetailSheet
+            itemKey={`district-${selectedDistrictId}`}
+            eyebrow="District"
+            title={dsel?.name ?? 'Loading…'}
+            subtitle={dsel ? `${dsel.countyName} County · ${(dsel.schools ?? []).length} schools${dsel.totalEnrollment ? ` · ${dsel.totalEnrollment.toLocaleString()} students` : ''}` : undefined}
+            peek={dsel ? `${SHORT_SUBJECT[subject] ?? subject} ${formatPct(dFor(subject)?.percentProficientOrAbove)}${dFor(subject)?.growthScore != null ? ` · growth ${dFor(subject).growthScore.toFixed(1)}` : ''}` : undefined}
+            onClose={() => setSelectedDistrictId(null)}
+          >
             {dsel && (
               <>
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -458,8 +469,10 @@ export default function MapPage() {
                 </div>
               </>
             )}
-          </div>
+          </DetailSheet>
         )}
+
+        </div>
 
         <div className="px-4 sm:px-6 py-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
