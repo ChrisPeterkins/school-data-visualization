@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { performanceApi } from '../services/api';
-import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
+import { useAvailableYears, formatYearRange, yearsForExam } from '../hooks/useAvailableYears';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import FilterSelect from '../components/FilterSelect';
@@ -31,8 +31,11 @@ export default function TrendsPage() {
   const [grade, setGrade] = useUrlState<number | null>('grade', null, parseNumber, (v) => (v == null ? '' : String(v)));
 
   const availableYears = useAvailableYears();
-  const { earliest, latest } = availableYears;
-  const yearRange = formatYearRange(availableYears);
+  // Year range for the selected exam (the archived 2013-14 files are Keystone-only).
+  const examYears = yearsForExam(availableYears, examType);
+  const earliest = examYears.length ? examYears[examYears.length - 1] : availableYears.earliest;
+  const latest = examYears.length ? examYears[0] : availableYears.latest;
+  const yearRange = formatYearRange({ years: examYears, earliest, latest });
   const smUp = useIsSmUp();
   const bigChartHeight = smUp ? 400 : 300;
   useDocumentTitle(`${subject} trends, ${LEVEL_NOUN[level]}`, `How ${subject} proficiency has changed across Pennsylvania ${LEVEL_NOUN[level]} since ${earliest ?? 2015}.`);

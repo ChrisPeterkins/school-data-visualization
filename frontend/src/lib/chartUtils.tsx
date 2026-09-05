@@ -62,15 +62,17 @@ export function standardsChangeLine(years: number[], label = 'New standards') {
  * gap between 2019 and 2021 reads as "no data" rather than a missing year.
  * Requires the 2020 placeholder row from fillYearGaps to be in the data.
  */
-export function covidGapArea(years: number[], label = 'No testing (COVID-19)') {
+export function covidGapArea(years: number[], label = 'No testing in 2020 (COVID-19)') {
   if (!years.includes(2019) || !years.includes(2021) || years.includes(COVID_GAP_YEAR)) return null;
+  // Category axes place each year at a point, so a same-year area has no
+  // width; span the neighbours instead so the band is visible.
   return (
     <ReferenceArea
       key="covid-gap"
-      x1={COVID_GAP_YEAR}
-      x2={COVID_GAP_YEAR}
+      x1={2019}
+      x2={2021}
       fill="#a8a29e"
-      fillOpacity={0.12}
+      fillOpacity={0.08}
       stroke="#a8a29e"
       strokeDasharray="3 3"
       strokeOpacity={0.6}
