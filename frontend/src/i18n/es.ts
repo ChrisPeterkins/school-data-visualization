@@ -1,0 +1,53 @@
+/** Spanish strings; keys mirror en.ts. Subject and group names follow PDE's own Spanish materials. */
+export const es: Record<string, string> = {
+  'nav.schools': 'Escuelas', 'nav.districts': 'Distritos', 'nav.counties': 'Condados', 'nav.state': 'Estado', 'nav.map': 'Mapa',
+  'nav.compare': 'Comparar', 'nav.trends': 'Tendencias', 'nav.rankings': 'Clasificación', 'nav.about': 'Acerca de los datos', 'nav.admin': 'Admin',
+  'nav.search': 'Buscar escuelas, distritos, condados', 'nav.searchAria': 'Buscar escuelas, distritos y condados',
+  'nav.searchHint': 'Enter abre el resultado resaltado; siga escribiendo para acotar.',
+  'nav.openMenu': 'Abrir menú', 'nav.closeMenu': 'Cerrar menú', 'nav.language': 'Idioma',
+  'footer.brand': 'Explorador de datos escolares de PA', 'footer.source': 'Datos del Departamento de Educación de Pensilvania.',
+  'footer.results': 'Resultados PSSA y Keystone {range}.', 'footer.asOf': 'Datos actualizados el {date}.',
+
+  'common.year': 'Año', 'common.exam': 'Examen', 'common.subject': 'Materia', 'common.grade': 'Grado', 'common.county': 'Condado',
+  'common.schoolType': 'Tipo de escuela', 'common.studentGroup': 'Grupo de estudiantes', 'common.allGrades': 'Todos los grados', 'common.allSubjects': 'Todas las materias',
+  'common.allCounties': 'Todos los condados', 'common.allTypes': 'Todos los tipos', 'common.loading': 'Cargando…', 'common.exportCsv': 'Exportar CSV',
+  'common.print': 'Imprimir informe', 'common.openSchool': 'Abrir escuela', 'common.openDistrict': 'Abrir distrito', 'common.district': 'Distrito',
+  'common.pssa': 'PSSA', 'common.keystone': 'Keystone', 'common.pssaLong': 'PSSA (grados 3-8)', 'common.keystoneLong': 'Keystone (secundaria)',
+  'common.proficient': 'Competente o superior', 'common.growth': 'Crecimiento', 'common.tested': 'Estudiantes evaluados', 'common.students': 'estudiantes',
+  'common.tryAgain': 'Intentar de nuevo', 'common.reload': 'Recargar', 'common.nothing': 'Nada coincide con esta selección.',
+
+  'home.eyebrow': 'Resultados PSSA y Keystone, {range}', 'home.title': 'Explorador de datos escolares de Pensilvania',
+  'home.lead': 'Resultados de los exámenes PSSA y Keystone de cada escuela pública del estado, según el Departamento de Educación de Pensilvania.',
+  'home.searchPlaceholder': 'Busque una escuela, distrito o condado', 'home.glance': 'El estado de un vistazo',
+  'home.glanceSub': 'Porcentaje estatal de estudiantes competentes o superiores, todos los grados, con el cambio respecto a los resultados anteriores.',
+  'home.movers': 'Mayores cambios', 'home.moversSub': 'Distritos cuya competencia en Matemáticas cambió más desde {year}.',
+  'home.noNewer': 'sin publicar para el último año', 'home.improved': 'Mayor mejora', 'home.declined': 'Mayor descenso', 'home.updated': 'Datos actualizados el {date}',
+  'home.explore': 'Explore los datos', 'home.exploreSub': 'Consulte resultados por escuela, distrito o estado, y siga el desempeño a lo largo del tiempo.',
+  'home.stat.schools': 'Escuelas públicas', 'home.stat.districts': 'Distritos escolares', 'home.stat.results': 'Resultados PSSA', 'home.stat.years': 'Años de datos',
+  'home.f.map': 'Mapa de escuelas', 'home.f.mapDesc': 'Cada escuela en un mapa, coloreada por competencia o crecimiento, con límites de distrito.',
+  'home.f.rankings': 'Clasificación', 'home.f.rankingsDesc': 'Escuelas, distritos y condados con mayor y menor competencia, mayor mejora y mayor descenso.',
+  'home.f.compare': 'Comparar', 'home.f.compareDesc': 'Hasta cinco escuelas o distritos lado a lado, para cualquier grupo de estudiantes, a lo largo del tiempo.',
+  'home.f.gaps': 'Brechas de rendimiento', 'home.f.gapsDesc': 'Competencia y crecimiento por grupo de estudiantes, en el estado y en cada escuela.',
+  'home.f.trends': 'Tendencias', 'home.f.trendsDesc': 'Tendencias estatales, de distrito y de escuela desde 2015, ponderadas por estudiantes evaluados.',
+  'home.f.about': 'Acerca de los datos', 'home.f.aboutDesc': 'Fuentes, métodos y las advertencias que importan al leer una cifra.',
+  'home.explore.cta': 'Explorar',
+
+  'pages.schools.title': 'Escuelas de Pensilvania', 'pages.schools.sub': 'Explore y busque {n} escuelas públicas en 67 condados',
+  'pages.districts.title': 'Distritos escolares de Pensilvania', 'pages.districts.sub': 'Explore {n} distritos, escuelas chárter y centros de carreras técnicas',
+  'pages.counties.title': 'Condados de Pensilvania', 'pages.counties.sub': 'Resultados y brechas de todos los distritos de un condado',
+  'pages.state.title': 'Desempeño estatal', 'pages.state.sub': 'Tendencias y análisis del desempeño académico en todo el estado',
+  'pages.map.title': 'Mapa de escuelas',
+  'pages.compare.title': 'Comparar', 'pages.compare.sub': 'Hasta 5 escuelas o distritos entre sí y frente al estado, para cualquier grupo de estudiantes',
+  'pages.trends.title': 'Tendencias de desempeño', 'pages.rankings.title': 'Clasificación',
+
+  'notes.standards': 'El PDE elevó los estándares de desempeño del PSSA para {year}, por lo que la caída respecto al año anterior refleja en parte el nuevo listón y no un cambio en el aprendizaje.',
+  'notes.covid': 'No se aplicaron evaluaciones en 2020.',
+  'notes.science': 'El PDE no publicó resultados de Ciencias para {latest}; la serie de Ciencias termina en {last}.',
+  'notes.about': 'Acerca de los datos',
+
+  'results.grade': 'Grado', 'results.subject': 'Materia', 'results.tested': 'Evaluados', 'results.advanced': '% Avanzado', 'results.proficient': '% Competente',
+  'results.basic': '% Básico', 'results.belowBasic': '% Por debajo de básico', 'results.profPlus': '% Comp.+', 'results.growth': 'Crecimiento',
+  'results.note': 'El crecimiento es el índice de crecimiento PVAAS: cerca de +2 o más está muy por encima del estándar estatal, -2 o menos muy por debajo. Las filas suprimidas (menos de 11 estudiantes) muestran N/A.',
+
+  'error.title': 'Algo salió mal en esta página', 'error.section': 'No se pudo cargar esta sección',
+};

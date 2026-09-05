@@ -42,3 +42,7 @@ backend/logs/
 
 # Fixture database is committed compressed only
 backend/fixtures/fixture.db
+
+# deploy.sh scratch copies of the frontend build
+dist-prev/
+dist-new/

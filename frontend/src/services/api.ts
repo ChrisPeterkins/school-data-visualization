@@ -1,13 +1,15 @@
 import axios from 'axios';
-import type { 
-  School, 
-  District, 
-  PSSAResult, 
-  KeystoneResult, 
+import type {
+  School,
+  District,
+  PSSAResult,
+  KeystoneResult,
   ApiResponse,
   SchoolSearchParams,
   DistrictSearchParams,
-  SchoolPerformanceTrends
+  SchoolPerformanceTrends,
+  SchoolDetail,
+  DistrictDetail,
 } from '@shared';
 
 export interface SummaryPoint {
@@ -68,7 +70,7 @@ export const schoolApi = {
   },
 
   getSchool: async (id: string) => {
-    const { data } = await api.get<School>(`/api/schools/${id}`);
+    const { data } = await api.get<SchoolDetail>(`/api/schools/${id}`);
     return data;
   },
 
@@ -77,7 +79,7 @@ export const schoolApi = {
     return data.similar;
   },
 
-  getMapPoints: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string }) => {
+  getMapPoints: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string; group?: string }) => {
     const { data } = await api.get<{ filters: any; points: MapPoint[] }>('/api/schools/map', { params });
     return data.points;
   },
@@ -146,7 +148,7 @@ export const districtApi = {
   },
 
   getDistrict: async (id: string) => {
-    const { data } = await api.get<District>(`/api/districts/${id}`);
+    const { data } = await api.get<DistrictDetail>(`/api/districts/${id}`);
     return data;
   },
 

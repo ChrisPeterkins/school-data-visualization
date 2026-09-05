@@ -5,7 +5,7 @@ import FilterSelect from './FilterSelect';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { tooltipStyle } from '../lib/chartUtils';
 
-interface Row { year: number; grade: number | null; subject: string; percentProficientOrAbove: number | null }
+interface Row { year: number; grade?: number | null; subject: string; percentProficientOrAbove: number | null }
 
 const COHORT_COLORS = ['#1b2a4a', '#2d4a6f', '#4a6d8c', '#7a9bb5', '#27ab83', '#d4aa3c', '#c53030', '#a82828', '#199473', '#997321'];
 

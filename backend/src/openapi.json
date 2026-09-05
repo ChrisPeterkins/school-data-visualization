@@ -1,0 +1,150 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PA School Data API",
+    "version": "1.0.0",
+    "description": "Read-only JSON API behind chrispeterkins.com/paschools. Pennsylvania PSSA and Keystone results (2013/2015 to present), PVAAS growth, school directory data, and student-weighted aggregates. Responses are cacheable for an hour and carry ETags. Data: Pennsylvania Department of Education, NCES Common Core of Data, U.S. Census Bureau. See /paschools/about for methods and caveats."
+  },
+  "servers": [{ "url": "https://chrispeterkins.com/paschools/api" }],
+  "tags": [
+    { "name": "reference", "description": "Years, coverage, search" },
+    { "name": "performance", "description": "Aggregates, gaps, rankings, percentiles" },
+    { "name": "entities", "description": "Schools, districts, counties" }
+  ],
+  "components": {
+    "parameters": {
+      "exam": { "name": "exam", "in": "query", "schema": { "type": "string", "enum": ["pssa", "keystone"], "default": "pssa" }, "description": "PSSA (grades 3-8) or Keystone (grade 11)" },
+      "examType": { "name": "examType", "in": "query", "required": true, "schema": { "type": "string", "enum": ["pssa", "keystone"] } },
+      "subject": { "name": "subject", "in": "query", "schema": { "type": "string", "example": "Mathematics" }, "description": "PSSA: Mathematics, English Language Arts, Science. Keystone: Algebra I, Biology, Literature." },
+      "year": { "name": "year", "in": "query", "schema": { "type": "integer", "example": 2025 } },
+      "grade": { "name": "grade", "in": "query", "schema": { "type": "integer", "minimum": 3, "maximum": 8 }, "description": "PSSA grade. Omit for the all-grades total (stored as grade 0)." },
+      "group": { "name": "demographicGroup", "in": "query", "schema": { "type": "string", "default": "All Students" }, "description": "PDE student group label, e.g. \"Economically Disadvantaged\", \"IEP\", \"ELL\", \"White (not Hispanic)\"" }
+    },
+    "schemas": {
+      "SummaryPoint": {
+        "type": "object",
+        "properties": {
+          "year": { "type": "integer" }, "tested": { "type": "integer", "description": "Students tested (weight)" },
+          "rows": { "type": "integer" }, "entities": { "type": "integer" },
+          "proficiency": { "type": "number", "nullable": true, "description": "% proficient or above, weighted by students tested" },
+          "advanced": { "type": "number", "nullable": true }, "proficient": { "type": "number", "nullable": true },
+          "basic": { "type": "number", "nullable": true }, "belowBasic": { "type": "number", "nullable": true },
+          "growth": { "type": "number", "nullable": true, "description": "Mean PVAAS growth index" }, "growthRows": { "type": "integer" }
+        }
+      },
+      "RankedEntity": {
+        "type": "object",
+        "properties": {
+          "rank": { "type": "integer" }, "id": { "type": "integer" }, "name": { "type": "string" },
+          "schoolType": { "type": "string", "nullable": true }, "districtName": { "type": "string", "nullable": true }, "countyName": { "type": "string" },
+          "avgProficiency": { "type": "number" }, "totalTested": { "type": "integer" }, "subjectCount": { "type": "integer" },
+          "avgGrowth": { "type": "number", "nullable": true },
+          "previousProficiency": { "type": "number", "description": "change mode only" }, "change": { "type": "number", "description": "change mode only, percentage points" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/performance/years": {
+      "get": { "tags": ["reference"], "summary": "Years loaded, per exam, headline counts, and when data last changed",
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "example": { "years": [2025, 2024], "latest": 2025, "earliest": 2013, "lastImportAt": "2026-09-05T14:00:00.000Z", "pssaYears": [2025], "keystoneYears": [2025, 2013], "counts": { "schools": 3107, "districts": 780, "pssaRecords": 1600000, "keystoneRecords": 240000 } } } } } } }
+    },
+    "/performance/data-status": {
+      "get": { "tags": ["reference"], "summary": "Coverage report: rows per year and level, growth coverage, flags", "responses": { "200": { "description": "OK" } } }
+    },
+    "/search": {
+      "get": { "tags": ["reference"], "summary": "Schools, districts, and counties matching a query (prefix and squashed-name matching)",
+        "parameters": [{ "name": "q", "in": "query", "required": true, "schema": { "type": "string" } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10, "maximum": 25 } }],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "example": { "query": "penn hills", "results": [{ "kind": "district", "id": 39, "name": "PENN HILLS SD", "detail": "Allegheny County · Pittsburgh", "score": -16.4 }] } } } } } }
+    },
+    "/performance/summary": {
+      "get": { "tags": ["performance"], "summary": "Student-weighted yearly series for a level, subject, group, and optional entity",
+        "description": "Weights every rate by students tested. With no `grade`, PSSA uses the all-grades total rows. Filter to one entity with schoolId, districtId, or countyId.",
+        "parameters": [
+          { "$ref": "#/components/parameters/exam" },
+          { "name": "level", "in": "query", "schema": { "type": "string", "enum": ["school", "district", "state"], "default": "state" } },
+          { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/grade" },
+          { "name": "schoolId", "in": "query", "schema": { "type": "integer" } }, { "name": "districtId", "in": "query", "schema": { "type": "integer" } }, { "name": "countyId", "in": "query", "schema": { "type": "integer" } },
+          { "name": "yearFrom", "in": "query", "schema": { "type": "integer" } }, { "name": "yearTo", "in": "query", "schema": { "type": "integer" } },
+          { "$ref": "#/components/parameters/group" }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "filters": { "type": "object" }, "series": { "type": "array", "items": { "$ref": "#/components/schemas/SummaryPoint" } } } } } } } } }
+    },
+    "/performance/gaps": {
+      "get": { "tags": ["performance"], "summary": "Proficiency by student group for one entity and year, with each group's trend",
+        "parameters": [
+          { "$ref": "#/components/parameters/exam" },
+          { "name": "level", "in": "query", "schema": { "type": "string", "enum": ["school", "district", "state"], "default": "state" } },
+          { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/year" },
+          { "name": "schoolId", "in": "query", "schema": { "type": "integer" } }, { "name": "districtId", "in": "query", "schema": { "type": "integer" } }, { "name": "countyId", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "example": { "year": 2025, "years": [2015, 2025], "allStudents": 41.7, "groups": [{ "group": "Economically Disadvantaged", "proficiency": 25.5, "tested": 338533, "growth": null, "gap": -16.2 }], "trend": [{ "year": 2025, "group": "All Students", "proficiency": 41.7, "tested": 703819 }] } } } } } }
+    },
+    "/performance/percentile": {
+      "get": { "tags": ["performance"], "summary": "Where a school or district stands among peers (statewide, county, same level)",
+        "parameters": [
+          { "name": "entity", "in": "query", "schema": { "type": "string", "enum": ["school", "district"], "default": "school" } },
+          { "name": "id", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "$ref": "#/components/parameters/exam" }, { "$ref": "#/components/parameters/subject" },
+          { "name": "minTested", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "example": { "value": 57.7, "statewide": { "percentile": 70, "n": 2277 }, "sameType": { "type": "Elementary", "percentile": 61, "n": 1508 }, "county": { "percentile": 76, "n": 19 } } } } }, "404": { "description": "No result for that entity, year, and subject" } } }
+    },
+    "/performance/figures": {
+      "get": { "tags": ["performance"], "summary": "Per-subject figures for several schools or districts in one year, for a student group",
+        "parameters": [
+          { "name": "entity", "in": "query", "schema": { "type": "string", "enum": ["school", "district"], "default": "school" } },
+          { "name": "ids", "in": "query", "required": true, "schema": { "type": "string", "example": "1,39" }, "description": "Comma-separated ids, up to 8" },
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "$ref": "#/components/parameters/exam" },
+          { "name": "group", "in": "query", "schema": { "type": "string", "default": "All Students" } }
+        ],
+        "responses": { "200": { "description": "OK" } } }
+    },
+    "/performance/rankings": {
+      "get": { "tags": ["performance"], "summary": "Highest and lowest (or most improved and most declined) schools, districts, or counties",
+        "parameters": [
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } }, { "$ref": "#/components/parameters/examType" },
+          { "name": "entity", "in": "query", "schema": { "type": "string", "enum": ["school", "district", "county"], "default": "school" } },
+          { "name": "mode", "in": "query", "schema": { "type": "string", "enum": ["level", "change"], "default": "level" } },
+          { "name": "compareYear", "in": "query", "schema": { "type": "integer" }, "description": "change mode: baseline year (default: previous available year)" },
+          { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/grade" },
+          { "name": "countyId", "in": "query", "schema": { "type": "integer" } }, { "name": "schoolType", "in": "query", "schema": { "type": "string" } },
+          { "$ref": "#/components/parameters/group" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10, "maximum": 50 } },
+          { "name": "minTested", "in": "query", "schema": { "type": "integer", "default": 40 } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "filters": { "type": "object" }, "top": { "type": "array", "items": { "$ref": "#/components/schemas/RankedEntity" } }, "bottom": { "type": "array", "items": { "$ref": "#/components/schemas/RankedEntity" } }, "stateAverage": { "type": "number", "nullable": true }, "stateChange": { "type": "number", "nullable": true } } } } } } } }
+    },
+    "/performance/growth-achievement": {
+      "get": { "tags": ["performance"], "summary": "One point per school: weighted proficiency and mean growth index",
+        "parameters": [{ "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } }, { "$ref": "#/components/parameters/examType" }, { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/grade" }, { "name": "countyId", "in": "query", "schema": { "type": "integer" } }, { "name": "schoolType", "in": "query", "schema": { "type": "string" } }, { "name": "minTested", "in": "query", "schema": { "type": "integer", "default": 40 } }],
+        "responses": { "200": { "description": "OK" } } }
+    },
+    "/performance/state": { "get": { "tags": ["performance"], "summary": "Statewide rows by grade and subject for a year", "parameters": [{ "$ref": "#/components/parameters/year" }], "responses": { "200": { "description": "OK" } } } },
+    "/performance/pssa": { "get": { "tags": ["performance"], "summary": "Raw PSSA result rows (filterable; large without filters)", "parameters": [{ "name": "schoolId", "in": "query", "schema": { "type": "integer" } }, { "name": "districtId", "in": "query", "schema": { "type": "integer" } }, { "name": "level", "in": "query", "schema": { "type": "string", "enum": ["school", "district", "state"] } }, { "$ref": "#/components/parameters/year" }, { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/grade" }, { "$ref": "#/components/parameters/group" }], "responses": { "200": { "description": "OK" } } } },
+    "/performance/keystone": { "get": { "tags": ["performance"], "summary": "Raw Keystone result rows (filterable)", "parameters": [{ "name": "schoolId", "in": "query", "schema": { "type": "integer" } }, { "name": "districtId", "in": "query", "schema": { "type": "integer" } }, { "name": "level", "in": "query", "schema": { "type": "string", "enum": ["school", "district", "state"] } }, { "$ref": "#/components/parameters/year" }, { "$ref": "#/components/parameters/subject" }, { "$ref": "#/components/parameters/group" }], "responses": { "200": { "description": "OK" } } } },
+    "/schools": {
+      "get": { "tags": ["entities"], "summary": "Search and page through schools",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" } }, { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["name", "districtName", "countyName", "type", "enrollment", "proficiency", "growth"] } }, { "name": "sortOrder", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } },
+          { "name": "countyId", "in": "query", "schema": { "type": "integer" } }, { "name": "countyName", "in": "query", "schema": { "type": "string" } }, { "name": "districtId", "in": "query", "schema": { "type": "integer" } }, { "name": "districtName", "in": "query", "schema": { "type": "string" } }, { "name": "schoolType", "in": "query", "schema": { "type": "string" } },
+          { "name": "charter", "in": "query", "schema": { "type": "boolean" } }, { "name": "minEnrollment", "in": "query", "schema": { "type": "integer" } }, { "name": "maxEnrollment", "in": "query", "schema": { "type": "integer" } },
+          { "name": "includeInactive", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Include closed schools" },
+          { "name": "metricYear", "in": "query", "schema": { "type": "integer" } }, { "name": "metricExam", "in": "query", "schema": { "type": "string", "enum": ["pssa", "keystone"] } }, { "name": "metricSubject", "in": "query", "schema": { "type": "string", "default": "Mathematics" } }
+        ],
+        "responses": { "200": { "description": "OK" } } }
+    },
+    "/schools/{id}": { "get": { "tags": ["entities"], "summary": "One school with every year of All Students results and growth", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } } } },
+    "/schools/{id}/similar": { "get": { "tags": ["entities"], "summary": "Nearest schools of the same level and similar size", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 4, "maximum": 8 } }], "responses": { "200": { "description": "OK" } } } },
+    "/schools/map": { "get": { "tags": ["entities"], "summary": "One point per located school with the all-grades result for a year, exam, subject, and group", "parameters": [{ "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } }, { "$ref": "#/components/parameters/exam" }, { "$ref": "#/components/parameters/subject" }, { "name": "group", "in": "query", "schema": { "type": "string", "default": "All Students" } }], "responses": { "200": { "description": "OK" } } } },
+    "/schools/filters": { "get": { "tags": ["entities"], "summary": "Counties and school types for filter controls", "responses": { "200": { "description": "OK" } } } },
+    "/districts": { "get": { "tags": ["entities"], "summary": "Search and page through districts", "parameters": [{ "name": "search", "in": "query", "schema": { "type": "string" } }, { "name": "page", "in": "query", "schema": { "type": "integer" } }, { "name": "limit", "in": "query", "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" } } } },
+    "/districts/{id}": { "get": { "tags": ["entities"], "summary": "One district with its schools and weighted results by year, grade, and subject", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } } } },
+    "/districts/map-values": { "get": { "tags": ["entities"], "summary": "One value per district (keyed by district id and NCES id) for the map's boundary layer", "parameters": [{ "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } }, { "$ref": "#/components/parameters/exam" }, { "$ref": "#/components/parameters/subject" }], "responses": { "200": { "description": "OK" } } } },
+    "/counties": { "get": { "tags": ["entities"], "summary": "All 67 counties with district and school counts", "responses": { "200": { "description": "OK" } } } },
+    "/counties/{id}": { "get": { "tags": ["entities"], "summary": "One county with its districts", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } } } }
+  }
+}

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
+import { useI18n } from '../i18n';
+import AboutPageEs from './AboutPageEs';
 
 const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
   <section id={id} className="card-surface p-5 sm:p-7 space-y-3">
@@ -13,7 +15,9 @@ const Section = ({ id, title, children }: { id: string; title: string; children:
 export default function AboutPage() {
   const years = useAvailableYears();
   const range = formatYearRange(years);
-  useDocumentTitle('About the data', 'Sources, methods, and caveats behind the Pennsylvania School Data Explorer.');
+  const { lang } = useI18n();
+  useDocumentTitle(lang === 'es' ? 'Acerca de los datos' : 'About the data', 'Sources, methods, and caveats behind the Pennsylvania School Data Explorer.');
+  if (lang === 'es') return <AboutPageEs range={range} />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -75,7 +79,7 @@ export default function AboutPage() {
         <ul className="list-disc pl-5 space-y-2">
           <li><strong>2020:</strong> no PSSA or Keystone exams were given (COVID-19). Charts leave the year blank rather than drawing a line across it.</li>
           <li><strong>2021:</strong> testing resumed with reduced participation; about a fifth of school-level rows are suppressed and many districts tested in fall rather than spring. Treat 2021 comparisons cautiously.</li>
-          <li><strong>2025:</strong> PDE raised the PSSA performance standards. The drop from 2024 partly reflects the new bar rather than a change in learning. Statewide ELA went from about 54% to 50% and Math rose from about 40% to 42%. PDE also published no 2025 Science results, so Science series end at 2024.</li>
+          <li><strong>2025:</strong> PDE raised the PSSA performance standards. The drop from 2024 partly reflects the new bar rather than a change in learning. Statewide ELA (all grades) went from 53% to 48.5% and Math from 40% to 42%. PDE also published no 2025 Science results, so Science series end at 2024.</li>
           <li><strong>2013 and 2014:</strong> Keystone only, school and state level, from PDE's archived site. PSSA files for 2012 to 2014 were not preserved, so PSSA begins in 2015.</li>
           <li><strong>Statewide student groups before 2022:</strong> PDE's statewide files reported only All Students and Historically Underperforming, so statewide gap trends for other groups begin in 2022. School and district gaps go back to 2015.</li>
           <li><strong>Closed schools:</strong> schools with no listing in the 2023 NCES directory and no results in the latest year are marked closed and hidden from search unless you ask for them. Their history stays.</li>

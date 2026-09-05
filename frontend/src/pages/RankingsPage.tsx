@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ArrowTopRightOnSquareIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import { useT } from '../i18n';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
   ScatterChart, Scatter, ZAxis,
@@ -21,6 +22,7 @@ type RankEntity = 'school' | 'district' | 'county';
 type Mode = 'level' | 'change';
 
 export default function RankingsPage() {
+  const t = useT();
   const availableYears = useAvailableYears();
   const { latest } = availableYears;
   const smUp = useIsSmUp();
@@ -149,7 +151,7 @@ export default function RankingsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Rankings</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.rankings.title')}</h1>
         <p className="mt-1 text-sm text-stone-500">
           {isChange
             ? `Change in the share of students proficient or above${compareYear ? ` since ${compareYear}` : ''}, weighted by students tested. Most improved and most declined ${entityNoun}.`
@@ -173,19 +175,19 @@ export default function RankingsPage() {
               {years.filter((y) => year == null || y < year).map((y) => <option key={y} value={y}>{y}</option>)}
             </FilterSelect>
           )}
-          <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYearParam(Number(e.target.value))}>
+          <FilterSelect label={t('common.year')} value={year ?? ''} onChange={(e) => setYearParam(Number(e.target.value))}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
-          <FilterSelect label="Exam" value={examType} onChange={(e) => { setExamType(e.target.value as Exam); setSubject(''); setGrade(''); }}>
+          <FilterSelect label={t('common.exam')} value={examType} onChange={(e) => { setExamType(e.target.value as Exam); setSubject(''); setGrade(''); }}>
             <option value="pssa">PSSA</option>
             <option value="keystone">Keystone</option>
           </FilterSelect>
-          <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
+          <FilterSelect label={t('common.subject')} value={subject} onChange={(e) => setSubject(e.target.value)}>
             <option value="">All Subjects</option>
             {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
           </FilterSelect>
           {examType === 'pssa' && (
-            <FilterSelect label="Grade" value={grade} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : '')}>
+            <FilterSelect label={t('common.grade')} value={grade} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : '')}>
               <option value="">All Grades</option>
               {[3, 4, 5, 6, 7, 8].map((g) => <option key={g} value={g}>Grade {g}</option>)}
             </FilterSelect>
@@ -196,7 +198,7 @@ export default function RankingsPage() {
               {filterOptions?.schoolTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </FilterSelect>
           )}
-          <FilterSelect label="County" value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
+          <FilterSelect label={t('common.county')} value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
             <option value="">All Counties</option>
             {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </FilterSelect>

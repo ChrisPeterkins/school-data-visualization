@@ -19,7 +19,9 @@ const sitemapRoutes: FastifyPluginAsync = async (fastify) => {
         ...districts.map((d) => `/districts/${d.id}`),
         ...counties.map((c) => `/counties/${c.id}`),
       ];
-      const today = new Date().toISOString().slice(0, 10);
+      // lastmod is the newest completed import, not the request date.
+      const lastImport = (sqliteDb.prepare(`SELECT MAX(completed_at) AS t FROM data_imports WHERE status = 'completed'`).get() as any)?.t as number | null;
+      const today = (lastImport ? new Date(lastImport * (lastImport < 1e12 ? 1000 : 1)) : new Date()).toISOString().slice(0, 10);
       xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
         `\n</urlset>\n`;

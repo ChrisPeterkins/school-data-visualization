@@ -5,6 +5,8 @@ export interface AvailableYears {
   years: number[];
   latest: number | null;
   earliest: number | null;
+  /** ISO timestamp of the newest completed import. */
+  lastImportAt?: string | null;
   /** Years with PSSA results; defaults to `years` until loaded. */
   pssaYears?: number[];
   /** Years with Keystone results; defaults to `years` until loaded. */

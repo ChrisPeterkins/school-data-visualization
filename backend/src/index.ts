@@ -1,4 +1,7 @@
 import Fastify from 'fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
+import openapi from './openapi.json';
 import { createHash } from 'crypto';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -83,6 +86,26 @@ const buildApp = async () => {
   if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM search_index').get() as any).n === 0) refreshSearchIndex();
   if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM school_map_points').get() as any).n === 0) refreshMapPoints();
 
+  // Public API docs from a hand-written OpenAPI document (routes validate
+  // with zod, so the spec is maintained alongside them in openapi.json).
+  await fastify.register(swagger, { mode: 'static', specification: { document: openapi as any } });
+  await fastify.register(swaggerUi, { routePrefix: '/api/docs', uiConfig: { docExpansion: 'list', deepLinking: true } });
+
+  // Alerting: 5xx responses are counted and reported to NOTIFY_URL at most
+  // once every ten minutes, so a bad deploy sends one message, not a flood.
+  let errorCount = 0;
+  let lastAlert = 0;
+  fastify.addHook('onResponse', async (request, reply) => {
+    if (reply.statusCode < 500 || !process.env.NOTIFY_URL) return;
+    errorCount += 1;
+    const now = Date.now();
+    if (now - lastAlert < 10 * 60 * 1000) return;
+    lastAlert = now;
+    const body = `PA School Data: ${errorCount} server error(s) in the last window, latest ${request.method} ${request.url} -> ${reply.statusCode}`;
+    errorCount = 0;
+    fetch(process.env.NOTIFY_URL, { method: 'POST', body, headers: { Title: 'PA School Data API errors', Priority: 'high' } }).catch(() => undefined);
+  });
+
   await fastify.register(healthRoutes, { prefix: '/api/health' });
   await fastify.register(schoolRoutes, { prefix: '/api/schools' });
   await fastify.register(districtRoutes, { prefix: '/api/districts' });
@@ -98,6 +121,8 @@ const buildApp = async () => {
 
   return fastify;
 };
+
+export { buildApp };
 
 const start = async () => {
   try {
@@ -115,4 +140,7 @@ const start = async () => {
   }
 };
 
-start();
+// Only listen when run directly (CommonJS entry); tests import buildApp instead.
+if (typeof require !== 'undefined' && require.main === module) {
+  start();
+}

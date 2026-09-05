@@ -57,6 +57,23 @@ check('compare renders', (await page.locator('tbody tr').count()) >= 1);
 await page.goto(`${BASE}/about`, { waitUntil: 'load' });
 check('about renders', (await page.locator('h1').textContent()) === 'About the data');
 
+// 6. Spanish toggle switches the page and sticks across navigation.
+await page.getByRole('button', { name: 'ES', exact: true }).first().click(); await page.waitForTimeout(500);
+check('spanish toggle', (await page.locator('h1').textContent()) === 'Acerca de los datos');
+await page.goto(`${BASE}/`, { waitUntil: 'load' }); await page.waitForTimeout(500);
+check('spanish persists', (await page.locator('h1').textContent() || '').startsWith('Explorador'));
+await page.getByRole('button', { name: 'EN', exact: true }).first().click(); await page.waitForTimeout(300);
+
+// 7. Phone: school results render as cards, not a sideways table.
+await page.setViewportSize({ width: 375, height: 800 });
+await page.goto(`${BASE}/schools/${process.env.SCHOOL_ID || '1'}`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
+check('results cards on phone', (await page.locator('[data-testid="results-cards"] li:visible').count()) > 0);
+await page.setViewportSize({ width: 1280, height: 900 });
+
+// 8. Public API docs.
+const docs = await page.request.get(`${BASE}/api/docs/json`);
+check('api docs json', docs.ok() && (await docs.json()).openapi === '3.0.3');
+
 check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 await browser.close();
 if (failures.length) { console.error(`\n${failures.length} check(s) failed`); process.exit(1); }

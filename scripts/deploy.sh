@@ -32,6 +32,8 @@ chown -R webapp:webapp frontend/dist backend/dist 2>/dev/null || true
 echo "== restart backend"
 supervisorctl restart paschools
 sleep 3
+# Drop nginx's API cache so the deploy is visible immediately.
+rm -rf /var/cache/nginx/paschools/* 2>/dev/null || true
 
 echo "== smoke"
 for u in "" "api/health" "api/performance/years" "api/schools?limit=1" "sitemap.xml" "robots.txt"; do

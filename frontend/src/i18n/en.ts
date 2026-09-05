@@ -1,0 +1,53 @@
+/** English strings. Keys are grouped by area; Spanish lives in es.ts with the same keys. */
+export const en: Record<string, string> = {
+  'nav.schools': 'Schools', 'nav.districts': 'Districts', 'nav.counties': 'Counties', 'nav.state': 'State', 'nav.map': 'Map',
+  'nav.compare': 'Compare', 'nav.trends': 'Trends', 'nav.rankings': 'Rankings', 'nav.about': 'About the data', 'nav.admin': 'Admin',
+  'nav.search': 'Search schools, districts, counties', 'nav.searchAria': 'Search schools, districts, and counties',
+  'nav.searchHint': 'Enter opens the highlighted result; keep typing to narrow.',
+  'nav.openMenu': 'Open menu', 'nav.closeMenu': 'Close menu', 'nav.language': 'Language',
+  'footer.brand': 'PA School Data Explorer', 'footer.source': 'Data sourced from Pennsylvania Department of Education.',
+  'footer.results': 'PSSA & Keystone results {range}.', 'footer.asOf': 'Data as of {date}.',
+
+  'common.year': 'Year', 'common.exam': 'Exam', 'common.subject': 'Subject', 'common.grade': 'Grade', 'common.county': 'County',
+  'common.schoolType': 'School type', 'common.studentGroup': 'Student group', 'common.allGrades': 'All grades', 'common.allSubjects': 'All subjects',
+  'common.allCounties': 'All counties', 'common.allTypes': 'All types', 'common.loading': 'Loading…', 'common.exportCsv': 'Export CSV',
+  'common.print': 'Print report', 'common.openSchool': 'Open school', 'common.openDistrict': 'Open district', 'common.district': 'District',
+  'common.pssa': 'PSSA', 'common.keystone': 'Keystone', 'common.pssaLong': 'PSSA (grades 3-8)', 'common.keystoneLong': 'Keystone (high school)',
+  'common.proficient': 'Proficient or above', 'common.growth': 'Growth', 'common.tested': 'Students tested', 'common.students': 'students',
+  'common.tryAgain': 'Try again', 'common.reload': 'Reload', 'common.nothing': 'Nothing matches this selection.',
+
+  'home.eyebrow': 'PSSA & Keystone results, {range}', 'home.title': 'Pennsylvania School Data Explorer',
+  'home.lead': 'PSSA and Keystone exam performance for every public school in the Commonwealth, from the Pennsylvania Department of Education.',
+  'home.searchPlaceholder': 'Search for a school, district, or county', 'home.glance': 'The state at a glance',
+  'home.glanceSub': 'Statewide share of students proficient or above, all grades, with the change from the previous results.',
+  'home.movers': 'Biggest movers', 'home.moversSub': 'Districts whose Math proficiency changed most since {year}.',
+  'home.noNewer': 'not published for the latest year', 'home.improved': 'Most improved', 'home.declined': 'Most declined', 'home.updated': 'Data updated {date}',
+  'home.explore': 'Explore the data', 'home.exploreSub': 'Browse results by school, district, or statewide, and track performance over time.',
+  'home.stat.schools': 'Public schools', 'home.stat.districts': 'School districts', 'home.stat.results': 'PSSA results', 'home.stat.years': 'Years of data',
+  'home.f.map': 'School map', 'home.f.mapDesc': 'Every school on a map, colored by proficiency or growth, with district boundaries.',
+  'home.f.rankings': 'Rankings', 'home.f.rankingsDesc': 'Highest, lowest, most improved, and most declined schools, districts, and counties.',
+  'home.f.compare': 'Compare', 'home.f.compareDesc': 'Up to five schools or districts side by side, for any student group, over time.',
+  'home.f.gaps': 'Achievement gaps', 'home.f.gapsDesc': 'Proficiency and growth by student group, statewide and for every school.',
+  'home.f.trends': 'Trends', 'home.f.trendsDesc': 'Statewide, district, and school trends since 2015, weighted by students tested.',
+  'home.f.about': 'About the data', 'home.f.aboutDesc': 'Sources, methods, and the caveats that matter when reading a number.',
+  'home.explore.cta': 'Explore',
+
+  'pages.schools.title': 'Pennsylvania Schools', 'pages.schools.sub': 'Browse and search {n} public schools across 67 counties',
+  'pages.districts.title': 'Pennsylvania School Districts', 'pages.districts.sub': 'Browse {n} districts, charters, and career and technical centers',
+  'pages.counties.title': 'Pennsylvania Counties', 'pages.counties.sub': 'Results and gaps for all districts in a county',
+  'pages.state.title': 'State Performance', 'pages.state.sub': 'Statewide academic performance trends and analysis',
+  'pages.map.title': 'School Map',
+  'pages.compare.title': 'Compare', 'pages.compare.sub': 'Up to 5 schools or districts against each other and the state, for any student group',
+  'pages.trends.title': 'Performance Trends', 'pages.rankings.title': 'Rankings',
+
+  'notes.standards': 'PDE raised the PSSA performance standards for {year}, so the drop from the previous year partly reflects the new bar rather than a change in learning.',
+  'notes.covid': 'No assessments were given in 2020.',
+  'notes.science': 'PDE did not publish Science results for {latest}; the Science series ends at {last}.',
+  'notes.about': 'About the data',
+
+  'results.grade': 'Grade', 'results.subject': 'Subject', 'results.tested': 'Tested', 'results.advanced': '% Advanced', 'results.proficient': '% Proficient',
+  'results.basic': '% Basic', 'results.belowBasic': '% Below Basic', 'results.profPlus': '% Prof.+', 'results.growth': 'Growth',
+  'results.note': 'Growth is the PVAAS growth index: about +2 or more is well above the state standard for growth, -2 or less well below. Suppressed rows (fewer than 11 students) show N/A.',
+
+  'error.title': 'Something went wrong on this page', 'error.section': 'Could not load this section',
+};

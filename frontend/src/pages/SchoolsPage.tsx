@@ -8,8 +8,10 @@ import api, { schoolApi } from '../services/api';
 import SearchBar from '../components/SearchBar';
 import EnhancedSchoolTable from '../components/EnhancedSchoolTable';
 import Pagination from '../components/Pagination';
+import { useT } from '../i18n';
 
 export default function SchoolsPage() {
+  const t = useT();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || '';
@@ -86,9 +88,9 @@ export default function SchoolsPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Pennsylvania Schools</h1>
+            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.schools.title')}</h1>
             <p className="mt-1 text-sm text-stone-500">
-              Browse and search {data?.meta?.total?.toLocaleString() || '...'} public schools across 67 counties
+              {t('pages.schools.sub', { n: data?.meta?.total?.toLocaleString() || '...' })}
             </p>
           </div>
 

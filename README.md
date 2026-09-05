@@ -24,6 +24,13 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **About the data** page (`/about`) explaining sources, weighting, totals, derived rows, and year caveats
 - **Ops**: weekly PDE release check with optional push notification (`NOTIFY_URL`), nightly rotated backups, coverage report on the admin page, CI on push, `scripts/deploy.sh` for one-command deploys with rollback (`--e2e` runs the Playwright suite against the live site), API responses cached for an hour with ETags, weekly VACUUM in the backup job, a 2 MB fixture database (`backend/fixtures/fixture.db.gz`, rebuilt with `makeFixtureDb.ts`) that CI's end-to-end job runs the built site against, route-level error boundary, print stylesheet, and screen-reader tables behind every chart
 - **Student-weighted aggregates**: `/api/performance/summary` weights every rate by students tested
+- **Live home page**: statewide headline figures for every subject with the change from the prior results, the biggest district movers, and the last import date
+- **Spanish**: an EN / ES toggle in the nav (remembered in the browser) translates navigation, the home and About pages, page titles, filter labels, data notes, and result tables
+- **Map by student group**: the map can color schools by any PDE student group's proficiency (growth stays All Students only, as PVAAS publishes it)
+- **Public API docs**: OpenAPI 3 spec and Swagger UI at `/paschools/api/docs/` (JSON at `/api/docs/json`); response types live in `shared/src/types/responses.ts`
+- **Edge cache**: nginx caches public API responses for 10 minutes (`X-Cache` header); the deploy script purges it
+- **Alerting**: a 5xx burst posts to `NOTIFY_URL` (at most every 10 minutes), and `scripts/healthcheck.sh` runs every 15 minutes from cron and notifies when the site or API is down
+- **Phone layout**: result tables render as cards below the `sm` breakpoint so nothing scrolls sideways
 
 ## 🛠 Tech Stack
 
@@ -156,6 +163,8 @@ Data is sourced from the Pennsylvania Department of Education:
 
 ## 📝 API Endpoints
 
+The public API is documented as OpenAPI 3 at `/paschools/api/docs/` (Swagger UI) and `/paschools/api/docs/json`. The spec is hand-written in `backend/src/openapi.json`; update it when a public route changes. `backend/src/routes/__tests__/api.test.ts` runs the SQL behind the summary, gaps, percentile, and rankings routes against the fixture database and checks the numbers by hand.
+
 ### Schools
 - `GET /api/schools` - List schools with filtering
 - `GET /api/schools/:id` - Get school details with performance data
@@ -213,6 +222,10 @@ Configure these in production:
 - `NODE_ENV` - Set to 'production'
 - `CORS_ORIGIN` - Frontend URL
 - `DATABASE_URL` - SQLite database path
+- `NOTIFY_URL` - optional webhook (ntfy, Slack, etc.) for release notices, 5xx bursts, and health-check failures
+
+### Edge cache
+`/etc/nginx/conf.d/paschools-cache.conf` defines the `paschools_api` proxy cache (10 minutes for 200s, 1 minute for 404s, stale on upstream errors). `scripts/deploy.sh` empties `/var/cache/nginx/paschools` after each restart so a deploy never serves stale JSON; to purge by hand, delete that directory's contents and reload nginx.
 
 ## 📄 License
 

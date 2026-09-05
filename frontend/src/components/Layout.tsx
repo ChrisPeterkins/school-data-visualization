@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import GlobalSearch from './GlobalSearch';
 import ErrorBoundary from './ErrorBoundary';
+import LanguageToggle from './LanguageToggle';
+import { useI18n } from '../i18n';
 import {
   BuildingLibraryIcon,
   AcademicCapIcon,
@@ -19,21 +21,30 @@ import {
 } from '@heroicons/react/24/outline';
 
 const mainNav = [
-  { path: '/schools', label: 'Schools', icon: AcademicCapIcon },
-  { path: '/districts', label: 'Districts', icon: BuildingOffice2Icon },
-  { path: '/counties', label: 'Counties', icon: MapPinIcon },
-  { path: '/state', label: 'State', icon: GlobeAmericasIcon },
-  { path: '/map', label: 'Map', icon: MapIcon },
-  { path: '/compare', label: 'Compare', icon: ArrowsRightLeftIcon },
-  { path: '/trends', label: 'Trends', icon: ChartBarIcon },
-  { path: '/rankings', label: 'Rankings', icon: TrophyIcon },
+  { path: '/schools', key: 'nav.schools', icon: AcademicCapIcon },
+  { path: '/districts', key: 'nav.districts', icon: BuildingOffice2Icon },
+  { path: '/counties', key: 'nav.counties', icon: MapPinIcon },
+  { path: '/state', key: 'nav.state', icon: GlobeAmericasIcon },
+  { path: '/map', key: 'nav.map', icon: MapIcon },
+  { path: '/compare', key: 'nav.compare', icon: ArrowsRightLeftIcon },
+  { path: '/trends', key: 'nav.trends', icon: ChartBarIcon },
+  { path: '/rankings', key: 'nav.rankings', icon: TrophyIcon },
 ];
+
+const formatAsOf = (iso: string | null | undefined, lang: string) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
 
 export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const availableYears = useAvailableYears();
   const yearRange = formatYearRange(availableYears);
+  const { t, lang } = useI18n();
+  const asOf = formatAsOf(availableYears.lastImportAt, lang);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -61,7 +72,7 @@ export default function Layout() {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
-              {mainNav.map(({ path, label, icon: Icon }) => (
+              {mainNav.map(({ path, key, icon: Icon }) => (
                 <Link
                   key={path}
                   to={path}
@@ -72,15 +83,18 @@ export default function Layout() {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  {t(key)}
                 </Link>
               ))}
+              <div className="ml-2 pl-2 border-l border-navy-700/60">
+                <LanguageToggle />
+              </div>
             </div>
 
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={mobileOpen}
               className="md:hidden p-2 rounded-lg text-navy-300 hover:text-white hover:bg-navy-800 transition-colors"
             >
@@ -103,7 +117,7 @@ export default function Layout() {
                 <div className="pb-2">
                   <GlobalSearch onNavigate={() => setMobileOpen(false)} />
                 </div>
-                {mainNav.map(({ path, label, icon: Icon }) => (
+                {mainNav.map(({ path, key, icon: Icon }) => (
                   <Link
                     key={path}
                     to={path}
@@ -115,9 +129,13 @@ export default function Layout() {
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    {label}
+                    {t(key)}
                   </Link>
                 ))}
+                <div className="px-3 pt-2 flex items-center justify-between text-xs text-navy-400">
+                  <span>{t('nav.language')}</span>
+                  <LanguageToggle />
+                </div>
               </div>
             </motion.div>
           )}
@@ -147,16 +165,18 @@ export default function Layout() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <BuildingLibraryIcon className="w-5 h-5 text-gold-500" />
-              <span className="text-sm text-navy-300">PA School Data Explorer</span>
+              <span className="text-sm text-navy-300">{t('footer.brand')}</span>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-navy-500 text-center sm:text-right">
               <p>
-                Data sourced from Pennsylvania Department of Education.
-                {yearRange ? ` PSSA & Keystone results ${yearRange}.` : ''}
+                {t('footer.source')}
+                {yearRange ? ` ${t('footer.results', { range: yearRange })}` : ''}
+                {asOf ? ` ${t('footer.asOf', { date: asOf })}` : ''}
               </p>
-              <Link to="/about" className="text-navy-300 hover:text-white transition-colors">About the data</Link>
+              <Link to="/about" className="text-navy-300 hover:text-white transition-colors">{t('nav.about')}</Link>
+              <a href="/paschools/api/docs/" className="text-navy-500 hover:text-navy-300 transition-colors">API</a>
               {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
-              <Link to="/import" className="text-navy-500 hover:text-navy-300 transition-colors">Admin</Link>
+              <Link to="/import" className="text-navy-500 hover:text-navy-300 transition-colors">{t('nav.admin')}</Link>
             </div>
           </div>
         </div>

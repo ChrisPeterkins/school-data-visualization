@@ -1,3 +1,4 @@
+import type { ResultRow } from '@shared';
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -34,8 +35,7 @@ export default function SchoolDetailPage() {
     queryFn: () => performanceApi.getTrends(id!),
     enabled: !!id,
   });
-  const sAny: any = school;
-  useDocumentTitle(sAny?.name ?? null, sAny ? `PSSA and Keystone results, growth, and trends for ${sAny.name} (${sAny.districtName}), Pennsylvania.` : null);
+  useDocumentTitle(school?.name ?? null, school ? `PSSA and Keystone results, growth, and trends for ${school.name} (${school.districtName}), Pennsylvania.` : null);
 
   if (schoolLoading || trendsLoading) {
     return (
@@ -59,9 +59,9 @@ export default function SchoolDetailPage() {
     );
   }
 
-  const s: any = school;
-  const pssaResults: any[] = s.pssaResults || [];
-  const keystoneResults: any[] = s.keystoneResults || [];
+  const s = school;
+  const pssaResults: ResultRow[] = s.pssaResults || [];
+  const keystoneResults: ResultRow[] = s.keystoneResults || [];
   const allYears: number[] = [...new Set([...pssaResults, ...keystoneResults].map((r) => r.year as number))].sort((a, b) => b - a);
   const activeYear = selectedYear != null && allYears.includes(selectedYear) ? selectedYear : allYears[0];
   const selectedPssa = pssaResults.filter((r) => r.year === activeYear);
@@ -151,7 +151,7 @@ export default function SchoolDetailPage() {
               </div>
             </dl>
           </div>
-          {hasMap && <SchoolMap latitude={s.latitude} longitude={s.longitude} name={s.name} />}
+          {hasMap && <SchoolMap latitude={s.latitude!} longitude={s.longitude!} name={s.name} />}
         </div>
       </div>
 

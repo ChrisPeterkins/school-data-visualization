@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { searchApi, type SearchHit } from '../services/api';
+import { useI18n } from '../i18n';
 
-const KIND_LABEL: Record<SearchHit['kind'], string> = { school: 'School', district: 'District', county: 'County' };
+const KIND_LABEL: Record<string, Record<SearchHit['kind'], string>> = {
+  en: { school: 'School', district: 'District', county: 'County' },
+  es: { school: 'Escuela', district: 'Distrito', county: 'Condado' },
+};
 const pathFor = (h: SearchHit) => (h.kind === 'school' ? `/schools/${h.id}` : h.kind === 'district' ? `/districts/${h.id}` : `/counties/${h.id}`);
 
 /** Nav search with autocomplete across schools, districts, and counties. */
-export default function GlobalSearch({ onNavigate, autoFocus = false, className = '' }: { onNavigate?: () => void; autoFocus?: boolean; className?: string }) {
+export default function GlobalSearch({ onNavigate, autoFocus = false, className = '', large = false, placeholder, id = 'global-search' }: { onNavigate?: () => void; autoFocus?: boolean; className?: string; large?: boolean; placeholder?: string; id?: string }) {
+  const listId = `${id}-results`;
   const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [term, setTerm] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -38,8 +44,8 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
   };
 
   return (
-    <div ref={box} className={`relative ${className}`} role="combobox" aria-expanded={open && hits.length > 0} aria-haspopup="listbox" aria-owns="global-search-results">
-      <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-300 pointer-events-none" />
+    <div ref={box} className={`relative ${className}`} role="combobox" aria-expanded={open && hits.length > 0} aria-haspopup="listbox" aria-owns={listId}>
+      <MagnifyingGlassIcon className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${large ? 'left-4 w-5 h-5 text-stone-400' : 'left-3 w-4 h-4 text-navy-300'}`} />
       <input
         type="search"
         value={term}
@@ -52,14 +58,16 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
           else if (e.key === 'Enter') { e.preventDefault(); go(hits[active]); }
           else if (e.key === 'Escape') setOpen(false);
         }}
-        placeholder="Search schools, districts, counties"
-        aria-label="Search schools, districts, and counties"
+        placeholder={placeholder ?? t('nav.search')}
+        aria-label={placeholder ?? t('nav.searchAria')}
         aria-autocomplete="list"
-        aria-controls="global-search-results"
-        className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-navy-800/80 border border-navy-700 text-sm text-white placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-gold-400/60 focus:bg-navy-800"
+        aria-controls={listId}
+        className={large
+          ? 'w-full pl-12 pr-4 py-3.5 sm:py-4 rounded-lg bg-white text-stone-900 placeholder-stone-400 border-0 focus:outline-none focus:ring-2 focus:ring-gold-400'
+          : 'w-full pl-9 pr-3 py-1.5 rounded-lg bg-navy-800/80 border border-navy-700 text-sm text-white placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-gold-400/60 focus:bg-navy-800'}
       />
       {open && hits.length > 0 && (
-        <ul id="global-search-results" role="listbox" className="absolute z-50 mt-1 left-0 right-0 sm:w-96 bg-white border border-stone-200 rounded-lg shadow-xl divide-y divide-stone-100 overflow-hidden">
+        <ul id={listId} role="listbox" className="absolute z-50 mt-1 left-0 right-0 sm:w-96 bg-white border border-stone-200 rounded-lg shadow-xl divide-y divide-stone-100 overflow-hidden">
           {hits.map((h, i) => (
             <li key={`${h.kind}-${h.id}`} role="option" aria-selected={i === active}>
               <button
@@ -73,11 +81,11 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
                   <span className="block text-sm font-medium text-stone-900 truncate">{h.name}</span>
                   <span className="block text-xs text-stone-500 truncate">{h.detail}</span>
                 </span>
-                <span className="text-[10px] uppercase tracking-wide text-stone-400 flex-shrink-0">{KIND_LABEL[h.kind]}</span>
+                <span className="text-[10px] uppercase tracking-wide text-stone-400 flex-shrink-0">{(KIND_LABEL[lang] ?? KIND_LABEL.en)[h.kind]}</span>
               </button>
             </li>
           ))}
-          <li className="px-3 py-2 text-xs text-stone-400">Enter opens the highlighted result; keep typing to narrow.</li>
+          <li className="px-3 py-2 text-xs text-stone-400">{t('nav.searchHint')}</li>
         </ul>
       )}
     </div>

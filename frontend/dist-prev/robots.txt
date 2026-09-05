@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /paschools/import
-Disallow: /paschools/verify
-Disallow: /paschools/database
-Disallow: /paschools/upload
-Disallow: /paschools/api/
-
-Sitemap: https://chrispeterkins.com/paschools/sitemap.xml

@@ -3,7 +3,7 @@ import { downloadCsv } from '../lib/csv';
 
 interface ExportCsvButtonProps {
   filename: string;
-  rows: Array<Record<string, unknown>>;
+  rows: ReadonlyArray<object>;
   columns?: Array<{ key: string; label: string }>;
   label?: string;
   className?: string;
@@ -15,7 +15,7 @@ export default function ExportCsvButton({ filename, rows, columns, label = 'Expo
   return (
     <button
       type="button"
-      onClick={() => downloadCsv(filename, rows, columns)}
+      onClick={() => downloadCsv(filename, rows as Array<Record<string, unknown>>, columns)}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:text-navy-700 transition-colors ${className}`}
     >
       <ArrowDownTrayIcon className="w-3.5 h-3.5" />

@@ -43,10 +43,14 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     const countOf = (table: any) =>
       db.select({ count: sql<number>`count(*)` }).from(table).get()?.count ?? 0;
 
+    // When the data last changed: the newest completed import.
+    const lastImport = (db.all<{ t: number | null }>(sql`SELECT MAX(completed_at) AS t FROM data_imports WHERE status = 'completed'`))[0]?.t ?? null;
+    const lastImportAt = lastImport ? new Date(lastImport * (lastImport < 1e12 ? 1000 : 1)).toISOString() : null;
     const response = {
       years,
       latest: years[0] ?? null,
       earliest: years[years.length - 1] ?? null,
+      lastImportAt,
       // Per-exam lists: the archived 2013/2014 files are Keystone-only.
       pssaYears,
       keystoneYears,

@@ -1,3 +1,4 @@
+import type { ResultRow } from '@shared';
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -27,7 +28,7 @@ export default function DistrictDetailPage() {
   });
 
   const districtId = district ? Number(district.id) : undefined;
-  const dName = (district as any)?.name as string | undefined;
+  const dName = district?.name;
   useDocumentTitle(dName ?? null, dName ? `PSSA and Keystone results, trends, and achievement gaps for ${dName}, Pennsylvania.` : null);
   const trendQuery = (exam: 'pssa' | 'keystone', subject: string) => ({
     queryKey: ['summary', exam, 'district', districtId, subject],
@@ -60,9 +61,9 @@ export default function DistrictDetailPage() {
     );
   }
 
-  const d: any = district;
-  const pssaRows: any[] = d.pssaResults ?? [];
-  const keystoneRows: any[] = d.keystoneResults ?? [];
+  const d = district;
+  const pssaRows: ResultRow[] = d.pssaResults ?? [];
+  const keystoneRows: ResultRow[] = d.keystoneResults ?? [];
   const allYears: number[] = [...new Set([...pssaRows, ...keystoneRows].map((r) => r.year as number))].sort((a, b) => b - a);
   const activeYear = selectedYear != null && allYears.includes(selectedYear) ? selectedYear : allYears[0];
   const pssaForYear = pssaRows.filter((r) => r.year === activeYear);
@@ -174,7 +175,7 @@ export default function DistrictDetailPage() {
           <h2 className="text-lg font-bold text-stone-900 mb-3">Schools</h2>
           <div className="card-surface overflow-hidden">
             <ul className="divide-y divide-stone-100">
-              {d.schools.map((s: any) => (
+              {d.schools.map((s) => (
                 <li key={s.id}>
                   <Link to={`/schools/${s.id}`} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 hover:bg-stone-50 transition-colors">
                     <div className="min-w-0">

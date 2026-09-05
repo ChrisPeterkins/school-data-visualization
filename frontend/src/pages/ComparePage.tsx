@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
+import { useT } from '../i18n';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ScatterChart, Scatter,
@@ -24,6 +25,7 @@ type View = 'snapshot' | 'trend';
 const GROUPS = ALL_GROUPS.filter((g) => !['Historically Underperforming', 'American Indian/Alaskan Native (not Hispanic)', 'Native Hawaiian or other Pacific Islander (not Hispanic)'].includes(g));
 
 export default function ComparePage() {
+  const t = useT();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const availableYears = useAvailableYears();
@@ -132,8 +134,8 @@ export default function ComparePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Compare</h1>
-        <p className="mt-1 text-sm text-stone-500">Up to 5 schools or districts against each other and the state, for any student group</p>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.compare.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500">{t('pages.compare.sub')}</p>
       </div>
 
       <div className="card-surface p-5 mb-6">
@@ -145,14 +147,14 @@ export default function ComparePage() {
               </button>
             ))}
           </div>
-          <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYearParam(Number(e.target.value))} fluid={false}>
+          <FilterSelect label={t('common.year')} value={year ?? ''} onChange={(e) => setYearParam(Number(e.target.value))} fluid={false}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
-          <FilterSelect label="Exam" value={exam} onChange={(e) => setExamParam(e.target.value as Exam)} fluid={false}>
+          <FilterSelect label={t('common.exam')} value={exam} onChange={(e) => setExamParam(e.target.value as Exam)} fluid={false}>
             <option value="pssa">PSSA (grades 3-8)</option>
             <option value="keystone">Keystone (high school)</option>
           </FilterSelect>
-          <FilterSelect label="Student group" value={group} onChange={(e) => setGroup(e.target.value)} fluid={false}>
+          <FilterSelect label={t('common.studentGroup')} value={group} onChange={(e) => setGroup(e.target.value)} fluid={false}>
             {GROUPS.map((g) => <option key={g} value={g}>{labelFor(g)}</option>)}
           </FilterSelect>
           <div className="inline-flex rounded-lg border border-stone-200 text-sm font-medium overflow-hidden self-end" role="group" aria-label="View">
@@ -160,7 +162,7 @@ export default function ComparePage() {
             <button onClick={() => setView('trend')} aria-pressed={view === 'trend'} className={`px-3 py-2 border-l border-stone-200 ${view === 'trend' ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>Over time</button>
           </div>
           {view === 'trend' && (
-            <FilterSelect label="Subject" value={trendSubject} onChange={(e) => setTrendSubject(e.target.value)} fluid={false}>
+            <FilterSelect label={t('common.subject')} value={trendSubject} onChange={(e) => setTrendSubject(e.target.value)} fluid={false}>
               {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
             </FilterSelect>
           )}

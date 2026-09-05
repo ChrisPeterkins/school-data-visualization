@@ -15,8 +15,9 @@ import ClusterLayer from '../components/map/ClusterLayer';
 import PercentileBadges from '../components/PercentileBadges';
 import DetailSheet from '../components/map/DetailSheet';
 import { formatPct, growthBand, fillYearGaps, tooltipStyle } from '../lib/chartUtils';
+import { useT } from '../i18n';
 
-import { SUBJECTS, SUBJECT_SHORT as SHORT_SUBJECT, isExam, type Exam } from '../lib/constants';
+import { SUBJECTS, SUBJECT_SHORT as SHORT_SUBJECT, isExam, type Exam, GROUPS, groupLabel } from '../lib/constants';
 
 type Metric = 'proficiency' | 'growth' | 'quadrant';
 const PA_CENTER: [number, number] = [40.9, -77.75];
@@ -106,6 +107,7 @@ function ZoomWatcher({ onZoom }: { onZoom: (z: number) => void }) {
 }
 
 export default function MapPage() {
+  const t = useT();
   const availableYears = useAvailableYears();
   const { latest } = availableYears;
   const [yearParam, setYear] = useUrlState<number | null>('year', null, parseNumber, (v) => (v == null ? '' : String(v)));
@@ -120,6 +122,7 @@ export default function MapPage() {
   const [showEmpty, setShowEmpty] = useUrlState<boolean>('empty', false, (r) => r === '1', (v) => (v ? '1' : ''));
   const [boundaries, setBoundaries] = useUrlState<boolean>('districts', true, (r) => r !== '0', (v) => (v ? '' : '0'));
   const [view, setView] = useUrlState<string>('view', '', parseString);
+  const [group, setGroup] = useUrlState<string>('group', 'All Students', parseString);
   const [selectedIdParam, setSelectedIdParam] = useUrlState<number | null>('s', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const [selectedDistrictId, setSelectedDistrictIdParam] = useUrlState<number | null>('d', null, parseNumber, (v) => (v == null ? '' : String(v)));
   const selectedId = selectedIdParam;
@@ -134,8 +137,8 @@ export default function MapPage() {
   useDocumentTitle('School map', `Every Pennsylvania public school on a map, colored by ${metric === 'growth' ? 'PVAAS growth' : metric === 'quadrant' ? 'growth and achievement' : 'proficiency'}.`);
 
   const { data: points = [], isLoading } = useQuery({
-    queryKey: ['map', year, exam, subject],
-    queryFn: () => schoolApi.getMapPoints({ year: year!, exam, subject }),
+    queryKey: ['map', year, exam, subject, group],
+    queryFn: () => schoolApi.getMapPoints({ year: year!, exam, subject, ...(group !== 'All Students' ? { group } : {}) }),
     enabled: year != null,
     staleTime: 60 * 60 * 1000,
   });
@@ -265,24 +268,27 @@ export default function MapPage() {
     <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
       <FilterSelect label="Color by" value={metric} onChange={(e) => setMetric(e.target.value as Metric)}>
         <option value="proficiency">Proficiency</option>
-        <option value="growth">Growth</option>
-        <option value="quadrant">Growth vs. achievement</option>
+        <option value="growth" disabled={group !== 'All Students'}>Growth{group !== 'All Students' ? ' (All Students only)' : ''}</option>
+        <option value="quadrant" disabled={group !== 'All Students'}>Growth vs. achievement</option>
       </FilterSelect>
-      <FilterSelect label="Year" value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
+      <FilterSelect label={t('common.year')} value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
       </FilterSelect>
-      <FilterSelect label="Exam" value={exam} onChange={(e) => { const v = e.target.value as Exam; setExam(v); setSubject(SUBJECTS[v][0]); setType(v === 'keystone' ? 'High' : ''); }}>
+      <FilterSelect label={t('common.exam')} value={exam} onChange={(e) => { const v = e.target.value as Exam; setExam(v); setSubject(SUBJECTS[v][0]); setType(v === 'keystone' ? 'High' : ''); }}>
         <option value="pssa">PSSA</option>
         <option value="keystone">Keystone</option>
       </FilterSelect>
-      <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
+      <FilterSelect label={t('common.subject')} value={subject} onChange={(e) => setSubject(e.target.value)}>
         {SUBJECTS[exam].map((s) => <option key={s} value={s}>{s}</option>)}
       </FilterSelect>
-      <FilterSelect label="School type" value={type} onChange={(e) => setType(e.target.value)}>
+      <FilterSelect label={t('common.studentGroup')} value={group} onChange={(e) => { const g = e.target.value; setGroup(g); if (g !== 'All Students' && metric !== 'proficiency') setMetric('proficiency'); }}>
+        {GROUPS.map((g) => <option key={g} value={g}>{groupLabel(g)}</option>)}
+      </FilterSelect>
+      <FilterSelect label={t('common.schoolType')} value={type} onChange={(e) => setType(e.target.value)}>
         <option value="">All types</option>
         {filterOptions?.schoolTypes.map((t) => <option key={t} value={t}>{t}</option>)}
       </FilterSelect>
-      <FilterSelect label="County" value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
+      <FilterSelect label={t('common.county')} value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
         <option value="">All counties</option>
         {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </FilterSelect>
@@ -304,7 +310,7 @@ export default function MapPage() {
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
       <div className="px-4 sm:px-0 pt-6 sm:pt-0 mb-4 sm:mb-6">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">School Map</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.map.title')}</h1>
         <p className="mt-1 text-sm text-stone-500">
           {subject}, {year}. Dots are schools sized by enrollment; shaded areas are districts. Zoom in to separate clusters, click a school for details.
         </p>

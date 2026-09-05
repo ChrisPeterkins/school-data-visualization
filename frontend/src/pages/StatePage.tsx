@@ -9,6 +9,7 @@ import GapsPanel from '../components/GapsPanel';
 import AccessibleChart from '../components/AccessibleChart';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine, covidGapArea } from '../lib/chartUtils';
+import { useT } from '../i18n';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -30,6 +31,7 @@ const tooltipStyle = {
 };
 
 export default function StatePage() {
+  const t = useT();
   const availableYears = useAvailableYears();
   const { latest, earliest } = availableYears;
   const smUp = useIsSmUp();
@@ -118,19 +120,19 @@ export default function StatePage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div>
         <div className="mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">State Performance</h1>
-            <p className="mt-1 text-sm text-stone-500">Statewide academic performance trends and analysis</p>
+            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.state.title')}</h1>
+            <p className="mt-1 text-sm text-stone-500">{t('pages.state.sub')}</p>
           </div>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-8">
-          <FilterSelect label="Exam" value={examType} onChange={(e) => setExamType(e.target.value as 'pssa' | 'keystone')}>
+          <FilterSelect label={t('common.exam')} value={examType} onChange={(e) => setExamType(e.target.value as 'pssa' | 'keystone')}>
             <option value="pssa">PSSA</option>
             <option value="keystone">Keystone</option>
           </FilterSelect>
-          <FilterSelect label="Year" value={selectedYear ?? ''} onChange={(e) => setYearChoice(Number(e.target.value))}>
+          <FilterSelect label={t('common.year')} value={selectedYear ?? ''} onChange={(e) => setYearChoice(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </FilterSelect>
-          <FilterSelect label="Subject" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
+          <FilterSelect label={t('common.subject')} value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
             {subjectOptions.map(s => <option key={s} value={s}>{s}</option>)}
           </FilterSelect>
         </div>

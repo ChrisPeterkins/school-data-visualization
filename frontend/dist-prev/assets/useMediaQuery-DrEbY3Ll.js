@@ -1,1 +1,0 @@
-import{r as s}from"./react-DcFayVY8.js";function i(e){const a=()=>typeof window<"u"?window.matchMedia(e).matches:!1,[c,o]=s.useState(a);return s.useEffect(()=>{const t=window.matchMedia(e),n=()=>o(t.matches);return n(),t.addEventListener("change",n),()=>t.removeEventListener("change",n)},[e]),c}function d(){return i("(min-width: 640px)")}export{d as u};

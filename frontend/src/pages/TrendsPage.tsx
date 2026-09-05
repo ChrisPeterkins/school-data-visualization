@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useT } from '../i18n';
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell,
@@ -24,6 +25,7 @@ type Level = 'state' | 'district' | 'school';
 const LEVEL_NOUN: Record<Level, string> = { state: 'statewide', district: 'districts', school: 'schools' };
 
 export default function TrendsPage() {
+  const t = useT();
   const [level, setLevel] = useUrlState<Level>('level', 'state', (r) => (['state', 'district', 'school'].includes(r) ? (r as Level) : null));
   const [examType, setExamType] = useUrlState<Exam>('exam', 'pssa', (r) => (isExam(r) ? r : null));
   const subjects = SUBJECTS[examType];
@@ -76,7 +78,7 @@ export default function TrendsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Performance Trends</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.trends.title')}</h1>
         <p className="mt-1 text-sm text-stone-500">
           Share of students proficient or above{earliest && latest ? `, ${earliest} to ${latest}` : ''}, weighted by students tested
         </p>
@@ -88,15 +90,15 @@ export default function TrendsPage() {
           <option value="district">District</option>
           <option value="school">School</option>
         </FilterSelect>
-        <FilterSelect label="Exam" value={examType} onChange={(e) => { const v = e.target.value as Exam; setExamType(v); setGrade(null); setSubject(v === 'pssa' ? 'Mathematics' : 'Algebra I'); }}>
+        <FilterSelect label={t('common.exam')} value={examType} onChange={(e) => { const v = e.target.value as Exam; setExamType(v); setGrade(null); setSubject(v === 'pssa' ? 'Mathematics' : 'Algebra I'); }}>
           <option value="pssa">PSSA</option>
           <option value="keystone">Keystone</option>
         </FilterSelect>
-        <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
+        <FilterSelect label={t('common.subject')} value={subject} onChange={(e) => setSubject(e.target.value)}>
           {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
         </FilterSelect>
         {examType === 'pssa' && (
-          <FilterSelect label="Grade" value={grade ?? ''} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)}>
+          <FilterSelect label={t('common.grade')} value={grade ?? ''} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)}>
             <option value="">All grades</option>
             {[3, 4, 5, 6, 7, 8].map((g) => <option key={g} value={g}>Grade {g}</option>)}
           </FilterSelect>

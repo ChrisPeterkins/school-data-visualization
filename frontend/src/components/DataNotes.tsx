@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { STANDARDS_CHANGE_YEAR } from '../lib/chartUtils';
+import { useT } from '../i18n';
 
 interface DataNotesProps {
   subject?: string;
@@ -15,24 +16,25 @@ interface DataNotesProps {
  * change, the 2020 testing gap, and Science results that were not published.
  */
 export default function DataNotes({ subject, exam = 'pssa', years, latestAvailable }: DataNotesProps) {
+  const t = useT();
   const notes: string[] = [];
   const last = years.length ? Math.max(...years) : null;
 
   if (years.includes(STANDARDS_CHANGE_YEAR) && exam === 'pssa') {
-    notes.push(`PDE raised the PSSA performance standards for ${STANDARDS_CHANGE_YEAR}, so the drop from 2024 partly reflects the new bar rather than a change in learning.`);
+    notes.push(t('notes.standards', { year: STANDARDS_CHANGE_YEAR }));
   }
   if (years.includes(2019) && years.includes(2021)) {
-    notes.push('No assessments were given in 2020.');
+    notes.push(t('notes.covid'));
   }
   if (subject === 'Science' && latestAvailable != null && last != null && last < latestAvailable) {
-    notes.push(`PDE did not publish Science results for ${latestAvailable}; the Science series ends at ${last}.`);
+    notes.push(t('notes.science', { latest: latestAvailable, last }));
   }
 
   if (notes.length === 0) return null;
   return (
     <ul className="text-xs text-stone-500 space-y-1 border-l-2 border-gold-300 pl-3">
       {notes.map((n) => <li key={n}>{n}</li>)}
-      <li><Link to="/about#caveats" className="text-navy-600 hover:underline">About the data</Link></li>
+      <li><Link to="/about#caveats" className="text-navy-600 hover:underline">{t('notes.about')}</Link></li>
     </ul>
   );
 }

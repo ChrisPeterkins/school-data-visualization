@@ -6,8 +6,10 @@ import { districtApi } from '../services/api';
 import { useUrlState, parseNumber, parseString } from '../hooks/useUrlState';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useT } from '../i18n';
 
 export default function DistrictsPage() {
+  const t = useT();
   const [search, setSearch] = useUrlState<string>('q', '', parseString);
   const [page, setPage] = useUrlState<number>('page', 1, parseNumber);
   const [draft, setDraft] = useState(search);
@@ -27,9 +29,9 @@ export default function DistrictsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Pennsylvania School Districts</h1>
+        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.districts.title')}</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Browse {districtsData?.meta?.total?.toLocaleString() || '...'} districts, charters, and career and technical centers
+          {t('pages.districts.sub', { n: districtsData?.meta?.total?.toLocaleString() || '...' })}
         </p>
       </div>
 

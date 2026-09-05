@@ -325,23 +325,36 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
       year: z.coerce.number(),
       exam: z.enum(['pssa', 'keystone']).default('pssa'),
       subject: z.string().default('Mathematics'),
+      group: z.string().default('All Students'),
     }).parse(request.query);
     const cacheKey = cache.generateKey('map', JSON.stringify(q));
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
     ensureMapPointsTable();
-    // Precomputed per (year, exam, subject); names come along so the list and
-    // search work offline, district and address load on click.
-    const points = sqliteDb.prepare(`
-      SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
-             s.district_id AS districtId, d.county_id AS countyId,
-             p.proficiency, p.growth, p.tested
-      FROM schools s
-      JOIN districts d ON d.id = s.district_id
-      LEFT JOIN school_map_points p ON p.school_id = s.id AND p.year = ? AND p.exam = ? AND p.subject = ?
-      WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-    `).all(q.year, q.exam, q.subject);
+    // All Students comes from the precomputed table; other student groups
+    // read the results table directly (a few hundred ms, then cached).
+    const points = q.group === 'All Students'
+      ? sqliteDb.prepare(`
+          SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
+                 s.district_id AS districtId, d.county_id AS countyId,
+                 p.proficiency, p.growth, p.tested
+          FROM schools s
+          JOIN districts d ON d.id = s.district_id
+          LEFT JOIN school_map_points p ON p.school_id = s.id AND p.year = ? AND p.exam = ? AND p.subject = ?
+          WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+        `).all(q.year, q.exam, q.subject)
+      : sqliteDb.prepare(`
+          SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
+                 s.district_id AS districtId, d.county_id AS countyId,
+                 r.proficient_or_above_percent AS proficiency, NULL AS growth, r.total_tested AS tested
+          FROM schools s
+          JOIN districts d ON d.id = s.district_id
+          LEFT JOIN ${q.exam === 'pssa' ? 'pssa_results' : 'keystone_results'} r
+            ON r.school_id = s.id AND r.level = 'school' AND r.year = ? AND r.subject = ? AND r.demographic_group = ?
+            ${q.exam === 'pssa' ? 'AND r.grade = 0' : ''}
+          WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+        `).all(q.year, q.subject, q.group);
 
     const response = { filters: q, points };
     await cache.set(cacheKey, response, 3600);
