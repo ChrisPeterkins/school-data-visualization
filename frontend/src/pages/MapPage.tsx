@@ -109,7 +109,11 @@ export default function MapPage() {
   const [showEmpty, setShowEmpty] = useUrlState<boolean>('empty', false, (r) => r === '1', (v) => (v ? '1' : ''));
   const [boundaries, setBoundaries] = useUrlState<boolean>('districts', true, (r) => r !== '0', (v) => (v ? '' : '0'));
   const [view, setView] = useUrlState<string>('view', '', parseString);
-  const [selectedId, setSelectedId] = useUrlState<number | null>('s', null, parseNumber, (v) => (v == null ? '' : String(v)));
+  const [selectedIdParam, setSelectedIdParam] = useUrlState<number | null>('s', null, parseNumber, (v) => (v == null ? '' : String(v)));
+  const [selectedDistrictId, setSelectedDistrictIdParam] = useUrlState<number | null>('d', null, parseNumber, (v) => (v == null ? '' : String(v)));
+  const selectedId = selectedIdParam;
+  const setSelectedId = useCallback((id: number | null) => { setSelectedIdParam(id); if (id != null) setSelectedDistrictIdParam(null); }, [setSelectedIdParam, setSelectedDistrictIdParam]);
+  const setSelectedDistrictId = useCallback((id: number | null) => { setSelectedDistrictIdParam(id); if (id != null) setSelectedIdParam(null); }, [setSelectedIdParam, setSelectedDistrictIdParam]);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [fitTarget, setFitTarget] = useState('');
   const [zoom, setZoom] = useState(PA_ZOOM);
@@ -156,6 +160,18 @@ export default function MapPage() {
     queryFn: () => schoolApi.getSchools({ search: searchTerm, limit: 8 }),
     enabled: searchTerm.trim().length >= 2,
   });
+  const { data: selectedDistrict } = useQuery({
+    queryKey: ['district', String(selectedDistrictId)],
+    queryFn: () => districtApi.getDistrict(String(selectedDistrictId)),
+    enabled: selectedDistrictId != null,
+    staleTime: 60 * 60 * 1000,
+  });
+  const { data: districtTrend } = useQuery({
+    queryKey: ['summary', exam, 'district', selectedDistrictId, subject],
+    queryFn: () => performanceApi.getSummary({ exam, level: 'district', subject, districtId: selectedDistrictId! }),
+    enabled: selectedDistrictId != null,
+    staleTime: 60 * 60 * 1000,
+  });
   const { data: selected } = useQuery({
     queryKey: ['school', String(selectedId)],
     queryFn: () => schoolApi.getSchool(String(selectedId)),
@@ -196,8 +212,8 @@ export default function MapPage() {
     const d = valueByNces.get(feature?.properties?.geoid);
     const label = `${feature?.properties?.name ?? 'District'}${d ? ` · ${formatPct(d.proficiency)} proficient${d.growth != null ? `, growth ${d.growth.toFixed(1)}` : ''}` : ''}`;
     layer.bindTooltip(label, { sticky: true });
-    if (d) layer.on('click', () => { window.location.assign(`/paschools/districts/${d.id}`); });
-  }, [valueByNces]);
+    if (d) layer.on('click', () => setSelectedDistrictId(d.id));
+  }, [valueByNces, setSelectedDistrictId]);
   const showBoundaries = boundaries && !!geojson && zoom <= 11;
 
   const locateMe = () => {
@@ -220,6 +236,12 @@ export default function MapPage() {
     selRows.filter((r) => r.subject === subject && (exam === 'keystone' || r.grade === 0) && r.percentProficientOrAbove != null)
       .map((r) => ({ year: r.year, v: r.percentProficientOrAbove })).sort((a, b) => a.year - b.year),
   );
+
+  const dsel: any = selectedDistrict;
+  const dRows: any[] = dsel ? (exam === 'pssa' ? dsel.pssaResults : dsel.keystoneResults) ?? [] : [];
+  const dFor = (subj: string) => dRows.find((r) => r.year === year && r.subject === subj && (exam === 'keystone' || r.grade === 0));
+  const dSpark = fillYearGaps((districtTrend?.series ?? []).map((p) => ({ year: p.year, v: p.proficiency })));
+  const districtSchoolPoints = selectedDistrictId == null ? [] : points.filter((p) => p.districtId === selectedDistrictId);
 
   // Windowed list so thousands of rows stay cheap.
   const listRef = useRef<HTMLDivElement>(null);
@@ -317,7 +339,7 @@ export default function MapPage() {
           <MapContainer center={PA_CENTER} zoom={PA_ZOOM} preferCanvas scrollWheelZoom style={{ height: '100%', width: '100%' }}>
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <ViewSync view={view} onChange={setView} />
-            <FitTo target={fitTarget} points={fitTarget.startsWith('county:') ? points.filter((p) => p.countyId === countyId) : points} />
+            <FitTo target={fitTarget} points={fitTarget.startsWith('county:') ? points.filter((p) => p.countyId === countyId) : fitTarget.startsWith('district:') ? points.filter((p) => p.districtId === Number(fitTarget.split(':')[1])) : points} />
             <ZoomWatcher onZoom={setZoom} />
             {showBoundaries && (
               <GeoJSON key={`${metric}-${year}-${exam}-${subject}-${districtValues.length}`} data={geojson} style={boundaryStyle} onEachFeature={onEachDistrict} />
@@ -383,6 +405,58 @@ export default function MapPage() {
           </div>
         )}
 
+        {selectedDistrictId != null && selectedId == null && (
+          <div className="sm:absolute sm:z-[1000] sm:top-16 sm:right-3 sm:w-80 bg-white sm:rounded-xl sm:shadow-lg border-t sm:border border-stone-200 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-wide text-stone-400">District</div>
+                <div className="text-sm font-semibold text-stone-900 leading-snug">{dsel?.name ?? 'Loading…'}</div>
+                {dsel && <div className="text-xs text-stone-500 truncate">{dsel.countyName} County · {(dsel.schools ?? []).length} schools{dsel.totalEnrollment ? ` · ${dsel.totalEnrollment.toLocaleString()} students` : ''}</div>}
+              </div>
+              <button onClick={() => setSelectedDistrictId(null)} aria-label="Close" className="text-stone-400 hover:text-stone-600"><XMarkIcon className="w-5 h-5" /></button>
+            </div>
+            {dsel && (
+              <>
+                <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  {SUBJECTS[exam].map((subj) => {
+                    const r = dFor(subj);
+                    return (
+                      <div key={subj} className={subj === subject ? 'rounded-md bg-stone-50 p-1.5 -m-1.5' : ''}>
+                        <dt className="text-stone-500 truncate">{subj === 'English Language Arts' ? 'ELA' : subj}</dt>
+                        <dd className="text-base font-semibold text-navy-800 tabular-nums">{formatPct(r?.percentProficientOrAbove)}</dd>
+                        {r?.growthScore != null && <dd className={`text-[11px] ${growthBand(r.growthScore).className}`}>growth {r.growthScore.toFixed(1)}</dd>}
+                      </div>
+                    );
+                  })}
+                </dl>
+                {dSpark.length > 1 && (
+                  <div className="mt-3">
+                    <div className="text-[11px] text-stone-500 mb-1">{subject} proficient or above, {dSpark[0].year}-{dSpark[dSpark.length - 1].year}</div>
+                    <ResponsiveContainer width="100%" height={64}>
+                      <LineChart data={dSpark} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+                        <XAxis dataKey="year" hide />
+                        <YAxis domain={[0, 100]} hide />
+                        <ChartTooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, 'Proficient']} labelFormatter={(l) => String(l)} />
+                        <Line type="monotone" dataKey="v" stroke="#2d4a6f" strokeWidth={2} dot={{ r: 2 }} connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {districtSchoolPoints.length > 0 && (
+                    <button onClick={() => setFitTarget(`district:${dsel.id}`)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50">
+                      Zoom to its {districtSchoolPoints.length} schools
+                    </button>
+                  )}
+                  <Link to={`/districts/${dsel.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-navy-700 text-white hover:bg-navy-600">
+                    Open district <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="px-4 sm:px-6 py-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-medium text-stone-700">{metric === 'growth' ? 'Growth index' : metric === 'quadrant' ? `Vs. state average${stateAvg != null ? ` (${formatPct(stateAvg)})` : ''}` : '% proficient or above'}</span>
@@ -414,7 +488,7 @@ export default function MapPage() {
         <section className="card-surface mt-4 mx-4 sm:mx-0 overflow-hidden" aria-label={`Schools on the map, ${sorted.length} with a ${metric} value, sorted highest first`}>
           <div className="px-4 sm:px-6 py-3 border-b border-stone-100">
             <h2 className="text-base font-semibold text-stone-900">Schools shown ({sorted.length.toLocaleString()})</h2>
-            <p className="text-xs text-stone-400">Sorted by {metric === 'quadrant' ? 'proficiency' : metric}; hover or focus a row to find it on the map</p>
+            <p className="text-xs text-stone-400">Sorted by {metric === 'quadrant' ? 'proficiency' : metric}. Click a row to show it on the map; the arrow opens the school page.</p>
           </div>
           <div ref={listRef} className="overflow-y-auto" style={{ height: ROW * VISIBLE }} onScroll={(e) => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
             <ul style={{ height: sorted.length * ROW, position: 'relative' }}>
@@ -422,22 +496,30 @@ export default function MapPage() {
                 const v = valueOf(p);
                 return (
                   <li key={p.id} style={{ position: 'absolute', top: (start + i) * ROW, left: 0, right: 0, height: ROW }}>
-                    <Link
-                      to={`/schools/${p.id}`}
+                    <div
                       onMouseEnter={() => setHighlightedId(p.id)}
                       onMouseLeave={() => setHighlightedId(null)}
-                      onFocus={() => setHighlightedId(p.id)}
-                      onBlur={() => setHighlightedId(null)}
-                      className={`flex items-center justify-between gap-3 px-4 sm:px-6 h-full border-b border-stone-100 hover:bg-stone-50 ${p.id === selectedId ? 'bg-gold-50/60' : ''}`}
+                      className={`flex items-center justify-between gap-2 px-4 sm:px-6 h-full border-b border-stone-100 hover:bg-stone-50 ${p.id === selectedId ? 'bg-gold-50/60' : ''}`}
                     >
-                      <div className="min-w-0 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorOf(p) }} aria-hidden />
-                        <span className="text-sm font-medium text-stone-900 truncate">{p.name}</span>
-                      </div>
-                      <span className="text-sm tabular-nums text-stone-700 whitespace-nowrap">
-                        {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-400"> · g {p.growth.toFixed(1)}</span> : null}
-                      </span>
-                    </Link>
+                      <button
+                        onClick={() => { setSelectedId(p.id); setFitTarget(`point:${p.lat}:${p.lng}`); }}
+                        onFocus={() => setHighlightedId(p.id)}
+                        onBlur={() => setHighlightedId(null)}
+                        className="min-w-0 flex-1 flex items-center justify-between gap-3 text-left"
+                        aria-label={`Show ${p.name} on the map`}
+                      >
+                        <span className="min-w-0 flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorOf(p) }} aria-hidden />
+                          <span className="text-sm font-medium text-stone-900 truncate">{p.name}</span>
+                        </span>
+                        <span className="text-sm tabular-nums text-stone-700 whitespace-nowrap">
+                          {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-400"> · g {p.growth.toFixed(1)}</span> : null}
+                        </span>
+                      </button>
+                      <Link to={`/schools/${p.id}`} aria-label={`Open ${p.name}`} className="flex-shrink-0 p-1 text-stone-400 hover:text-navy-600">
+                        <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </li>
                 );
               })}
