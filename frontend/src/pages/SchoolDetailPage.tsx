@@ -9,6 +9,7 @@ import PerformanceChart from '../components/PerformanceChart';
 import ResultsTable from '../components/ResultsTable';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import PinButton from '../components/PinButton';
+import ShareButton from '../components/ShareButton';
 import SchoolMap from '../components/SchoolMap';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
@@ -100,6 +101,7 @@ export default function SchoolDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{s.name}</h1>
               <PinButton pin={{ kind: 'school', id: Number(s.id), name: s.name, detail: s.districtName }} />
+              <ShareButton title={`${s.name} · PA School Data`} />
               <PrintButton />
             </div>
             <p className="text-sm text-stone-500 mt-0.5">

@@ -735,13 +735,134 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     limit: z.coerce.number().min(5).max(50).optional().default(10),
     /** An entity needs at least this many students tested across the matched rows to be ranked. */
     minTested: z.coerce.number().min(1).optional().default(40),
+    /** What to rank by: assessment proficiency (default) or a non-assessment measure. */
+    measure: z.enum(['proficiency', 'grad_rate_4yr', 'regular_attendance', 'low_income', 'per_pupil', 'students_per_teacher', 'beating_odds']).optional().default('proficiency'),
   });
+
+  /**
+   * Rank by a non-assessment measure. Indicators (graduation, attendance,
+   * low income) come from entity_indicators for schools and districts;
+   * spending and staffing are district-only. The response keeps the
+   * proficiency-ranking shape so the client and CSV columns are unchanged:
+   * avgProficiency carries the measure's value.
+   */
+  function rankByMeasure(query: z.infer<typeof rankingsQuerySchema>) {
+    const entity = query.entity === 'county' ? 'district' : query.entity;
+    const idCol = query.measure === 'per_pupil' || query.measure === 'students_per_teacher' ? 'x.district_id' : 'x.entity_id';
+    const joins = entity === 'school'
+      ? `JOIN schools s ON s.id = ${idCol} JOIN districts d ON d.id = s.district_id JOIN counties c ON c.id = d.county_id`
+      : `JOIN districts d ON d.id = ${idCol} JOIN counties c ON c.id = d.county_id`;
+    const nameSql = entity === 'school'
+      ? 's.id AS id, s.name AS name, s.school_type AS schoolType, d.name AS districtName, c.name AS countyName, s.city AS city'
+      : 'd.id AS id, d.name AS name, NULL AS schoolType, NULL AS districtName, c.name AS countyName, d.city AS city';
+    const where: string[] = []; const args: (string | number)[] = [];
+    if (query.countyId) { where.push('d.county_id = ?'); args.push(query.countyId); }
+    if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
+    if (entity === 'school') where.push('s.is_active = 1');
+    const extra = where.length ? `AND ${where.join(' AND ')}` : '';
+    const measureYear = (table: string, yearCol = 'year', filter = '') => (sqliteDb.prepare(`SELECT MAX(${yearCol}) AS y FROM ${table} WHERE ${yearCol} <= ? ${filter}`).get(query.year) as { y: number | null }).y;
+    let rows: any[] = []; let year: number | null = null;
+    if (query.measure === 'per_pupil' || query.measure === 'students_per_teacher') {
+      if (entity !== 'district') return { rows, year };
+      const table = query.measure === 'per_pupil' ? 'district_finance' : 'district_staff';
+      year = measureYear(table, 'year', `AND ${query.measure} IS NOT NULL`);
+      if (!year) return { rows, year };
+      rows = sqliteDb.prepare(`
+        SELECT ${nameSql}, x.${query.measure} AS avgProficiency, ${query.measure === 'per_pupil' ? 'ROUND(x.adm)' : 'x.teachers'} AS totalTested, 1 AS subjectCount, NULL AS avgGrowth
+        FROM ${table} x ${joins} WHERE x.year = ? AND x.${query.measure} IS NOT NULL ${extra}
+      `).all(year, ...args);
+    } else {
+      year = measureYear('entity_indicators', 'year', `AND indicator = '${query.measure}' AND entity_type = '${entity}'`);
+      if (!year) return { rows, year };
+      rows = sqliteDb.prepare(`
+        SELECT ${nameSql}, x.value AS avgProficiency, COALESCE(x.n, 0) AS totalTested, 1 AS subjectCount, NULL AS avgGrowth
+        FROM entity_indicators x ${joins} WHERE x.year = ? AND x.entity_type = ? AND x.indicator = ? AND x.value IS NOT NULL ${extra}
+      `).all(year, entity, query.measure, ...args);
+      if (query.measure === 'grad_rate_4yr') rows = rows.filter((r) => r.totalTested >= Math.min(query.minTested, 40));
+    }
+    return { rows, year };
+  }
+
+  /**
+   * "Beating the odds": each school's all-grades Math + ELA proficiency
+   * against what its low-income share predicts (least-squares line across
+   * all schools that year). The residual, in points, is the ranking value.
+   */
+  function rankBeatingOdds(query: z.infer<typeof rankingsQuerySchema>) {
+    const entity = query.entity === 'county' ? 'district' : query.entity;
+    const table = query.examType === 'pssa' ? 'pssa_results' : 'keystone_results';
+    const subjects = query.examType === 'pssa' ? ['Mathematics', 'English Language Arts'] : ['Algebra I', 'Literature'];
+    const idCol = entity === 'school' ? 'r.school_id' : 'r.district_id';
+    const gradeClause = query.examType === 'pssa' ? 'AND r.grade = 0' : '';
+    const liYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE indicator = 'low_income' AND entity_type = ? AND year <= ?`).get(entity, query.year) as { y: number | null }).y;
+    if (!liYear) return { rows: [], year: null, fit: null };
+    const joins = entity === 'school'
+      ? 'JOIN schools s ON s.id = r.school_id JOIN districts d ON d.id = s.district_id JOIN counties c ON c.id = d.county_id'
+      : 'JOIN districts d ON d.id = r.district_id JOIN counties c ON c.id = d.county_id';
+    const nameSql = entity === 'school'
+      ? 's.id AS id, s.name AS name, s.school_type AS schoolType, d.name AS districtName, c.name AS countyName, s.city AS city'
+      : 'd.id AS id, d.name AS name, NULL AS schoolType, NULL AS districtName, c.name AS countyName, d.city AS city';
+    const where: string[] = []; const args: (string | number)[] = [];
+    if (query.countyId) { where.push('d.county_id = ?'); args.push(query.countyId); }
+    if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
+    if (entity === 'school') where.push('s.is_active = 1');
+    const all = sqliteDb.prepare(`
+      SELECT ${nameSql}, li.value AS lowIncome,
+        ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested), 1) AS avgProficiency,
+        SUM(r.total_tested) AS totalTested, COUNT(DISTINCT r.subject) AS subjectCount, ROUND(AVG(r.growth_score), 2) AS avgGrowth
+      FROM ${table} r ${joins}
+      JOIN entity_indicators li ON li.entity_type = ? AND li.entity_id = ${idCol} AND li.indicator = 'low_income' AND li.year = ?
+      WHERE r.level = ? AND r.year = ? AND r.demographic_group = 'All Students' AND r.subject IN (?, ?) AND r.proficient_or_above_percent IS NOT NULL AND r.total_tested > 0 ${gradeClause}
+        ${where.length ? `AND ${where.join(' AND ')}` : ''}
+      GROUP BY ${idCol} HAVING SUM(r.total_tested) >= ?
+    `).all(entity, liYear, entity, query.year, subjects[0], subjects[1], ...args, query.minTested) as Array<any>;
+    // Fit proficiency = a + b * lowIncome across every ranked entity (not just the filtered county), so the line is the statewide expectation.
+    const universe = query.countyId || query.schoolType ? sqliteDb.prepare(`
+      SELECT li.value AS x, SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested) AS y
+      FROM ${table} r JOIN entity_indicators li ON li.entity_type = ? AND li.entity_id = ${idCol} AND li.indicator = 'low_income' AND li.year = ?
+      WHERE r.level = ? AND r.year = ? AND r.demographic_group = 'All Students' AND r.subject IN (?, ?) AND r.proficient_or_above_percent IS NOT NULL AND r.total_tested > 0 ${gradeClause}
+      GROUP BY ${idCol} HAVING SUM(r.total_tested) >= ?
+    `).all(entity, liYear, entity, query.year, subjects[0], subjects[1], query.minTested) as Array<{ x: number; y: number }> : all.map((r) => ({ x: r.lowIncome, y: r.avgProficiency }));
+    const n = universe.length;
+    if (n < 10) return { rows: [], year: liYear, fit: null };
+    const mx = universe.reduce((s, p) => s + p.x, 0) / n, my = universe.reduce((s, p) => s + p.y, 0) / n;
+    const sxy = universe.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0), sxx = universe.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+    const slope = sxx ? sxy / sxx : 0, intercept = my - slope * mx;
+    const sst = universe.reduce((s, p) => s + (p.y - my) ** 2, 0), sse = universe.reduce((s, p) => s + (p.y - (intercept + slope * p.x)) ** 2, 0);
+    const rows = all.map((r) => {
+      const expected = Math.round((intercept + slope * r.lowIncome) * 10) / 10;
+      return { ...r, expectedProficiency: expected, residual: Math.round((r.avgProficiency - expected) * 10) / 10 };
+    });
+    return { rows, year: liYear, fit: { slope: Math.round(slope * 1000) / 1000, intercept: Math.round(intercept * 10) / 10, r2: sst ? Math.round((1 - sse / sst) * 100) / 100 : null, n } };
+  }
 
   fastify.get('/rankings', async (request, _reply) => {
     const query = rankingsQuerySchema.parse(request.query);
     const cacheKey = cache.generateKey('rankings', JSON.stringify(query));
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
+
+    if (query.measure === 'beating_odds') {
+      const { rows, year: lowIncomeYear, fit } = rankBeatingOdds(query);
+      const sorted = rows.slice().sort((a, b) => b.residual - a.residual);
+      const top = sorted.slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
+      const bottom = sorted.slice().reverse().slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
+      const response = { filters: { ...query, compareYear: null, ranked: rows.length, measureYear: lowIncomeYear }, top, bottom, stateAverage: null, stateChange: null, fit, points: rows.map((r) => ({ id: r.id, name: r.name, lowIncome: r.lowIncome, proficiency: r.avgProficiency, tested: r.totalTested, residual: r.residual })) };
+      await cache.set(cacheKey, response, 1800);
+      return response;
+    }
+    if (query.measure !== 'proficiency') {
+      const { rows, year: measureYear } = rankByMeasure(query);
+      const lowerIsBetter = query.measure === 'low_income' || query.measure === 'students_per_teacher';
+      const sorted = rows.slice().sort((a, b) => (lowerIsBetter ? a.avgProficiency - b.avgProficiency : b.avgProficiency - a.avgProficiency));
+      const top = sorted.slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
+      const bottom = sorted.slice().reverse().slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
+      const stateRow = sqliteDb.prepare(`SELECT value FROM entity_indicators WHERE entity_type = 'state' AND indicator = ? AND year = ?`).get(query.measure, measureYear ?? 0) as { value: number } | undefined;
+      const stateAverage = stateRow?.value ?? (query.measure === 'per_pupil' && measureYear ? (sqliteDb.prepare(`SELECT ROUND(SUM(total_expenditures) / SUM(adm)) AS v FROM district_finance WHERE year = ? AND adm > 0`).get(measureYear) as { v: number }).v : null);
+      const response = { filters: { ...query, compareYear: null, ranked: rows.length, measureYear }, top, bottom, stateAverage, stateChange: null };
+      await cache.set(cacheKey, response, 1800);
+      return response;
+    }
 
     const isPssa = query.examType === 'pssa';
     const table = isPssa ? 'pssa_results' : 'keystone_results';

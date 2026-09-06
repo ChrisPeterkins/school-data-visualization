@@ -19,6 +19,47 @@ function groupSeries(rows: IndicatorRow[]): Series[] {
   return [...by.values()].sort((a, b) => order.indexOf(a.indicator) - order.indexOf(b.indicator));
 }
 
+/** Percentile of the entity's latest value among all entities of its type that year (higher = more of the measure). */
+function percentiles(type: string, series: Series[]) {
+  for (const s of series) {
+    const last = [...s.series].reverse().find((p) => p.value != null);
+    if (!last) continue;
+    const peers = sqliteDb.prepare(`SELECT value FROM entity_indicators WHERE entity_type = ? AND indicator = ? AND year = ? AND value IS NOT NULL`).all(type, s.indicator, last.year) as Array<{ value: number }>;
+    if (peers.length < 20) continue;
+    const below = peers.filter((p) => p.value < last.value!).length, equal = peers.filter((p) => p.value === last.value).length;
+    (s as any).percentile = { value: Math.round(((below + equal / 2) / peers.length) * 100), n: peers.length, year: last.year };
+  }
+  return series;
+}
+/** Latest-year values by student group for the indicators that have them (attendance, graduation). */
+const groupRows = (type: string, id: number) => {
+  const rows = sqliteDb.prepare(`
+    SELECT g.indicator, g.year, g.student_group AS studentGroup, g.value FROM indicator_groups g
+    WHERE g.entity_type = ? AND g.entity_id = ? AND g.year = (SELECT MAX(year) FROM indicator_groups WHERE entity_type = g.entity_type AND entity_id = g.entity_id AND indicator = g.indicator)
+    ORDER BY g.indicator, g.student_group
+  `).all(type, id) as Array<{ indicator: string; year: number; studentGroup: string; value: number }>;
+  const out: Array<{ indicator: string; label: string; year: number; allStudents: number | null; groups: Array<{ group: string; value: number; gap: number | null }> }> = [];
+  for (const r of rows) {
+    let g = out.find((o) => o.indicator === r.indicator);
+    if (!g) {
+      const all = sqliteDb.prepare(`SELECT value FROM entity_indicators WHERE entity_type = ? AND entity_id = ? AND indicator = ? AND year = ?`).get(type, id, r.indicator, r.year) as { value: number } | undefined;
+      g = { indicator: r.indicator, label: LABELS[r.indicator] ?? r.indicator, year: r.year, allStudents: all?.value ?? null, groups: [] };
+      out.push(g);
+    }
+    g.groups.push({ group: r.studentGroup, value: r.value, gap: g.allStudents == null ? null : Math.round((r.value - g.allStudents) * 10) / 10 });
+  }
+  return out;
+};
+const staffRows = (id: number) => sqliteDb.prepare(`
+  SELECT year, professional, teachers, administrators, avg_teacher_salary AS avgTeacherSalary, avg_teacher_experience AS avgTeacherExperience,
+    avg_years_in_lea AS avgYearsInLea, students_per_teacher AS studentsPerTeacher FROM district_staff WHERE district_id = ? ORDER BY year
+`).all(id) as Array<{ year: number; teachers: number | null; studentsPerTeacher: number | null; avgTeacherSalary: number | null; avgTeacherExperience: number | null }>;
+const stateStaff = () => sqliteDb.prepare(`
+  SELECT year, ROUND(SUM(teachers * avg_teacher_salary) / SUM(teachers)) AS avgTeacherSalary, ROUND(SUM(teachers * avg_teacher_experience) / SUM(teachers), 1) AS avgTeacherExperience,
+    ROUND((SELECT total FROM enrollments e WHERE e.entity_type = 'state' AND e.year = district_staff.year) * 1.0 / SUM(teachers), 1) AS studentsPerTeacher, SUM(teachers) AS teachers
+  FROM district_staff WHERE teachers > 0 AND avg_teacher_salary IS NOT NULL GROUP BY year ORDER BY year
+`).all() as Array<{ year: number; avgTeacherSalary: number; avgTeacherExperience: number; studentsPerTeacher: number | null; teachers: number }>;
+
 const entityRows = (type: string, id: number) => sqliteDb.prepare(`
   SELECT indicator, year, value, state_value AS stateValue, n FROM entity_indicators
   WHERE entity_type = ? AND entity_id = ? ORDER BY indicator, year
@@ -38,7 +79,7 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
     const key = cache.generateKey('indicators-school', String(id));
     const cached = await cache.get(key);
     if (cached) return cached;
-    const response = { indicators: groupSeries(entityRows('school', id)), enrollment: enrollmentRows('school', id) };
+    const response = { indicators: percentiles('school', groupSeries(entityRows('school', id))), enrollment: enrollmentRows('school', id), groups: groupRows('school', id) };
     await cache.set(key, response, 3600);
     return response;
   });
@@ -68,10 +109,13 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
       SELECT year, ROUND(SUM(total_expenditures) / SUM(adm)) AS perPupil, ROUND(SUM(instruction) / SUM(adm)) AS instructionPerPupil
       FROM district_finance WHERE adm > 0 AND total_expenditures IS NOT NULL GROUP BY year ORDER BY year
     `).all() as Array<{ year: number; perPupil: number; instructionPerPupil: number }>;
+    const st = stateStaff();
     const response = {
-      indicators: groupSeries([...entityRows('district', id), ...schoolRows]),
+      indicators: percentiles('district', groupSeries([...entityRows('district', id), ...schoolRows])),
       enrollment: enrollmentRows('district', id),
       finance: finance.map((f) => ({ ...f, statePerPupil: stateFinance.find((s) => s.year === f.year)?.perPupil ?? null, stateInstructionPerPupil: stateFinance.find((s) => s.year === f.year)?.instructionPerPupil ?? null })),
+      staff: staffRows(id).map((r) => { const s = st.find((x) => x.year === r.year); return { ...r, stateAvgTeacherSalary: s?.avgTeacherSalary ?? null, stateAvgTeacherExperience: s?.avgTeacherExperience ?? null, stateStudentsPerTeacher: s?.studentsPerTeacher ?? null }; }),
+      groups: groupRows('district', id),
     };
     await cache.set(key, response, 3600);
     return response;
@@ -84,6 +128,8 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
     const response = {
       indicators: groupSeries(entityRows('state', 0)),
       enrollment: enrollmentRows('state', 0),
+      staff: stateStaff(),
+      groups: [],
       finance: sqliteDb.prepare(`
         SELECT year, ROUND(SUM(total_expenditures) / SUM(adm)) AS perPupil, ROUND(SUM(instruction) / SUM(adm)) AS instructionPerPupil, COUNT(*) AS districts
         FROM district_finance WHERE adm > 0 AND total_expenditures IS NOT NULL GROUP BY year ORDER BY year

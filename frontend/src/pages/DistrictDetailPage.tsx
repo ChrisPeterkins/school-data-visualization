@@ -8,6 +8,7 @@ import { useAvailableYears } from '../hooks/useAvailableYears';
 import ResultsTable from '../components/ResultsTable';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import PinButton from '../components/PinButton';
+import ShareButton from '../components/ShareButton';
 import DataNotes from '../components/DataNotes';
 import TrendCard from '../components/TrendCard';
 import CohortChart from '../components/CohortChart';
@@ -100,6 +101,7 @@ export default function DistrictDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{d.name}</h1>
           <PinButton pin={{ kind: 'district', id: Number(d.id), name: d.name, detail: `${d.countyName} County` }} />
+          <ShareButton title={`${d.name} · PA School Data`} />
           <PrintButton />
         </div>
         <p className="text-sm text-stone-500 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>

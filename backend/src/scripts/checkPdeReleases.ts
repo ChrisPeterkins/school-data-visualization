@@ -1,7 +1,8 @@
 /**
  * Watch PDE's Assessment Reporting page for new PSSA/Keystone files, download
  * anything for a year not yet in sources/, and (with --import) run the import
- * for that year. Results land in backend/data/release-check.json, which the
+ * for that year. Also watches the graduation, enrollment / low-income, AFR,
+ * staff, and Future Ready pages (SOURCES below) and imports those. Results land in backend/data/release-check.json, which the
  * admin Import page shows.
  *
  *   npx tsx src/scripts/checkPdeReleases.ts [--import] [--dry-run]
@@ -12,6 +13,71 @@ import { execFileSync } from 'child_process';
 import { logger } from '../utils/logger';
 
 const PAGE = 'https://www.pa.gov/agencies/education/data-and-reporting/assessment-reporting';
+
+/**
+ * Non-assessment sources, each watched the same way: list the page's Excel
+ * links, keep the ones the pattern recognises, download the years we lack
+ * under our file naming, and run importIndicators.ts for that source.
+ */
+interface Source { key: string; page: string; dir: string; match: (href: string, text: string) => string | null }
+const SOURCES: Source[] = [
+  { key: 'graduation', page: 'https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation', dir: 'graduation',
+    match: (href) => { const m = decodeURIComponent(href).match(/(\d{4})-(\d{4}) pennsylvania 4-year cohort grad(?:uation)? rates\.xlsx$/i); return m ? `grad4-${m[1]}-${m[2]}.xlsx` : null; } },
+  { key: 'enrollment', page: 'https://www.pa.gov/agencies/education/data-and-reporting/enrollment', dir: 'enrollment',
+    match: (href) => { const d = decodeURIComponent(href); let m = d.match(/enrollment public schools (\d{4})-(\d{2,4})\.xlsx$/i); if (m) return `enrollment-${m[1]}-${m[2]}.xlsx`; m = d.match(/(\d{2})(\d{2}) public schools percent low income\.xlsx$/i); return m ? `../lowincome/lowincome-${m[1]}${m[2]}.xlsx` : null; } },
+  { key: 'finance', page: 'https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/financial-data-elements', dir: 'finance',
+    match: (href) => { const m = decodeURIComponent(href).match(/finances adm-wadm (\d{4}-\d{2})\.xlsx$/i); return m ? `adm-wadm-${m[1]}.xlsx` : null; } },
+  { key: 'finance-afr', page: 'https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data/afr-data-detailed', dir: 'finance',
+    match: (href) => { const m = decodeURIComponent(href).match(/finances afr expdetail (\d{4})-(\d{4})\.xlsx$/i); return m ? `afr-expdetail-${m[1]}-${m[2]}.xlsx` : null; } },
+  { key: 'staff', page: 'https://www.pa.gov/agencies/education/data-and-reporting/school-staff/professional-and-support-personnel', dir: 'staff',
+    match: (href) => { const m = decodeURIComponent(href).match(/(\d{4}-\d{2}) professional staff summary report(?:_revised)?\.xlsx$/i); return m ? `staff-${m[1]}.xlsx` : null; } },
+  { key: 'futureready', page: 'https://futurereadypa.org/Home/DataFiles', dir: 'futureready',
+    match: (href, text) => { const m = text.match(/Performance Data for SY (\d{4})-(\d{4})/i); return m && /getdatafile/i.test(href) ? `fr-${m[2]}.xlsx` : null; } },
+];
+
+async function checkOtherSources(): Promise<Array<{ key: string; file: string }>> {
+  const got: Array<{ key: string; file: string }> = [];
+  const importKeys = new Set<string>();
+  for (const src of SOURCES) {
+    let html: string;
+    try {
+      const res = await fetch(src.page, { headers: { 'User-Agent': UA } });
+      if (!res.ok) { logger.warn(`${src.key}: page returned HTTP ${res.status}`); continue; }
+      html = await res.text();
+    } catch (err) { logger.warn(`${src.key}: ${(err as Error).message}`); continue; }
+    const anchors = [...html.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map((m) => ({ href: m[1], text: m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() }));
+    for (const a of anchors) {
+      const target = src.match(a.href, a.text);
+      if (!target) continue;
+      // Only years the site covers (2015 onward); the pages also list older archives.
+      const y4 = target.match(/(20\d{2})/), y2 = target.match(/lowincome-(\d{2})/);
+      const targetYear = y4 ? Number(y4[1]) : y2 ? 2000 + Number(y2[1]) : 0;
+      if (targetYear && targetYear < 2015) continue;
+      const dest = path.join(sources, src.dir, target);
+      if (fs.existsSync(dest)) continue;
+      const url = a.href.startsWith('http') ? a.href : new URL(a.href, src.page).toString();
+      if (dryRun) { logger.info(`${src.key}: would download ${url} -> ${dest}`); continue; }
+      try {
+        const r = await fetch(url, { headers: { 'User-Agent': UA } });
+        if (!r.ok) { logger.warn(`${src.key}: download failed ${url}: HTTP ${r.status}`); continue; }
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (buf.length < 10000 || buf[0] !== 0x50 || buf[1] !== 0x4b) { logger.warn(`${src.key}: ${url} is not an xlsx`); continue; }
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, buf);
+        got.push({ key: src.key, file: path.relative(sources, dest) });
+        importKeys.add(target.startsWith('../lowincome') ? 'lowincome' : src.key === 'finance-afr' ? 'finance' : src.key);
+        logger.info(`${src.key}: downloaded ${dest}`);
+      } catch (err) { logger.warn(`${src.key}: ${(err as Error).message}`); }
+    }
+  }
+  if (doImport && !dryRun) {
+    for (const key of importKeys) {
+      logger.info(`importing ${key}...`);
+      execFileSync('npx', ['tsx', 'src/scripts/importIndicators.ts', key], { stdio: 'inherit' });
+    }
+  }
+  return got;
+}
 const UA = 'paschools-release-check/1.0 (+https://chrispeterkins.com/paschools)';
 const sources = path.join(process.cwd(), '..', 'sources');
 const statusFile = path.join(process.cwd(), 'data', 'release-check.json');
@@ -66,6 +132,8 @@ async function main() {
     }
   }
 
+  const otherFiles = await checkOtherSources();
+
   const imported: number[] = [];
   if (doImport && !dryRun) {
     for (const year of newYears) {
@@ -77,9 +145,9 @@ async function main() {
 
   // Optional push: NOTIFY_URL can be an ntfy.sh topic (https://ntfy.sh/<topic>)
   // or any webhook that accepts a plain-text POST body.
-  if (newYears.length && process.env.NOTIFY_URL) {
-    const body = `PA School Data: PDE published ${newYears.join(', ')} (${downloaded.length} files)` +
-      (imported.length ? ` — imported ${imported.join(', ')}` : ' — not imported yet') + `. ${PAGE}`;
+  if ((newYears.length || otherFiles.length) && process.env.NOTIFY_URL) {
+    const body = (newYears.length ? `PA School Data: PDE published ${newYears.join(', ')} (${downloaded.length} files)` + (imported.length ? ` — imported ${imported.join(', ')}` : ' — not imported yet') + `. ${PAGE}` : 'PA School Data:') +
+      (otherFiles.length ? ` New non-assessment files: ${otherFiles.map((f) => f.file).join(', ')}${doImport ? ' (imported)' : ''}.` : '');
     try {
       await fetch(process.env.NOTIFY_URL, { method: 'POST', body, headers: { 'Title': 'New PDE assessment release', 'Tags': 'school', 'User-Agent': UA } });
       logger.info('notification sent');
@@ -97,6 +165,7 @@ async function main() {
     newYears,
     downloaded,
     imported,
+    otherFiles,
     note: newYears.length && !doImport ? 'New files were downloaded but not imported; run importYear.ts for each year.' : null,
   };
   fs.writeFileSync(statusFile, JSON.stringify(status, null, 2));

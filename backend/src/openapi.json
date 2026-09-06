@@ -696,6 +696,23 @@
               "type": "integer",
               "default": 40
             }
+          },
+          {
+            "name": "measure",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proficiency",
+                "beating_odds",
+                "grad_rate_4yr",
+                "regular_attendance",
+                "low_income",
+                "per_pupil",
+                "students_per_teacher"
+              ]
+            },
+            "description": "Rank by assessment proficiency (default), by the residual of proficiency against the low-income share (beating_odds; adds fit and points), or by a non-assessment measure (per_pupil and students_per_teacher are district-only). measureYear in filters says which year was used."
           }
         ],
         "responses": {
@@ -1155,6 +1172,19 @@
               "type": "string",
               "default": "All Students"
             }
+          },
+          {
+            "name": "indicator",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "regular_attendance",
+                "grad_rate_4yr",
+                "low_income"
+              ]
+            },
+            "description": "Colour by a non-assessment indicator; its value is returned in both proficiency and indicator, growth is null"
           }
         ],
         "responses": {
@@ -1313,6 +1343,20 @@
           },
           {
             "$ref": "#/components/parameters/subject"
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "proficiency",
+                "spending",
+                "grad_rate_4yr",
+                "low_income"
+              ]
+            },
+            "description": "Boundary value: proficiency (default), spending per pupil, graduation rate, or low-income share (returned in proficiency)"
           }
         ],
         "responses": {
@@ -1379,7 +1423,7 @@
         ],
         "responses": {
           "200": {
-            "description": "indicators: series per indicator with the statewide value; enrollment: October 1 counts by year"
+            "description": "indicators: series per indicator with statewide value and a percentile among schools; enrollment by year; groups: latest attendance and graduation by student group with the gap vs. All Students"
           }
         }
       }
@@ -1402,7 +1446,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "indicators (with percentiles), enrollment, finance per year vs the state, staff (teachers, students per teacher, average salary and experience vs the state), groups"
           }
         }
       }
@@ -1442,6 +1486,53 @@
         "responses": {
           "200": {
             "description": "year, years, districts[{id,name,county,perPupil,instructionPerPupil,adm,proficiency,tested}], state{proficiency,medianPerPupil}"
+          }
+        }
+      }
+    },
+    "/schools/nearby": {
+      "get": {
+        "tags": [
+          "entities"
+        ],
+        "summary": "Schools closest to a point with their latest Math/ELA (and Keystone) proficiency",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 15,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "year, origin, schools[{id,name,type,city,districtName,lat,lng,km,math,ela,algebra,literature}]"
           }
         }
       }

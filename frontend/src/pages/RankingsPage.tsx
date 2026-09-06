@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ArrowTopRightOnSquareIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { useT } from '../i18n';
+import AccessibleChart from '../components/AccessibleChart';
+import ChartActions from '../components/ChartActions';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
   ScatterChart, Scatter, ZAxis,
@@ -40,6 +42,13 @@ export default function RankingsPage() {
   const [countyId, setCountyId] = useUrlState<number | ''>('county', '', parseNumber, (v) => (v === '' ? '' : String(v)));
   const [limit, setLimit] = useUrlState<number>('limit', 10, parseNumber);
   const [minTested, setMinTested] = useUrlState<number>('min', 40, parseNumber);
+  const MEASURES = ['proficiency', 'beating_odds', 'grad_rate_4yr', 'regular_attendance', 'low_income', 'per_pupil', 'students_per_teacher'] as const;
+  type Measure = typeof MEASURES[number];
+  const [measure, setMeasure] = useUrlState<Measure>('measure', 'proficiency', (r) => (MEASURES.includes(r as Measure) ? (r as Measure) : null));
+  const districtOnly = measure === 'per_pupil' || measure === 'students_per_teacher';
+  const isIndicator = measure !== 'proficiency' && measure !== 'beating_odds';
+  const isOdds = measure === 'beating_odds';
+  const fmtMeasure = (v: number | null | undefined) => (v == null ? 'N/A' : measure === 'per_pupil' ? `$${Math.round(v).toLocaleString()}` : measure === 'students_per_teacher' ? `${v.toFixed(1)}:1` : `${v}%`);
 
   const { data: filterOptions } = useQuery({
     queryKey: ['school-filters'],
@@ -60,15 +69,15 @@ export default function RankingsPage() {
   };
 
   const { data: rankings, isLoading, error, refetch } = useQuery({
-    queryKey: ['rankings', year, commonParams, limit, entity, mode, compareYearParam],
-    queryFn: () => performanceApi.getRankings({ year: year!, ...commonParams, limit, entity, mode, compareYear: compareYearParam ?? undefined } as any),
+    queryKey: ['rankings', year, commonParams, limit, entity, mode, compareYearParam, measure],
+    queryFn: () => performanceApi.getRankings({ year: year!, ...commonParams, limit, entity: districtOnly && entity === 'school' ? 'district' : entity, mode: measure === 'proficiency' ? mode : 'level', compareYear: compareYearParam ?? undefined, measure } as any),
     enabled: year != null,
   });
-  const isChange = mode === 'change';
+  const isChange = mode === 'change' && measure === 'proficiency';
   const compareYear: number | null = (rankings as any)?.filters?.compareYear ?? null;
   const entityNoun = entity === 'school' ? 'schools' : entity === 'district' ? 'districts' : 'counties';
   const pathFor = (id: number) => (entity === 'school' ? `/schools/${id}` : entity === 'district' ? `/districts/${id}` : `/counties/${id}`);
-  const metricOf = (s: any): number => (isChange ? s.change : s.avgProficiency);
+  const metricOf = (s: any): number => (isChange ? s.change : isOdds ? s.residual : s.avgProficiency);
 
   const { data: growthData } = useQuery({
     queryKey: ['growth-achievement', year, commonParams],
@@ -101,6 +110,7 @@ export default function RankingsPage() {
     return CHART_COLORS.navyLight;
   };
 
+  const barMax = rankings ? Math.max(...[...rankings.top, ...rankings.bottom].map((r: any) => r.avgProficiency ?? 0)) : 0;
   const SchoolCard = ({ school, variant }: { school: any; variant: 'top' | 'bottom' }) => {
     const isTop = variant === 'top';
     const band = growthBand(school.avgGrowth);
@@ -123,20 +133,26 @@ export default function RankingsPage() {
             <p className="text-xs text-stone-500 truncate">{sub}</p>
             <div className="mt-2 flex items-center gap-3">
               <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${isTop ? 'bg-navy-600' : 'bg-navy-300'}`} style={{ width: `${school.avgProficiency}%` }} />
+                <div className={`h-full rounded-full ${isTop ? 'bg-navy-600' : 'bg-navy-300'}`} style={{ width: `${districtOnly ? Math.min(100, (school.avgProficiency / (barMax || 1)) * 100) : school.avgProficiency}%` }} />
               </div>
-              <span className="text-sm font-bold tabular-nums text-stone-900">{school.avgProficiency}%</span>
+              <span className="text-sm font-bold tabular-nums text-stone-900">{fmtMeasure(school.avgProficiency)}</span>
               {isChange && (
                 <span className={`text-sm font-semibold tabular-nums ${school.change >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>
                   {school.change > 0 ? '+' : ''}{school.change} pts
+                </span>
+              )}
+              {isOdds && (
+                <span className={`text-sm font-semibold tabular-nums ${school.residual >= 0 ? 'text-teal-700' : 'text-brick-600'}`} title={t('rank.odds.expected', { value: `${school.expectedProficiency}%` })}>
+                  {school.residual > 0 ? '+' : ''}{school.residual} pts
                 </span>
               )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
               <span className="flex items-center gap-1">
                 <UserGroupIcon className="w-3 h-3" />
-                {school.totalTested?.toLocaleString() ?? '—'} tested
+                {school.totalTested?.toLocaleString() ?? '—'} {measure === 'per_pupil' ? 'ADM' : measure === 'students_per_teacher' ? 'teachers' : measure === 'grad_rate_4yr' ? 'in cohort' : isIndicator ? 'enrolled' : 'tested'}
               </span>
+              {isOdds && <span title={t('rank.odds.expected', { value: `${school.expectedProficiency}%` })}>{school.lowIncome}% low-income · {school.avgProficiency}% proficient</span>}
               {school.avgGrowth != null && (
                 <span className={band.className} title="PVAAS growth index">growth {school.avgGrowth.toFixed(1)} · {band.label}</span>
               )}
@@ -166,10 +182,13 @@ export default function RankingsPage() {
             <option value="district">{t('nav.districts')}</option>
             <option value="county">{t('nav.counties')}</option>
           </FilterSelect>
-          <FilterSelect label={t('rank.by')} value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
+          <FilterSelect label={t('rank.measure')} value={measure} onChange={(e) => { const m = e.target.value as Measure; setMeasure(m); if ((m === 'per_pupil' || m === 'students_per_teacher') && entity === 'school') setEntity('district'); }}>
+            {MEASURES.map((m) => <option key={m} value={m} disabled={(m === 'per_pupil' || m === 'students_per_teacher') && entity === 'county'}>{t(`rank.m.${m}`)}</option>)}
+          </FilterSelect>
+          {measure === 'proficiency' && <FilterSelect label={t('rank.by')} value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
             <option value="level">{t('rank.level')}</option>
             <option value="change">{t('rank.change')}</option>
-          </FilterSelect>
+          </FilterSelect>}
           {isChange && (
             <FilterSelect label={t('rank.since')} value={compareYearParam ?? compareYear ?? ''} onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}>
               {years.filter((y) => year == null || y < year).map((y) => <option key={y} value={y}>{y}</option>)}
@@ -216,29 +235,30 @@ export default function RankingsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? 'Most improved' : 'Highest'}</p>
-              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange ? `${metricOf(rankings.top[0]) > 0 ? '+' : ''}${metricOf(rankings.top[0])} pts` : `${rankings.top[0]?.avgProficiency ?? 'N/A'}%`}</p>
+              <p className="text-sm text-stone-500">{isChange ? 'Most improved' : isOdds ? t('rank.odds.above') : 'Highest'}</p>
+              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange || isOdds ? `${metricOf(rankings.top[0]) > 0 ? '+' : ''}${metricOf(rankings.top[0])} pts` : fmtMeasure(rankings.top[0]?.avgProficiency)}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.top[0]?.schoolName || 'N/A'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? `Statewide change${compareYear ? ` since ${compareYear}` : ''}` : 'State average'}</p>
+              <p className="text-sm text-stone-500">{isChange ? `Statewide change${compareYear ? ` since ${compareYear}` : ''}` : isOdds ? 'Poverty and proficiency' : 'State average'}</p>
               <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
                 {isChange
                   ? ((rankings as any).stateChange != null ? `${(rankings as any).stateChange > 0 ? '+' : ''}${(rankings as any).stateChange} pts` : 'N/A')
-                  : (rankings.stateAverage != null ? `${rankings.stateAverage}%` : 'N/A')}
+                  : isOdds ? ((rankings as any).fit?.r2 != null ? `r² ${(rankings as any).fit.r2}` : 'N/A')
+                  : (rankings.stateAverage != null ? fmtMeasure(rankings.stateAverage) : 'N/A')}
               </p>
-              <p className="text-sm text-stone-700 mt-0.5">{isChange ? `Now ${rankings.stateAverage ?? '—'}% proficient` : 'All students, same subject and grade'}</p>
+              <p className="text-sm text-stone-700 mt-0.5">{isChange ? `Now ${rankings.stateAverage ?? '—'}% proficient` : isOdds ? t('rank.odds.fit', { r2: Math.round(((rankings as any).fit?.r2 ?? 0) * 100), n: (rankings as any).fit?.n ?? 0, entity: entityNoun }) : isIndicator ? t('rank.measureYear', { year: (rankings as any).filters?.measureYear ?? '' }) : 'All students, same subject and grade'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? 'Most declined' : 'Lowest'}</p>
-              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange ? `${metricOf(rankings.bottom[0]) > 0 ? '+' : ''}${metricOf(rankings.bottom[0])} pts` : `${rankings.bottom[0]?.avgProficiency ?? 'N/A'}%`}</p>
+              <p className="text-sm text-stone-500">{isChange ? 'Most declined' : isOdds ? t('rank.odds.below') : 'Lowest'}</p>
+              <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange || isOdds ? `${metricOf(rankings.bottom[0]) > 0 ? '+' : ''}${metricOf(rankings.bottom[0])} pts` : fmtMeasure(rankings.bottom[0]?.avgProficiency)}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.bottom[0]?.schoolName || 'N/A'}</p>
             </div>
           </div>
 
           <div className="card-surface p-4 sm:p-6 mb-8">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">{isChange ? t('rank.changeTitle', { range: compareYear ? `, ${compareYear} – ${year}` : '' }) : t('rank.levelTitle')}</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-1">{isChange ? t('rank.changeTitle', { range: compareYear ? `, ${compareYear} – ${year}` : '' }) : measure === 'proficiency' ? t('rank.levelTitle') : t('rank.chartTitle', { measure: t(`rank.m.${measure}`) })}</h2>
               <ExportCsvButton
                 filename={`rankings-${entity}-${mode}-${examType}-${subject || 'all-subjects'}-${year}`}
                 rows={[...rankings.top.map((r: any) => ({ list: isChange ? 'most improved' : 'highest', ...r })), ...rankings.bottom.map((r: any) => ({ list: isChange ? 'most declined' : 'lowest', ...r }))]}
@@ -246,32 +266,54 @@ export default function RankingsPage() {
               />
             </div>
             <p className="text-xs text-stone-500 mb-4">
-              {isChange ? `Most improved ${rankings.top.length} and most declined ${rankings.bottom.length} ${entityNoun}, percentage points` : `Highest ${rankings.top.length} and lowest ${rankings.bottom.length} ${entityNoun} by % proficient or above`}
+              {isChange ? `Most improved ${rankings.top.length} and most declined ${rankings.bottom.length} ${entityNoun}, percentage points` : isOdds ? t('rank.oddsSub') : t('rank.chartSub', { top: rankings.top.length, bottom: rankings.bottom.length, entity: entityNoun, measure: measure === 'proficiency' ? '% proficient or above' : t(`rank.m.${measure}`).toLowerCase() })}
             </p>
             <div aria-hidden="true"><ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart layout="vertical" data={chartData} margin={{ left: smUp ? 10 : 0, right: smUp ? 30 : 16, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
-                <XAxis type="number" domain={isChange ? [-Math.ceil(changeExtent), Math.ceil(changeExtent)] : [0, 100]} tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => (isChange ? `${v > 0 ? '+' : ''}${v}` : `${v}%`)} />
+                <XAxis type="number" domain={isChange || isOdds ? [-Math.ceil(changeExtent), Math.ceil(changeExtent)] : districtOnly ? [0, 'auto'] : [0, 100]} tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => (isChange || isOdds ? `${v > 0 ? '+' : ''}${v}` : measure === 'per_pupil' ? `$${Math.round(v / 1000)}k` : measure === 'students_per_teacher' ? `${v}` : `${v}%`)} />
                 <YAxis type="category" dataKey="name" width={axisWidth} tick={{ fontSize: smUp ? 11 : 10, fill: '#57534e' }} />
-                {!isChange && rankings.stateAverage != null && (
+                {!isChange && !isOdds && rankings.stateAverage != null && (
                   <ReferenceLine x={rankings.stateAverage} stroke={CHART_COLORS.gold} strokeWidth={2} strokeDasharray="6 3"
-                    label={{ value: `State Avg: ${rankings.stateAverage}%`, position: 'top', fill: CHART_COLORS.gold, fontSize: 11, fontWeight: 600 }} />
+                    label={{ value: `State: ${fmtMeasure(rankings.stateAverage)}`, position: 'top', fill: CHART_COLORS.gold, fontSize: 11, fontWeight: 600 }} />
                 )}
-                {isChange && <ReferenceLine x={0} stroke="#a8a29e" />}
+                {(isChange || isOdds) && <ReferenceLine x={0} stroke="#a8a29e" />}
                 {isChange && (rankings as any).stateChange != null && (
                   <ReferenceLine x={(rankings as any).stateChange} stroke={CHART_COLORS.gold} strokeWidth={2} strokeDasharray="6 3"
                     label={{ value: `State: ${(rankings as any).stateChange > 0 ? '+' : ''}${(rankings as any).stateChange}`, position: 'top', fill: CHART_COLORS.gold, fontSize: 11, fontWeight: 600 }} />
                 )}
-                <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => (isChange ? [`${value > 0 ? '+' : ''}${value} pts`, 'Change'] : [`${value}%`, 'Proficiency'])}
+                <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => (isChange || isOdds ? [`${value > 0 ? '+' : ''}${value} pts`, isOdds ? 'Vs. expected' : 'Change'] : [fmtMeasure(value), t(`rank.m.${measure}`)])}
                   labelFormatter={(label) => chartData.find((d) => d.name === label)?.fullName || label} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {chartData.map((entry, index) => <Cell key={index} fill={isChange ? (entry.value >= 0 ? CHART_COLORS.teal : CHART_COLORS.brick) : entry.isTop ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
+                  {chartData.map((entry, index) => <Cell key={index} fill={isChange || isOdds ? (entry.value >= 0 ? CHART_COLORS.teal : CHART_COLORS.brick) : entry.isTop ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer></div>
           </div>
 
-          {entity === 'school' && points.length > 0 && (
+          {isOdds && (rankings as any).points?.length > 0 && (
+            <div className="card-surface p-4 sm:p-6 mb-8">
+              <h2 className="text-base font-semibold text-stone-900 mb-1">{t('rank.odds.title')}</h2>
+              <p className="text-xs text-stone-500 mb-4">{t('rank.odds.sub', { entity: entity === 'school' ? 'school' : 'district' })}</p>
+              <ChartActions filename={`beating-the-odds-${entity}-${year}`} title={t('rank.odds.title')}>
+              <AccessibleChart label={t('rank.odds.title')} rows={(rankings as any).points.map((p: any) => ({ name: p.name, lowIncome: p.lowIncome, proficiency: p.proficiency, residual: p.residual }))}>
+                <ResponsiveContainer width="100%" height={smUp ? 420 : 320}>
+                  <ScatterChart margin={{ top: 10, right: smUp ? 30 : 12, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+                    <XAxis type="number" dataKey="lowIncome" domain={[0, 100]} name="Low-income share" tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} label={{ value: '% of students from low-income families', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#78716c' }} />
+                    <YAxis type="number" dataKey="proficiency" domain={[0, 100]} name="Proficient or above" tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => `${v}%`} width={40} />
+                    <ZAxis type="number" dataKey="tested" range={[14, 160]} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ payload }) => { const p = payload?.[0]?.payload; return p ? <div className="bg-white border border-stone-200 rounded-lg shadow-lg px-3 py-2 text-xs"><div className="font-semibold text-stone-900">{p.name}</div><div>{p.lowIncome}% low-income · {p.proficiency}% proficient</div><div className={p.residual >= 0 ? 'text-teal-700' : 'text-brick-600'}>{p.residual > 0 ? '+' : ''}{p.residual} pts vs. expected</div></div> : null; }} />
+                    {(rankings as any).fit && <ReferenceLine segment={[{ x: 0, y: (rankings as any).fit.intercept }, { x: 100, y: (rankings as any).fit.intercept + (rankings as any).fit.slope * 100 }]} stroke={CHART_COLORS.gold} strokeWidth={2} strokeDasharray="6 3" />}
+                    <Scatter data={(rankings as any).points} fill="#1e3a5f" fillOpacity={0.5} isAnimationActive={false} onClick={(p: any) => p?.id && window.location.assign(`/paschools${pathFor(p.id)}`)} className="cursor-pointer" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </AccessibleChart>
+              </ChartActions>
+            </div>
+          )}
+
+          {entity === 'school' && !isOdds && !isIndicator && points.length > 0 && (
             <div className="card-surface p-4 sm:p-6 mb-8">
               <h2 className="text-base font-semibold text-stone-900 mb-1">{t('rank.growthVs')}</h2>
               <p className="text-xs text-stone-500 mb-4">

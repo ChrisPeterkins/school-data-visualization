@@ -75,6 +75,17 @@ await page.setViewportSize({ width: 1280, height: 900 });
 const docs = await page.request.get(`${BASE}/api/docs/json`);
 check('api docs json', docs.ok() && (await docs.json()).openapi === '3.0.3');
 
+// 8b. Rankings by a non-assessment measure, beating-the-odds scatter, nearby schools, compare indicators.
+await page.goto(`${BASE}/rankings?measure=grad_rate_4yr&entity=school`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
+check('rankings by graduation rate', (await page.locator('text=/in cohort/').count()) > 0);
+await page.goto(`${BASE}/rankings?measure=beating_odds&entity=school`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('beating the odds scatter', (await page.locator('.recharts-scatter-symbol').count()) > 20);
+await ctx.grantPermissions(["geolocation"]); await ctx.setGeolocation({ latitude: 39.83, longitude: -77.23 });
+await page.goto(`${BASE}/nearby`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('nearby schools', (await page.locator('ul.divide-y li').count()) >= 5);
+await page.goto(`${BASE}/compare?schools=${process.env.SCHOOL_ID || '1'}`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('compare indicators table', (await page.locator('table th:has-text("Measure")').count()) === 1);
+
 // 9. Accessibility: axe-core on three representative pages; serious and critical violations fail.
 const axePath = ['frontend/node_modules/axe-core/axe.min.js', 'node_modules/axe-core/axe.min.js'].map((p) => new URL('../' + p, import.meta.url).pathname).find((p) => fs.existsSync(p));
 if (axePath) {

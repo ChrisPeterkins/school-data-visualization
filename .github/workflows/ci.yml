@@ -35,6 +35,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build -w shared && npm run build -w backend && (cd frontend && npx vite build)
+      - name: Frontend size budget
+        run: node scripts/perf-budget.mjs frontend/dist
       - name: Start backend on the fixture database
         run: |
           gunzip -kf backend/fixtures/fixture.db.gz

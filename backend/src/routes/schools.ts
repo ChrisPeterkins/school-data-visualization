@@ -326,12 +326,28 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
       exam: z.enum(['pssa', 'keystone']).default('pssa'),
       subject: z.string().default('Mathematics'),
       group: z.string().default('All Students'),
+      /** Colour by a non-assessment indicator instead: value lands in `indicator`, latest year at or before `year`. */
+      indicator: z.enum(['regular_attendance', 'grad_rate_4yr', 'low_income']).optional(),
     }).parse(request.query);
     const cacheKey = cache.generateKey('map', JSON.stringify(q));
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
     ensureMapPointsTable();
+    if (q.indicator) {
+      const year = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE entity_type = 'school' AND indicator = ? AND year <= ?`).get(q.indicator, q.year) as { y: number | null }).y ?? q.year;
+      const points = sqliteDb.prepare(`
+        SELECT s.id, s.name, s.latitude AS lat, s.longitude AS lng, s.school_type AS type, s.enrollment,
+               s.district_id AS districtId, d.county_id AS countyId,
+               i.value AS proficiency, NULL AS growth, i.n AS tested, i.value AS indicator
+        FROM schools s JOIN districts d ON d.id = s.district_id
+        LEFT JOIN entity_indicators i ON i.entity_type = 'school' AND i.entity_id = s.id AND i.indicator = ? AND i.year = ?
+        WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+      `).all(q.indicator, year);
+      const response = { filters: { ...q, indicatorYear: year }, points };
+      await cache.set(cacheKey, response, 3600);
+      return response;
+    }
     // All Students comes from the precomputed table; other student groups
     // read the results table directly (a few hundred ms, then cached).
     const points = q.group === 'All Students'
@@ -359,6 +375,28 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
     const response = { filters: q, points };
     await cache.set(cacheKey, response, 3600);
     return response;
+  });
+
+  /** Schools closest to a point, with their latest all-grades Math and ELA proficiency. */
+  fastify.get('/nearby', async (request, reply) => {
+    const q = z.object({ lat: z.coerce.number().min(-90).max(90), lng: z.coerce.number().min(-180).max(180), limit: z.coerce.number().min(1).max(50).default(15), type: z.string().optional() }).safeParse(request.query);
+    if (!q.success) return reply.status(400).send({ error: 'lat and lng are required' });
+    const { lat, lng, limit, type } = q.data;
+    const year = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM school_map_points`).get() as { y: number | null }).y;
+    // Equirectangular distance is plenty at county scale; PA spans ~5° of longitude.
+    const kmPerLat = 111.32, kmPerLng = 111.32 * Math.cos((lat * Math.PI) / 180);
+    const rows = sqliteDb.prepare(`
+      SELECT s.id, s.name, s.school_type AS type, s.city, s.enrollment, d.name AS districtName, s.latitude AS lat, s.longitude AS lng,
+        ROUND(SQRT(((s.latitude - ?) * ?) * ((s.latitude - ?) * ?) + ((s.longitude - ?) * ?) * ((s.longitude - ?) * ?)), 1) AS km,
+        (SELECT p.proficiency FROM school_map_points p WHERE p.school_id = s.id AND p.year = ? AND p.exam = 'pssa' AND p.subject = 'Mathematics') AS math,
+        (SELECT p.proficiency FROM school_map_points p WHERE p.school_id = s.id AND p.year = ? AND p.exam = 'pssa' AND p.subject = 'English Language Arts') AS ela,
+        (SELECT p.proficiency FROM school_map_points p WHERE p.school_id = s.id AND p.year = ? AND p.exam = 'keystone' AND p.subject = 'Algebra I') AS algebra,
+        (SELECT p.proficiency FROM school_map_points p WHERE p.school_id = s.id AND p.year = ? AND p.exam = 'keystone' AND p.subject = 'Literature') AS literature
+      FROM schools s JOIN districts d ON d.id = s.district_id
+      WHERE s.is_active = 1 AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL ${type ? 'AND s.school_type = ?' : ''}
+      ORDER BY km LIMIT ?
+    `).all(lat, kmPerLat, lat, kmPerLat, lng, kmPerLng, lng, kmPerLng, year, year, year, year, ...(type ? [type] : []), limit);
+    return { year, origin: { lat, lng }, schools: rows };
   });
 
   // Get distinct values for filters

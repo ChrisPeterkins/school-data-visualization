@@ -154,3 +154,46 @@ describe('indicators, spending, districts, and search', () => {
     expect(body.results.some((r: any) => r.name.toLowerCase().startsWith(word))).toBe(true);
   });
 });
+
+describe('measures, beating the odds, nearby, previews', () => {
+  it('ranks districts by spending per pupil using the finance table', async () => {
+    const body = await get('/api/performance/rankings?year=2025&examType=pssa&entity=district&measure=per_pupil&limit=5');
+    expect(body.filters.measureYear).toBeGreaterThan(2015);
+    const values = body.top.map((r: any) => r.avgProficiency);
+    expect([...values].sort((a, b) => b - a)).toEqual(values);
+    const check = raw.prepare(`SELECT per_pupil FROM district_finance WHERE district_id = ? AND year = ?`).get(body.top[0].id, body.filters.measureYear) as { per_pupil: number };
+    expect(body.top[0].avgProficiency).toBe(check.per_pupil);
+  });
+
+  it('beating the odds: residual equals proficiency minus the fitted expectation', async () => {
+    const body = await get('/api/performance/rankings?year=2025&examType=pssa&entity=school&measure=beating_odds&limit=5');
+    if (!body.fit) return; // fixture may hold too few schools with low-income data
+    const r = body.top[0];
+    expect(r.residual).toBeCloseTo(r.avgProficiency - (body.fit.intercept + body.fit.slope * r.lowIncome), 0);
+    expect(body.points.length).toBe(body.fit.n);
+  });
+
+  it('nearby returns schools sorted by distance', async () => {
+    const s = raw.prepare(`SELECT latitude, longitude FROM schools WHERE latitude IS NOT NULL LIMIT 1`).get() as { latitude: number; longitude: number };
+    const body = await get(`/api/schools/nearby?lat=${s.latitude}&lng=${s.longitude}&limit=5`);
+    const km = body.schools.map((x: any) => x.km);
+    expect([...km].sort((a, b) => a - b)).toEqual(km);
+    expect(km[0]).toBeLessThan(0.5);
+  });
+
+  it('indicator groups carry a gap against All Students', async () => {
+    const row = raw.prepare(`SELECT entity_id AS id FROM indicator_groups WHERE entity_type = 'school' LIMIT 1`).get() as { id: number } | undefined;
+    if (!row) return;
+    const body = await get(`/api/indicators/school/${row.id}`);
+    const g = body.groups[0];
+    expect(g.groups.length).toBeGreaterThan(0);
+    if (g.allStudents != null) expect(g.groups[0].gap).toBeCloseTo(g.groups[0].value - g.allStudents, 0);
+  });
+
+  it('serves a crawler preview page with Open Graph tags', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/preview/schools/1' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/html');
+    expect(res.body).toContain('og:title');
+  });
+});

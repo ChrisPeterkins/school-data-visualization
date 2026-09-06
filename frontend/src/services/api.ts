@@ -79,7 +79,11 @@ export const schoolApi = {
     return data.similar;
   },
 
-  getMapPoints: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string; group?: string }) => {
+  getNearby: async (params: { lat: number; lng: number; limit?: number; type?: string }) => {
+    const { data } = await api.get<{ year: number | null; origin: { lat: number; lng: number }; schools: Array<{ id: number; name: string; type: string | null; city: string | null; enrollment: number | null; districtName: string; lat: number; lng: number; km: number; math: number | null; ela: number | null; algebra: number | null; literature: number | null }> }>('/api/schools/nearby', { params });
+    return data;
+  },
+  getMapPoints: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string; group?: string; indicator?: string }) => {
     const { data } = await api.get<{ filters: any; points: MapPoint[] }>('/api/schools/map', { params });
     return data.points;
   },
@@ -152,7 +156,7 @@ export const districtApi = {
     return data;
   },
 
-  getMapValues: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string }) => {
+  getMapValues: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string; metric?: string }) => {
     const { data } = await api.get<{ districts: DistrictMapValue[] }>('/api/districts/map-values', { params });
     return data.districts;
   },
@@ -307,6 +311,12 @@ export interface FinancePoint {
   year: number; total: number | null; instruction: number | null; supportServices: number | null; adm: number | null;
   perPupil: number | null; instructionPerPupil: number | null; statePerPupil: number | null; stateInstructionPerPupil: number | null;
 }
+export interface StaffPoint {
+  year: number; professional: number | null; teachers: number | null; administrators: number | null;
+  avgTeacherSalary: number | null; avgTeacherExperience: number | null; avgYearsInLea: number | null; studentsPerTeacher: number | null;
+  stateAvgTeacherSalary: number | null; stateAvgTeacherExperience: number | null; stateStudentsPerTeacher: number | null;
+}
+export interface IndicatorGroupRow { indicator: string; label: string; year: number; allStudents: number | null; groups: Array<{ group: string; value: number; gap: number | null }> }
 export interface SpendingDistrict { id: number; name: string; type: string | null; county: string; perPupil: number; instructionPerPupil: number | null; adm: number | null; proficiency: number; tested: number }
 export interface SpendingResponse {
   year: number | null; years: number[]; exam: 'pssa' | 'keystone'; subjects: string[];
@@ -314,8 +324,8 @@ export interface SpendingResponse {
 }
 
 export const indicatorApi = {
-  getSchool: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[] }>(`/api/indicators/school/${id}`)).data,
-  getDistrict: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: FinancePoint[] }>(`/api/indicators/district/${id}`)).data,
+  getSchool: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; groups: IndicatorGroupRow[] }>(`/api/indicators/school/${id}`)).data,
+  getDistrict: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: FinancePoint[]; staff: StaffPoint[]; groups: IndicatorGroupRow[] }>(`/api/indicators/district/${id}`)).data,
   getState: async () => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: Array<{ year: number; perPupil: number; instructionPerPupil: number; districts: number }> }>('/api/indicators/state')).data,
   getSpending: async (params: { year?: number; exam?: 'pssa' | 'keystone' }) => (await api.get<SpendingResponse>('/api/indicators/spending', { params })).data,
 };

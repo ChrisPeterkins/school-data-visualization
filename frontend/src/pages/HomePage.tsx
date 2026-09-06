@@ -82,7 +82,7 @@ export default function HomePage() {
 
   const features = [
     { key: 'map', link: '/map' }, { key: 'rankings', link: '/rankings' }, { key: 'compare', link: '/compare' },
-    { key: 'gaps', link: '/state?view=gaps' }, { key: 'trends', link: '/trends' }, { key: 'about', link: '/about' },
+    { key: 'nearby', link: '/nearby' }, { key: 'trends', link: '/trends' }, { key: 'about', link: '/about' },
   ];
 
   return (

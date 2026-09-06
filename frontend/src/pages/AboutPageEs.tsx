@@ -60,6 +60,11 @@ export default function AboutPageEs({ range }: { range: string }) {
         <p>
           <strong>El gasto por alumno</strong> es el total de gastos dividido por la matrícula diaria promedio (ADM), ambos de los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">resúmenes del Informe Financiero Anual</a> del PDE (desde 2015-16). La ADM de las escuelas chárter está disponible desde 2019-20, así que no tienen cifra por alumno antes. Los centros técnicos informan gastos pero no ADM. El gasto compra muchas cosas además de resultados de exámenes; el gráfico de la página de distritos es un punto de partida, no un veredicto.
         </p>
+        <p>
+          <strong>El porcentaje de bajos ingresos</strong> es el porcentaje de matrícula de familias de bajos ingresos del PDE (informes de condonación de préstamos, desde 2016-17). "Superando las expectativas" en la página de clasificación ajusta una recta de competencia en Matemáticas + ELA frente a ese porcentaje entre todas las escuelas (o distritos) del año y clasifica por la distancia por encima o por debajo de la recta; el r² indica cuánta variación explica por sí solo el porcentaje de pobreza.
+          <strong> El personal</strong> proviene de los resúmenes de personal profesional del PDE: docentes de aula a tiempo completo, salario promedio y años de servicio por distrito; estudiantes por docente divide la matrícula de octubre entre los docentes.
+          <strong> Los valores por grupo</strong> de asistencia y graduación provienen de los mismos archivos Future Ready y de cohortes.
+        </p>
         <p>Las etiquetas de año siguen la convención de las evaluaciones: 2025 significa el año escolar 2024-25 (para la matrícula, el conteo de octubre de 2024).</p>
       </Section>
 

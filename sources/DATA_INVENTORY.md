@@ -99,4 +99,9 @@ Imported by `backend/src/scripts/importIndicators.ts` into `entity_indicators`, 
 | `enrollment/` | `enrollment-2015-16.xlsx` … `enrollment-2025-2026.xlsx`, `enrollment-1617-2526.xlsx` | pa.gov → Enrollment → Public School Enrollments | October 1 enrollment by school ("LEA and School" sheet) and LEA; the consolidated file is LEA-only and is skipped by the importer. |
 | `finance/` | `afr-expdetail-1516-2425.xlsx`, `adm-wadm-2015-16.xlsx` … `adm-wadm-2024-25.xlsx` | pa.gov → School Finances → AFR Data Detailed / Financial Data Elements | Total, instruction, and support-services expenditures per LEA per year; ADM and WADM (charter ADM in a "CS ADM" sheet from 2016-17, so charter per-pupil figures start with the 2019-20 file). |
 
+| `lowincome/` | `lowincome-1617.xlsx` … `lowincome-2526.xlsx` | pa.gov → Enrollment → Public Schools Percent Low Income | Share of enrollment from low-income families by school and LEA (the `low_income` indicator, with enrollment as n). |
+| `staff/` | `staff-2015-16.xlsx` … `staff-2025-26.xlsx` | pa.gov → Professional and Support Personnel → Professional Staff Summary | Full-time professional staff per LEA: counts of teachers/administrators, average classroom-teacher salary, years of service, years in the LEA; students per teacher is derived from enrollment. |
+
+Student-group values (attendance from the Future Ready files, graduation rates from the cohort files) land in `indicator_groups`.
+
 Match keys: district AUN, and PDE school number zero-padded to nine digits. Roughly 230 Future Ready rows and 400–600 enrollment rows per year are schools that never appear in assessment files (K-2 buildings, some CTCs) and are skipped.

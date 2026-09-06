@@ -1,5 +1,6 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AccessibleChart from './AccessibleChart';
+import ChartActions from './ChartActions';
 import { useIsSmUp } from '../hooks/useMediaQuery';
 import { SUBJECT_COLORS } from '../lib/constants';
 import { standardsChangeLine, covidGapArea, tooltipStyle } from '../lib/chartUtils';
@@ -26,6 +27,7 @@ export default function TrendCard({ title, subtitle = 'All grades, weighted by s
     <div className="card-surface p-4 sm:p-6">
       <h3 className="text-base font-semibold text-stone-900 mb-1">{title}</h3>
       <p className="text-xs text-stone-500 mb-4">{subtitle}</p>
+      <ChartActions filename={title} title={title}>
       <AccessibleChart label={`${title}, ${years[0]} to ${years[years.length - 1]}`} rows={rows} columns={[{ key: 'year', label: 'Year' }, ...series.map((s) => ({ key: s, label: `${s} % proficient or above` }))]}>
         <ResponsiveContainer width="100%" height={height ?? (smUp ? 300 : 240)}>
           <LineChart data={data}>
@@ -42,6 +44,7 @@ export default function TrendCard({ title, subtitle = 'All grades, weighted by s
           </LineChart>
         </ResponsiveContainer>
       </AccessibleChart>
+      </ChartActions>
     </div>
   );
 }

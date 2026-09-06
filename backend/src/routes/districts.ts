@@ -144,13 +144,27 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
    * district id and NCES id (which the Census boundary file uses).
    */
   fastify.get('/map-values', async (request, _reply) => {
-    const q = request.query as { year?: string; exam?: string; subject?: string };
+    const q = request.query as { year?: string; exam?: string; subject?: string; metric?: string };
     const year = parseInt(q.year || '0', 10);
     const exam = q.exam === 'keystone' ? 'keystone' : 'pssa';
     const subject = q.subject || 'Mathematics';
-    const cacheKey = cache.generateKey('district-map-values', String(year), exam, subject);
+    const metric = q.metric === 'spending' || q.metric === 'grad_rate_4yr' || q.metric === 'low_income' ? q.metric : 'proficiency';
+    const cacheKey = cache.generateKey('district-map-values', String(year), exam, subject, metric);
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
+
+    if (metric !== 'proficiency') {
+      // Boundary colour from finance or an indicator: latest year at or before the requested one.
+      const src = metric === 'spending' ? 'district_finance' : 'entity_indicators';
+      const filter = metric === 'spending' ? 'per_pupil IS NOT NULL' : `indicator = '${metric}' AND entity_type = 'district'`;
+      const useYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM ${src} WHERE year <= ? AND ${filter}`).get(year) as { y: number | null }).y ?? year;
+      const rows = metric === 'spending'
+        ? sqliteDb.prepare(`SELECT d.id, d.nces_id AS ncesId, d.name, f.per_pupil AS proficiency, NULL AS growth, ROUND(f.adm) AS tested FROM district_finance f JOIN districts d ON d.id = f.district_id WHERE f.year = ? AND f.per_pupil IS NOT NULL`).all(useYear)
+        : sqliteDb.prepare(`SELECT d.id, d.nces_id AS ncesId, d.name, i.value AS proficiency, NULL AS growth, i.n AS tested FROM entity_indicators i JOIN districts d ON d.id = i.entity_id WHERE i.entity_type = 'district' AND i.indicator = ? AND i.year = ? AND i.value IS NOT NULL`).all(metric, useYear);
+      const response = { year: useYear, exam, subject, metric, districts: rows };
+      await cache.set(cacheKey, response, 3600);
+      return response;
+    }
 
     const table = exam === 'pssa' ? 'pssa_results' : 'keystone_results';
     const rows = sqliteDb.prepare(`

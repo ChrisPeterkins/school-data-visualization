@@ -70,6 +70,11 @@ export default function AboutPage() {
         <p>
           <strong>Spending per pupil</strong> is total expenditures divided by average daily membership (ADM), both from PDE's <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">Annual Financial Report summaries</a> (2015-16 onward). Charter school ADM is available from 2019-20, so charters have no per-pupil figure before then. Career and technical centers report expenditures but no ADM. Spending buys many things besides test scores; the scatter on the districts page is a starting point, not a verdict.
         </p>
+        <p>
+          <strong>Low-income share</strong> is PDE's percent of enrollment from low-income families (the loan-cancellation reports, 2016-17 onward). "Beating the odds" on the rankings page fits a straight line of Math + ELA proficiency against that share across every school (or district) in the year and ranks by the distance above or below the line; the r² shown is how much of the variation the poverty share alone explains.
+          <strong> Staffing</strong> comes from PDE's professional staff summaries: full-time classroom teachers, average salary and years of service per district; students per teacher divides October enrollment by teachers.
+          <strong> Student-group</strong> attendance and graduation rates come from the same Future Ready and cohort files.
+        </p>
         <p>Year labels follow the assessment convention: 2025 means the 2024-25 school year (for enrollment, the October 2024 count).</p>
       </Section>
 

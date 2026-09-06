@@ -7,6 +7,7 @@ import { useUrlState, parseNumber } from '../hooks/useUrlState';
 import { isExam, type Exam } from '../lib/constants';
 import FilterSelect from './FilterSelect';
 import AccessibleChart from './AccessibleChart';
+import ChartActions from './ChartActions';
 import { useT } from '../i18n';
 
 const money = (n: number) => `$${Math.round(n / 1000)}k`;
@@ -50,6 +51,7 @@ export default function SpendingScatter() {
         </div>
       </div>
       {data && data.year && (
+        <ChartActions filename={`spending-vs-outcomes-${data.year}`} title={`${t('spend.title')} · ${data.year - 1}-${String(data.year).slice(2)}`}>
         <AccessibleChart label={t('spend.title')} rows={data.districts.map((d) => ({ district: d.name, county: d.county, perPupil: d.perPupil, proficiency: d.proficiency, tested: d.tested }))}>
           <div className="h-80 sm:h-96">
             <ResponsiveContainer width="100%" height="100%">
@@ -77,6 +79,7 @@ export default function SpendingScatter() {
             </ResponsiveContainer>
           </div>
         </AccessibleChart>
+        </ChartActions>
       )}
       <p className="text-xs text-stone-500">{t('spend.note')}</p>
     </section>

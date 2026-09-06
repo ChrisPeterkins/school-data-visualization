@@ -17,6 +17,7 @@ export const INDICATORS = {
   english_proficiency: 'English learner proficiency',
   grade3_reading: 'Grade 3 reading',
   grade7_math: 'Grade 7 math',
+  low_income: 'Low-income share',
 } as const;
 export type Indicator = keyof typeof INDICATORS;
 
@@ -41,6 +42,29 @@ export function ensureIndicatorTables() {
       total INTEGER NOT NULL,
       source_file TEXT,
       PRIMARY KEY (year, entity_type, entity_id)
+    );
+    CREATE TABLE IF NOT EXISTS indicator_groups (
+      year INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER NOT NULL,
+      indicator TEXT NOT NULL,
+      student_group TEXT NOT NULL,
+      value REAL,
+      n INTEGER,
+      PRIMARY KEY (year, entity_type, entity_id, indicator, student_group)
+    );
+    CREATE TABLE IF NOT EXISTS district_staff (
+      year INTEGER NOT NULL,
+      district_id INTEGER NOT NULL,
+      professional INTEGER,
+      teachers INTEGER,
+      administrators INTEGER,
+      avg_teacher_salary REAL,
+      avg_teacher_experience REAL,
+      avg_years_in_lea REAL,
+      students_per_teacher REAL,
+      source_file TEXT,
+      PRIMARY KEY (year, district_id)
     );
     CREATE TABLE IF NOT EXISTS district_finance (
       year INTEGER NOT NULL,

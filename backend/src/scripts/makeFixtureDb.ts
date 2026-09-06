@@ -38,10 +38,11 @@ db.exec(`INSERT INTO pvaas_results SELECT * FROM prod.pvaas_results WHERE distri
 db.exec(`INSERT INTO school_map_points SELECT * FROM prod.school_map_points WHERE school_id IN (SELECT id FROM schools)`);
 db.exec(`INSERT INTO data_imports SELECT * FROM prod.data_imports`);
 // Non-assessment tables (indicators, enrollment, finance); created by ensureIndicatorTables in production.
-for (const t of ['entity_indicators', 'enrollments']) {
+for (const t of ['entity_indicators', 'enrollments', 'indicator_groups']) {
   db.exec(`INSERT INTO ${t} SELECT * FROM prod.${t} WHERE entity_type = 'state' OR (entity_type = 'district' AND entity_id IN (SELECT id FROM districts)) OR (entity_type = 'school' AND entity_id IN (SELECT id FROM schools))`);
 }
 db.exec(`INSERT INTO district_finance SELECT * FROM prod.district_finance WHERE district_id IN (SELECT id FROM districts)`);
+db.exec(`INSERT INTO district_staff SELECT * FROM prod.district_staff WHERE district_id IN (SELECT id FROM districts)`);
 db.exec(`DETACH DATABASE prod`);
 db.exec('VACUUM');
 

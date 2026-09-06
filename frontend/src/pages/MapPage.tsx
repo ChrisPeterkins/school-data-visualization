@@ -19,7 +19,11 @@ import { useT } from '../i18n';
 
 import { SUBJECTS, SUBJECT_SHORT as SHORT_SUBJECT, isExam, type Exam, GROUPS, groupLabel } from '../lib/constants';
 
-type Metric = 'proficiency' | 'growth' | 'quadrant';
+type Metric = 'proficiency' | 'growth' | 'quadrant' | 'attendance' | 'graduation' | 'lowincome';
+const INDICATOR_OF: Record<string, string> = { attendance: 'regular_attendance', graduation: 'grad_rate_4yr', lowincome: 'low_income' };
+type Boundary = 'proficiency' | 'spending' | 'grad_rate_4yr' | 'low_income';
+/** Low-income share: darker gold = more students from low-income families. */
+function lowIncomeColor(v: number | null) { if (v == null) return '#a8a29e'; return v >= 80 ? '#92400e' : v >= 60 ? '#b45309' : v >= 40 ? '#d97706' : v >= 20 ? '#f59e0b' : '#fcd34d'; }
 const PA_CENTER: [number, number] = [40.9, -77.75];
 const PA_ZOOM = 7;
 const NO_RESULT = '#f5f5f4';
@@ -116,7 +120,9 @@ export default function MapPage() {
   const years = yearsForExam(availableYears, exam);
   const [subjectParam, setSubject] = useUrlState<string>('subject', SUBJECTS[exam][0], parseString);
   const subject = SUBJECTS[exam].includes(subjectParam) ? subjectParam : SUBJECTS[exam][0];
-  const [metric, setMetric] = useUrlState<Metric>('metric', 'proficiency', (r) => (['proficiency', 'growth', 'quadrant'].includes(r) ? (r as Metric) : null));
+  const [metric, setMetric] = useUrlState<Metric>('metric', 'proficiency', (r) => (['proficiency', 'growth', 'quadrant', 'attendance', 'graduation', 'lowincome'].includes(r) ? (r as Metric) : null));
+  const indicator = INDICATOR_OF[metric];
+  const [boundaryMetric, setBoundaryMetric] = useUrlState<Boundary>('bmetric', 'proficiency', (r) => (['proficiency', 'spending', 'grad_rate_4yr', 'low_income'].includes(r) ? (r as Boundary) : null));
   const [type, setType] = useUrlState<string>('type', '', parseString);
   const [countyId, setCountyId] = useUrlState<number | ''>('county', '', parseNumber, (v) => (v === '' ? '' : String(v)));
   const [showEmpty, setShowEmpty] = useUrlState<boolean>('empty', false, (r) => r === '1', (v) => (v ? '1' : ''));
@@ -137,8 +143,8 @@ export default function MapPage() {
   useDocumentTitle('School map', `Every Pennsylvania public school on a map, colored by ${metric === 'growth' ? 'PVAAS growth' : metric === 'quadrant' ? 'growth and achievement' : 'proficiency'}.`);
 
   const { data: points = [], isLoading } = useQuery({
-    queryKey: ['map', year, exam, subject, group],
-    queryFn: () => schoolApi.getMapPoints({ year: year!, exam, subject, ...(group !== 'All Students' ? { group } : {}) }),
+    queryKey: ['map', year, exam, subject, group, indicator ?? ''],
+    queryFn: () => schoolApi.getMapPoints({ year: year!, exam, subject, ...(group !== 'All Students' ? { group } : {}), ...(indicator ? { indicator } : {}) }),
     enabled: year != null,
     staleTime: 60 * 60 * 1000,
   });
@@ -158,8 +164,8 @@ export default function MapPage() {
     return rows.find((r: any) => r.subject === subject)?.avgProficientOrAbove ?? null;
   }, [statePerformance, exam, subject]);
   const { data: districtValues = [] } = useQuery({
-    queryKey: ['district-map-values', year, exam, subject],
-    queryFn: () => districtApi.getMapValues({ year: year!, exam, subject }),
+    queryKey: ['district-map-values', year, exam, subject, boundaryMetric],
+    queryFn: () => districtApi.getMapValues({ year: year!, exam, subject, ...(boundaryMetric !== 'proficiency' ? { metric: boundaryMetric } : {}) } as any),
     enabled: year != null && boundaries,
     staleTime: 60 * 60 * 1000,
   });
@@ -196,9 +202,9 @@ export default function MapPage() {
   // Filtering and styling inputs for the cluster layer (memoised so markers are not rebuilt on every render).
   const valueOf = useCallback((p: MapPoint) => (metric === 'growth' ? p.growth : metric === 'quadrant' ? (p.growth == null || p.proficiency == null ? null : p.proficiency) : p.proficiency), [metric]);
   const colorOf = useCallback((p: MapPoint) => (
-    metric === 'growth' ? growthColor(p.growth) : metric === 'quadrant' ? quadrantColor(p.proficiency, p.growth, stateAvg) : proficiencyColor(p.proficiency)
+    metric === 'growth' ? growthColor(p.growth) : metric === 'quadrant' ? quadrantColor(p.proficiency, p.growth, stateAvg) : metric === 'lowincome' ? lowIncomeColor(p.proficiency) : proficiencyColor(p.proficiency)
   ), [metric, stateAvg]);
-  const clusterColorOf = useCallback((mean: number | null) => (metric === 'growth' ? growthColor(mean) : mean == null ? '#a8a29e' : proficiencyColor(mean)), [metric]);
+  const clusterColorOf = useCallback((mean: number | null) => (metric === 'growth' ? growthColor(mean) : mean == null ? '#a8a29e' : metric === 'lowincome' ? lowIncomeColor(mean) : proficiencyColor(mean)), [metric]);
   const shown = useMemo(() => points.filter((p) =>
     (!type || p.type === type) && (countyId === '' || p.countyId === countyId) && (showEmpty || valueOf(p) != null)
   ), [points, type, countyId, showEmpty, valueOf]);
@@ -213,21 +219,30 @@ export default function MapPage() {
     districtValues.forEach((d) => { if (d.ncesId) m.set(d.ncesId, d); });
     return m;
   }, [districtValues]);
+  // Spending per pupil shades from the 10th to the 90th percentile of districts so a few outliers do not flatten the map.
+  const spendingRange = useMemo(() => {
+    if (boundaryMetric !== 'spending') return null;
+    const v = districtValues.map((d) => d.proficiency).filter((x): x is number => x != null).sort((a, b) => a - b);
+    return v.length ? [v[Math.floor(v.length * 0.1)], v[Math.floor(v.length * 0.9)]] as const : null;
+  }, [districtValues, boundaryMetric]);
+  const boundaryColor = useCallback((v: number | null) => {
+    if (v == null) return '#f5f5f4';
+    if (boundaryMetric === 'spending' && spendingRange) { const t = Math.max(0, Math.min(1, (v - spendingRange[0]) / Math.max(1, spendingRange[1] - spendingRange[0]))); return `rgb(${Math.round(232 - 200 * t)}, ${Math.round(240 - 150 * t)}, ${Math.round(236 - 130 * t)})`; }
+    if (boundaryMetric === 'low_income') return lowIncomeColor(v);
+    if (boundaryMetric === 'proficiency' && metric === 'growth') return growthColor(v);
+    return proficiencyColor(v);
+  }, [boundaryMetric, spendingRange, metric]);
   const boundaryStyle = useCallback((feature: any) => {
     const d = valueByNces.get(feature?.properties?.geoid);
-    const v = metric === 'growth' ? d?.growth ?? null : d?.proficiency ?? null;
-    return {
-      color: '#1b2a4a', weight: 0.6, opacity: 0.5,
-      fillColor: v == null ? '#f5f5f4' : metric === 'growth' ? growthColor(v) : proficiencyColor(v),
-      fillOpacity: v == null ? 0.15 : 0.35,
-    };
-  }, [valueByNces, metric]);
+    const v = boundaryMetric === 'proficiency' && metric === 'growth' ? d?.growth ?? null : d?.proficiency ?? null;
+    return { color: '#1b2a4a', weight: 0.6, opacity: 0.5, fillColor: boundaryColor(v), fillOpacity: v == null ? 0.15 : 0.4 };
+  }, [valueByNces, metric, boundaryMetric, boundaryColor]);
   const onEachDistrict = useCallback((feature: any, layer: L.Layer) => {
     const d = valueByNces.get(feature?.properties?.geoid);
-    const label = `${feature?.properties?.name ?? 'District'}${d ? ` · ${formatPct(d.proficiency)} proficient${d.growth != null ? `, growth ${d.growth.toFixed(1)}` : ''}` : ''}`;
-    layer.bindTooltip(label, { sticky: true });
+    const desc = !d ? '' : boundaryMetric === 'spending' ? ` · $${Math.round(d.proficiency ?? 0).toLocaleString()} per pupil` : boundaryMetric === 'grad_rate_4yr' ? ` · ${formatPct(d.proficiency)} graduate in 4 years` : boundaryMetric === 'low_income' ? ` · ${formatPct(d.proficiency)} low-income` : ` · ${formatPct(d.proficiency)} proficient${d.growth != null ? `, growth ${d.growth.toFixed(1)}` : ''}`;
+    layer.bindTooltip(`${feature?.properties?.name ?? 'District'}${desc}`, { sticky: true });
     if (d) layer.on('click', () => setSelectedDistrictId(d.id));
-  }, [valueByNces, setSelectedDistrictId]);
+  }, [valueByNces, setSelectedDistrictId, boundaryMetric]);
   const showBoundaries = boundaries && !!geojson && zoom <= 11;
 
   const locateMe = () => {
@@ -270,6 +285,15 @@ export default function MapPage() {
         <option value="proficiency">Proficiency</option>
         <option value="growth" disabled={group !== 'All Students'}>Growth{group !== 'All Students' ? ' (All Students only)' : ''}</option>
         <option value="quadrant" disabled={group !== 'All Students'}>Growth vs. achievement</option>
+        <option value="attendance">Regular attendance</option>
+        <option value="graduation">4-year graduation rate</option>
+        <option value="lowincome">Low-income share</option>
+      </FilterSelect>
+      <FilterSelect label="Boundaries by" value={boundaryMetric} onChange={(e) => setBoundaryMetric(e.target.value as Boundary)}>
+        <option value="proficiency">Same as schools</option>
+        <option value="spending">Spending per pupil</option>
+        <option value="grad_rate_4yr">4-year graduation rate</option>
+        <option value="low_income">Low-income share</option>
       </FilterSelect>
       <FilterSelect label={t('common.year')} value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -305,7 +329,9 @@ export default function MapPage() {
 
   const legend = metric === 'quadrant'
     ? QUADRANTS.map(([color, label]) => [label, color] as const)
-    : metric === 'growth' ? GROWTH_STOPS.map(([, color, label]) => [label, color] as const) : PROF_STOPS.map(([, color, label]) => [label, color] as const);
+    : metric === 'growth' ? GROWTH_STOPS.map(([, color, label]) => [label, color] as const)
+    : metric === 'lowincome' ? ([['80%+', '#92400e'], ['60-80%', '#b45309'], ['40-60%', '#d97706'], ['20-40%', '#f59e0b'], ['<20%', '#fcd34d']] as const)
+    : PROF_STOPS.map(([, color, label]) => [label, color] as const);
 
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
@@ -478,7 +504,7 @@ export default function MapPage() {
 
         <div className="px-4 sm:px-6 py-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-medium text-stone-700">{metric === 'growth' ? 'Growth index' : metric === 'quadrant' ? `Vs. state average${stateAvg != null ? ` (${formatPct(stateAvg)})` : ''}` : '% proficient or above'}</span>
+            <span className="font-medium text-stone-700">{metric === 'growth' ? 'Growth index' : metric === 'quadrant' ? `Vs. state average${stateAvg != null ? ` (${formatPct(stateAvg)})` : ''}` : metric === 'attendance' ? '% regular attendance' : metric === 'graduation' ? '% graduating in 4 years' : metric === 'lowincome' ? '% low-income' : '% proficient or above'}</span>
             {legend.map(([label, color]) => (
               <span key={label} className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: color }} />{label}</span>
             ))}

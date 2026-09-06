@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useT } from '../i18n';
+import CompareIndicators from '../components/CompareIndicators';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ScatterChart, Scatter,
@@ -345,6 +346,7 @@ export default function ComparePage() {
           </div>
         </div>
       )}
+      {ids.length > 0 && <div className="mt-6"><CompareIndicators entity={entity} ids={ids} names={Object.fromEntries(figures.map((f) => [f.id, f.name]))} /></div>}
     </div>
   );
 }

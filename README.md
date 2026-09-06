@@ -40,7 +40,16 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Import report**: every yearly import ends with a year-over-year sanity report (entity counts, suppression, statewide figures per subject) posted to `NOTIFY_URL`; `importReport.ts` runs it on demand
 - **Install to home screen**: web app manifest and icons
 - **Traffic**: nightly GoAccess report over the nginx log (no cookies, anonymised IPs) at `/paschools/admin/traffic` behind admin auth
-- **Tests**: backend route tests against the fixture DB (23), frontend vitest + Testing Library (i18n, URL state, results table), and axe-core accessibility checks inside the e2e suite
+- **Tests**: backend route tests against the fixture DB (28), frontend vitest + Testing Library (i18n, URL state, results table), axe-core accessibility checks inside the e2e suite, and a gzipped size budget (`scripts/perf-budget.mjs`) enforced in CI and by the deploy script
+- **Beating the odds**: PDE's percent-low-income files give every school and district a poverty share; the rankings page can rank by the residual of Math + ELA proficiency against the statewide poverty line (with the scatter), and also by graduation rate, attendance, low-income share, spending per pupil, or students per teacher
+- **Student-group indicators**: attendance and graduation rates by student group with gaps against All Students on school and district pages
+- **Staffing**: PDE professional staff summaries give teachers, students per teacher, average salary and experience per district, compared with the state
+- **Map**: schools can be coloured by attendance, graduation rate, or low-income share; district boundaries by spending per pupil, graduation rate, or low-income share. Compare pages line up the non-assessment measures too
+- **Readable names**: PDE's capitals-and-abbreviations names are rewritten to display form (`normalizeNames.ts`, original kept in `pde_name`)
+- **Release watcher** now also checks the graduation, enrollment / low-income, AFR, staff, and Future Ready pages and imports what it finds
+- **Sharing**: Download PNG on trend and scatter charts; a Share button (Web Share API, or copy link) on school and district pages
+- **Schools near me** (`/nearby`): distance-sorted list from the browser's location with the latest results
+- **Ops**: monthly restore drill of the newest backup (`scripts/restore-drill.sh`) and a weekly slow/failed-request digest (`scripts/slow-requests.sh`), both to NOTIFY_URL
 
 ## 🛠 Tech Stack
 
@@ -179,7 +188,7 @@ Data is sourced from the Pennsylvania Department of Education:
 cd backend && npx tsx src/scripts/importIndicators.ts all   # or futureready | graduation | enrollment | finance
 ```
 
-Rows land in `entity_indicators`, `enrollments`, and `district_finance` (created by `ensureIndicatorTables`); the script is idempotent and refreshes map points afterwards. Add next year's files with the same names and rerun.
+Also `sources/lowincome/lowincome-YYYY.xlsx` (PDE percent low income by school and LEA) and `sources/staff/staff-YYYY-YY.xlsx` (professional staff summary). Rows land in `entity_indicators`, `indicator_groups`, `enrollments`, `district_finance`, and `district_staff` (created by `ensureIndicatorTables`); the script is idempotent and refreshes map points afterwards. The Monday release watcher downloads new files from all of these pages and imports them, so the yearly refresh is normally automatic.
 
 ## 📝 API Endpoints
 

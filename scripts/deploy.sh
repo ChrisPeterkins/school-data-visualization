@@ -24,6 +24,7 @@ npm run build -w backend
 echo "== frontend (built beside the live one, then swapped)"
 ( cd frontend && rm -rf dist-new && npx vite build --outDir dist-new \
   && find dist-new/assets -type f \( -name '*.js' -o -name '*.css' -o -name '*.geojson' \) -exec gzip -kf9 {} \; )
+node scripts/perf-budget.mjs frontend/dist-new || { echo 'size budget exceeded; not deploying'; exit 1; }
 rm -rf frontend/dist-prev
 mv frontend/dist frontend/dist-prev
 mv frontend/dist-new frontend/dist
