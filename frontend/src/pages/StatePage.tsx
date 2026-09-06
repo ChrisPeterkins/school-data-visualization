@@ -10,6 +10,7 @@ import AccessibleChart from '../components/AccessibleChart';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine, covidGapArea } from '../lib/chartUtils';
 import { useT } from '../i18n';
+import IndicatorsPanel from '../components/IndicatorsPanel';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -157,7 +158,7 @@ export default function StatePage() {
               <h2 className="text-base font-semibold text-stone-900 mb-1">
                 {selectedSubject} proficient or above, statewide
               </h2>
-              <p className="text-xs text-stone-400 mb-4">All grades combined</p>
+              <p className="text-xs text-stone-500 mb-4">{t('state.allGrades')}</p>
               <AccessibleChart label={`${selectedSubject} proficient or above statewide, by year`} rows={trendSeries.map((d) => ({ year: d.year, proficiency: d.proficiency }))} columns={[{ key: 'year', label: 'Year' }, { key: 'proficiency', label: '% proficient or above' }]}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <LineChart data={chartData}>
@@ -195,7 +196,7 @@ export default function StatePage() {
               <h2 className="text-base font-semibold text-stone-900 mb-1">
                 {selectedSubject} Performance Levels by Grade ({selectedYear})
               </h2>
-              <p className="text-xs text-stone-400 mb-4">Share of students at each level, statewide</p>
+              <p className="text-xs text-stone-500 mb-4">{t('state.levels')}</p>
               <AccessibleChart label={`${selectedSubject} performance levels by grade, ${selectedYear}`} rows={levelsByGrade}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={levelsByGrade}>
@@ -216,7 +217,7 @@ export default function StatePage() {
 
             {/* Key Stats */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Key Statistics ({selectedYear})</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">{t('state.keyStats', { year: selectedYear ?? '' })}</h2>
               <div className="space-y-4">
                 {[
                   { label: 'Tests scored', value: testsScored ? testsScored.toLocaleString() : '—' },
@@ -244,8 +245,12 @@ export default function StatePage() {
         )}
       </div>
 
+      <div className="mt-8">
+        <IndicatorsPanel entity="state" />
+      </div>
+
       <div className="mt-8 space-y-4">
-        <h2 className="text-lg font-bold text-stone-900">Achievement gaps, statewide</h2>
+        <h2 className="text-lg font-bold text-stone-900">{t('state.gaps')}</h2>
         <GapsPanel level="state" year={selectedYear ?? undefined} />
       </div>
     </div>

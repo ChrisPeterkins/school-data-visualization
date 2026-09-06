@@ -1,0 +1,15 @@
+{
+  "name": "PA School Data Explorer",
+  "short_name": "PA Schools",
+  "description": "PSSA and Keystone results, growth, attendance, graduation, and spending for every Pennsylvania public school.",
+  "start_url": "/paschools/",
+  "scope": "/paschools/",
+  "display": "standalone",
+  "background_color": "#0f1f38",
+  "theme_color": "#0f1f38",
+  "lang": "en",
+  "icons": [
+    { "src": "/paschools/assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/paschools/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

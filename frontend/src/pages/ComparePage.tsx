@@ -152,7 +152,7 @@ export default function ComparePage() {
           </FilterSelect>
           <FilterSelect label={t('common.exam')} value={exam} onChange={(e) => setExamParam(e.target.value as Exam)} fluid={false}>
             <option value="pssa">PSSA (grades 3-8)</option>
-            <option value="keystone">Keystone (high school)</option>
+            <option value="keystone">{t('common.keystoneLong')}</option>
           </FilterSelect>
           <FilterSelect label={t('common.studentGroup')} value={group} onChange={(e) => setGroup(e.target.value)} fluid={false}>
             {GROUPS.map((g) => <option key={g} value={g}>{labelFor(g)}</option>)}
@@ -179,7 +179,7 @@ export default function ComparePage() {
           <div className="mb-4">
             <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
                 <input
                   type="text"
                   value={searchTerm}
@@ -210,7 +210,7 @@ export default function ComparePage() {
             <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-full" style={{ borderColor: COMPARE_COLORS[index] }}>
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[index] }} />
               <span className="text-sm font-medium text-stone-700">{f.name}</span>
-              <button onClick={() => remove(f.id)} aria-label={`Remove ${f.name}`} className="text-stone-400 hover:text-stone-600 transition-colors">
+              <button onClick={() => remove(f.id)} aria-label={`Remove ${f.name}`} className="text-stone-500 hover:text-stone-600 transition-colors">
                 <XMarkIcon className="h-4 w-4" />
               </button>
             </div>
@@ -224,7 +224,7 @@ export default function ComparePage() {
           <p className="text-stone-500">Add up to 5 {entity}s to compare their results</p>
         </div>
       ) : isLoading ? (
-        <div className="card-surface p-12 text-center text-sm text-stone-400">Loading…</div>
+        <div className="card-surface p-12 text-center text-sm text-stone-500">Loading…</div>
       ) : noData ? (
         <div className="card-surface p-8 text-center text-sm text-stone-500">
           None of the selected {entity}s have {exam === 'pssa' ? 'PSSA' : 'Keystone'} results for {groupLabel} in {year}.
@@ -243,13 +243,13 @@ export default function ComparePage() {
             height={smUp ? 400 : 300}
           />
         ) : (
-          <div className="card-surface p-12 text-center text-sm text-stone-400">{trendQueries.some((q) => q.isLoading) ? 'Loading…' : `No ${trendSubject} results for ${labelFor(group)} over time.`}</div>
+          <div className="card-surface p-12 text-center text-sm text-stone-500">{trendQueries.some((q) => q.isLoading) ? 'Loading…' : `No ${trendSubject} results for ${labelFor(group)} over time.`}</div>
         )
       ) : figures.length > 0 && (
         <div className="space-y-6">
           <div className="card-surface p-4 sm:p-6">
-            <h2 className="text-base font-semibold text-stone-900 mb-1">Proficient or above by subject ({year})</h2>
-            <p className="text-xs text-stone-400 mb-4">{groupLabel}, all grades</p>
+            <h2 className="text-base font-semibold text-stone-900 mb-1">{t('cmp.bySubject', { year: year ?? '' })}</h2>
+            <p className="text-xs text-stone-500 mb-4">{groupLabel}, all grades</p>
             <AccessibleChart label={`Proficient or above by subject, ${groupLabel}, ${year}`} rows={barData}>
             <ResponsiveContainer width="100%" height={smUp ? 400 : 300}>
               <BarChart data={barData}>
@@ -265,8 +265,8 @@ export default function ComparePage() {
           </div>
 
           <div className="card-surface p-4 sm:p-6">
-            <h2 className="text-base font-semibold text-stone-900 mb-1">Against the state ({year})</h2>
-            <p className="text-xs text-stone-400 mb-4">Each dot is one {entity}'s % proficient or above for {groupLabel}; the gold diamond is the statewide figure for the same group</p>
+            <h2 className="text-base font-semibold text-stone-900 mb-1">{t('cmp.vsState', { year: year ?? '' })}</h2>
+            <p className="text-xs text-stone-500 mb-4">Each dot is one {entity}'s % proficient or above for {groupLabel}; the gold diamond is the statewide figure for the same group</p>
             <ResponsiveContainer width="100%" height={smUp ? 260 : 220}>
               <ScatterChart margin={{ top: 10, right: smUp ? 30 : 16, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
@@ -283,8 +283,8 @@ export default function ComparePage() {
           <div className="card-surface overflow-hidden">
             <div className="px-6 py-4 border-b border-stone-100 flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h2 className="text-base font-semibold text-stone-900">Summary ({year})</h2>
-                <p className="text-xs text-stone-400 mt-0.5">{groupLabel} proficient or above per subject; growth is the PVAAS index for all students</p>
+                <h2 className="text-base font-semibold text-stone-900">{t('cmp.summary', { year: year ?? '' })}</h2>
+                <p className="text-xs text-stone-500 mt-0.5">{groupLabel} proficient or above per subject; growth is the PVAAS index for all students</p>
               </div>
               <ExportCsvButton
                 filename={`compare-${entity}s-${group}-${year}`}
@@ -336,7 +336,7 @@ export default function ComparePage() {
                       </td>
                       {subjects.map((s) => <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">{formatPct(stateBySubject[s])}</td>)}
                       <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-stone-700 whitespace-nowrap">{isNaN(stateAverage) ? 'N/A' : formatPct(stateAverage)}</td>
-                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-400">—</td>
+                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-500">—</td>
                     </tr>
                   )}
                 </tbody>

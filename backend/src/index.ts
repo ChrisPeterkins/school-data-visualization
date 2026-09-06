@@ -15,8 +15,11 @@ import districtRoutes from './routes/districts';
 import countyRoutes from './routes/counties';
 import sitemapRoutes from './routes/sitemap';
 import searchRoutes from './routes/search';
+import indicatorRoutes from './routes/indicators';
+import previewRoutes from './routes/preview';
 import { sqliteDb } from './db';
 import { ensureSearchIndex, refreshSearchIndex } from './services/searchIndex';
+import { ensureIndicatorTables } from './services/indicators';
 import { ensureMapPointsTable, refreshMapPoints } from './services/mapPoints';
 import performanceRoutes from './routes/performance';
 import healthRoutes from './routes/health';
@@ -59,7 +62,7 @@ const buildApp = async () => {
 
   // Read endpoints change once a year, so let browsers and proxies cache
   // them for an hour and revalidate cheaply with a weak ETag.
-  const CACHEABLE = /^\/api\/(performance|schools|districts|counties|search)(\/|\?|$)/;
+  const CACHEABLE = /^\/api\/(performance|schools|districts|counties|search|indicators)(\/|\?|$)/;
   fastify.addHook('onSend', async (request, reply, payload) => {
     if (request.method === 'GET' && reply.statusCode === 200 && CACHEABLE.test(request.url) && typeof payload === 'string') {
       const etag = `W/"${createHash('sha1').update(payload).digest('base64url').slice(0, 20)}"`;
@@ -83,6 +86,9 @@ const buildApp = async () => {
   // on first start too so a fresh copy of the database (fixtures, CI) works.
   ensureMapPointsTable();
   ensureSearchIndex();
+  // The trigram twin was added later; fill it if the main index exists but it is empty.
+  if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM search_trigram').get() as { n: number }).n === 0 && (sqliteDb.prepare('SELECT COUNT(*) AS n FROM search_index').get() as { n: number }).n > 0) refreshSearchIndex();
+  ensureIndicatorTables();
   if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM search_index').get() as any).n === 0) refreshSearchIndex();
   if ((sqliteDb.prepare('SELECT COUNT(*) AS n FROM school_map_points').get() as any).n === 0) refreshMapPoints();
 
@@ -112,6 +118,8 @@ const buildApp = async () => {
   await fastify.register(countyRoutes, { prefix: '/api/counties' });
   await fastify.register(sitemapRoutes, { prefix: '/api' });
   await fastify.register(searchRoutes, { prefix: '/api/search' });
+  await fastify.register(indicatorRoutes, { prefix: '/api/indicators' });
+  await fastify.register(previewRoutes, { prefix: '/api/preview' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
   await fastify.register(importRoutes, { prefix: '/api/import' });
   await fastify.register(verifyRoutes, { prefix: '/api/verify' });

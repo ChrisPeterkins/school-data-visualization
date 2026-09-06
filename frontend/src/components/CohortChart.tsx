@@ -51,7 +51,7 @@ export default function CohortChart({ rows, entityName }: { rows: Row[]; entityN
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div>
           <h3 className="text-base font-semibold text-stone-900">Following each class through the grades</h3>
-          <p className="text-xs text-stone-400">Each line is one cohort as it moves up a grade each year; a rising line means the class gained ground. 2020 had no tests, so lines skip a grade there.</p>
+          <p className="text-xs text-stone-500">Each line is one cohort as it moves up a grade each year; a rising line means the class gained ground. 2020 had no tests, so lines skip a grade there.</p>
         </div>
         <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} fluid={false}>
           {subjects.map((s) => <option key={s} value={s}>{s}</option>)}

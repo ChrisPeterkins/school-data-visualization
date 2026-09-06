@@ -47,7 +47,7 @@ export default function DetailSheet({ itemKey, eyebrow, title, subtitle, peek, o
           className="flex-1 min-w-0 text-left sm:cursor-default"
         >
           <div className="sm:hidden mx-auto mb-2 h-1 w-10 rounded-full bg-stone-300" aria-hidden />
-          {eyebrow && <div className="text-[11px] uppercase tracking-wide text-stone-400">{eyebrow}</div>}
+          {eyebrow && <div className="text-[11px] uppercase tracking-wide text-stone-500">{eyebrow}</div>}
           <div className="text-sm font-semibold text-stone-900 leading-snug">{title}</div>
           {subtitle && <div className="text-xs text-stone-500 truncate">{subtitle}</div>}
           {peek && !expanded && <div className="sm:hidden mt-1 text-sm text-navy-800 font-medium">{peek}</div>}
@@ -57,11 +57,11 @@ export default function DetailSheet({ itemKey, eyebrow, title, subtitle, peek, o
             type="button"
             onClick={() => setExpanded((e) => !e)}
             aria-label={expanded ? 'Show less' : 'Show more'}
-            className="sm:hidden p-1 text-stone-400 hover:text-stone-600"
+            className="sm:hidden p-1 text-stone-500 hover:text-stone-600"
           >
             <ChevronUpIcon className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </button>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-1 text-stone-400 hover:text-stone-600">
+          <button type="button" onClick={onClose} aria-label="Close" className="p-1 text-stone-500 hover:text-stone-600">
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>

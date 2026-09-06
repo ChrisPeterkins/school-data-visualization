@@ -27,7 +27,7 @@ export default function AboutPage() {
       </div>
 
       <nav className="text-sm text-navy-700 flex flex-wrap gap-x-4 gap-y-1" aria-label="On this page">
-        {[['sources', 'Sources'], ['measures', 'What the measures mean'], ['methods', 'How figures are computed'], ['caveats', 'Caveats by year'], ['updates', 'Updates'], ['privacy', 'Privacy']].map(([id, label]) => (
+        {[['sources', 'Sources'], ['measures', 'What the measures mean'], ['indicators', 'Beyond test scores'], ['methods', 'How figures are computed'], ['caveats', 'Caveats by year'], ['updates', 'Updates'], ['privacy', 'Privacy']].map(([id, label]) => (
           <a key={id} href={`#${id}`} className="hover:underline">{label}</a>
         ))}
       </nav>
@@ -53,6 +53,24 @@ export default function AboutPage() {
           PDE's bands: roughly +2 or more is well above the standard, +1 to +2 above, -1 to +1 meets, -1 to -2 below, -2 or less well below. Growth is about progress, not level: a school can be low on proficiency and high on growth.
         </p>
         <p><strong>Students tested</strong> is PDE's "number scored" for the row. Groups with fewer than 11 students are suppressed by PDE and appear as N/A.</p>
+      </Section>
+
+      <Section id="indicators" title="Beyond test scores">
+        <p>
+          <strong>Attendance and readiness</strong> come from PDE's <a className="text-navy-700 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">Future Ready PA Index data files</a> (2017-18 onward).
+          Regular attendance is the share of students who were not chronically absent (missed more than 10% of enrolled days). Career standards benchmark, rigorous courses of study (AP, IB, dual enrollment, or CTE), industry-based learning, and post-secondary transition are the Index's college-and-career measures; English learner proficiency and grade 3 reading / grade 7 math are its on-track measures.
+          PDE stopped publishing the industry-based learning percentage after 2020-21. Values suppressed by PDE (fewer than 20 students) are omitted.
+        </p>
+        <p>
+          <strong>Graduation rates</strong> are PDE's 4-year cohort rates from the <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">cohort graduation files</a> (2016-17 onward), by school, district, and statewide, with the cohort size shown. The economically disadvantaged rate is also loaded where published.
+        </p>
+        <p>
+          <strong>Enrollment</strong> is PDE's October 1 count from the <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">public school enrollment reports</a> for 2015-16 through 2025-26, by school and district. The newest count also sizes the dots on the map and drives the enrollment filters.
+        </p>
+        <p>
+          <strong>Spending per pupil</strong> is total expenditures divided by average daily membership (ADM), both from PDE's <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">Annual Financial Report summaries</a> (2015-16 onward). Charter school ADM is available from 2019-20, so charters have no per-pupil figure before then. Career and technical centers report expenditures but no ADM. Spending buys many things besides test scores; the scatter on the districts page is a starting point, not a verdict.
+        </p>
+        <p>Year labels follow the assessment convention: 2025 means the 2024-25 school year (for enrollment, the October 2024 count).</p>
       </Section>
 
       <Section id="methods" title="How figures are computed">

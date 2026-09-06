@@ -17,6 +17,11 @@ interface I18n {
 const I18nContext = createContext<I18n>({ lang: 'en', setLang: () => undefined, t: (k) => en[k] ?? k });
 
 function detect(): Lang {
+  // ?lang=es on a shared link wins over the stored choice, and is then remembered.
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get('lang');
+    if (fromUrl === 'en' || fromUrl === 'es') { try { localStorage.setItem(STORAGE_KEY, fromUrl); } catch { /* ignore */ } return fromUrl; }
+  } catch { /* no window */ }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'en' || stored === 'es') return stored;
@@ -42,3 +47,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export const useI18n = () => useContext(I18nContext);
 export const useT = () => useContext(I18nContext).t;
+
+const SUBJECT_ES: Record<string, string> = { 'Mathematics': 'Matemáticas', 'English Language Arts': 'Artes del lenguaje (ELA)', 'Science': 'Ciencias', 'Algebra I': 'Álgebra I', 'Biology': 'Biología', 'Literature': 'Literatura' };
+const GROUP_ES: Record<string, string> = {
+  'All Students': 'Todos los estudiantes', 'Economically Disadvantaged': 'Desfavorecidos econ.', 'IEP': 'Estudiantes con IEP', 'ELL': 'Aprendices de inglés',
+  'Historically Underperforming': 'Históricamente de bajo rendimiento', 'White (not Hispanic)': 'Blancos', 'Black or African American (not Hispanic)': 'Negros',
+  'Hispanic (any race)': 'Hispanos', 'Asian (not Hispanic)': 'Asiáticos', 'Multi-ethnic (not Hispanic)': 'Multiétnicos',
+  'American Indian/Alaskan Native (not Hispanic)': 'Indígenas americanos / nativos de Alaska', 'Native Hawaiian or other Pacific Islander (not Hispanic)': 'Nativos de Hawái / islas del Pacífico',
+  'Male': 'Masculino', 'Female': 'Femenino',
+};
+/** PDE subject name in the current language (English names are PDE's own). */
+export const useSubjectLabel = () => { const { lang } = useContext(I18nContext); return (s: string) => (lang === 'es' ? SUBJECT_ES[s] ?? s : s); };
+/** Student-group label in the current language; English falls back to the short labels in constants. */
+export const useGroupLabel = (fallback: (g: string) => string) => { const { lang } = useContext(I18nContext); return (g: string) => (lang === 'es' ? GROUP_ES[g] ?? g : fallback(g)); };

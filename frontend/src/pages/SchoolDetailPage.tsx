@@ -7,6 +7,8 @@ import { schoolApi, performanceApi } from '../services/api';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import PerformanceChart from '../components/PerformanceChart';
 import ResultsTable from '../components/ResultsTable';
+import IndicatorsPanel from '../components/IndicatorsPanel';
+import PinButton from '../components/PinButton';
 import SchoolMap from '../components/SchoolMap';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
@@ -81,7 +83,7 @@ export default function SchoolDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-400 mb-6 min-w-0" aria-label="Breadcrumb">
+      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500 mb-6 min-w-0" aria-label="Breadcrumb">
         <Link to="/schools" className="hover:text-navy-600 transition-colors">Schools</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
         <span>{s.countyName}</span>
@@ -97,9 +99,10 @@ export default function SchoolDetailPage() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{s.name}</h1>
+              <PinButton pin={{ kind: 'school', id: Number(s.id), name: s.name, detail: s.districtName }} />
               <PrintButton />
             </div>
-            <p className="text-sm text-stone-400 mt-0.5">
+            <p className="text-sm text-stone-500 mt-0.5">
               School #{s.schoolNumber}
               {s.gradeRange ? ` · Grades ${s.gradeRange}` : ''}
               {s.isCharter ? ' · Charter' : ''}
@@ -107,15 +110,15 @@ export default function SchoolDetailPage() {
 
             <div className="mt-4 flex flex-col gap-2 text-sm">
               <div className="flex items-center gap-2">
-                <BuildingOffice2Icon className="w-4 h-4 text-stone-400 flex-shrink-0" />
+                <BuildingOffice2Icon className="w-4 h-4 text-stone-500 flex-shrink-0" />
                 <Link to={`/districts/${s.districtId}`} className="text-stone-600 hover:text-navy-600">
                   {s.districtName}
-                  <span className="text-stone-400 ml-1 text-xs">(AUN {s.districtAun})</span>
+                  <span className="text-stone-500 ml-1 text-xs">(AUN {s.districtAun})</span>
                 </Link>
               </div>
               {location && (
                 <div className="flex items-center gap-2">
-                  <MapPinIcon className="w-4 h-4 text-stone-400 flex-shrink-0" />
+                  <MapPinIcon className="w-4 h-4 text-stone-500 flex-shrink-0" />
                   <span className="text-stone-600">{location}</span>
                 </div>
               )}
@@ -178,7 +181,7 @@ export default function SchoolDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
               PSSA Results
-              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
+              <span className="text-sm font-normal text-stone-500">({activeYear})</span>
             </h2>
             <ExportCsvButton filename={`${s.name}-pssa-${activeYear}`} rows={selectedPssa} />
           </div>
@@ -191,13 +194,17 @@ export default function SchoolDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
               Keystone Exam Results
-              <span className="text-sm font-normal text-stone-400">({activeYear})</span>
+              <span className="text-sm font-normal text-stone-500">({activeYear})</span>
             </h2>
             <ExportCsvButton filename={`${s.name}-keystone-${activeYear}`} rows={selectedKeystone} />
           </div>
           <ResultsTable results={selectedKeystone} showGrade={false} />
         </div>
       )}
+
+      <div className="mb-8">
+        <IndicatorsPanel entity="school" id={Number(s.id)} />
+      </div>
 
       <div className="mb-8 space-y-4">
         <h2 className="text-lg font-bold text-stone-900">Achievement gaps</h2>

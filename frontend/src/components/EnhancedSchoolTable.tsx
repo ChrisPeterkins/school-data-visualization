@@ -144,7 +144,7 @@ export default function EnhancedSchoolTable({
             <tbody className="divide-y divide-stone-100">
               {filteredSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 sm:px-5 py-12 text-center text-stone-400">
+                  <td colSpan={9} className="px-3 sm:px-5 py-12 text-center text-stone-500">
                     No schools found matching your filters
                   </td>
                 </tr>
@@ -157,7 +157,7 @@ export default function EnhancedSchoolTable({
                       <div className="text-xs text-stone-500 md:hidden">
                         {school.districtName}{school.countyName ? ` · ${school.countyName} County` : ''}
                       </div>
-                      <div className="text-xs text-stone-400">#{school.schoolNumber}</div>
+                      <div className="text-xs text-stone-500">#{school.schoolNumber}</div>
                     </td>
                     <td className="hidden md:table-cell px-3 sm:px-5 py-3.5">
                       <div className="text-sm text-stone-700">{school.districtName}</div>

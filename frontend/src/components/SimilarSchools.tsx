@@ -18,7 +18,7 @@ export default function SimilarSchools({ schoolId, schoolName }: { schoolId: num
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
           <h2 className="text-base font-semibold text-stone-900">Similar schools</h2>
-          <p className="text-xs text-stone-400">Same level, nearest and closest in size to {schoolName}</p>
+          <p className="text-xs text-stone-500">Same level, nearest and closest in size to {schoolName}</p>
         </div>
         <Link to={compareHref} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-navy-700 text-white hover:bg-navy-600 transition-colors">
           <ArrowsRightLeftIcon className="w-4 h-4" />

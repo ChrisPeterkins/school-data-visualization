@@ -24,7 +24,7 @@ db.pragma('synchronous = OFF');
 db.exec(`ATTACH DATABASE '${src.replace(/'/g, "''")}' AS prod`);
 
 // Recreate every table and index with the production DDL.
-const ddl = db.prepare(`SELECT sql FROM prod.sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'search_index%' ORDER BY type = 'index'`).all() as Array<{ sql: string }>;
+const ddl = db.prepare(`SELECT sql FROM prod.sqlite_master WHERE sql IS NOT NULL AND type IN ('table','index') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'search_index%' AND name NOT LIKE 'search_trigram%' ORDER BY type = 'index'`).all() as Array<{ sql: string }>;
 for (const { sql } of ddl) db.exec(sql);
 
 const codeList = countyCodes.map((c) => `'${c}'`).join(',');
@@ -37,9 +37,14 @@ for (const t of ['pssa_results', 'keystone_results']) {
 db.exec(`INSERT INTO pvaas_results SELECT * FROM prod.pvaas_results WHERE district_id IN (SELECT id FROM districts) OR school_id IN (SELECT id FROM schools)`);
 db.exec(`INSERT INTO school_map_points SELECT * FROM prod.school_map_points WHERE school_id IN (SELECT id FROM schools)`);
 db.exec(`INSERT INTO data_imports SELECT * FROM prod.data_imports`);
+// Non-assessment tables (indicators, enrollment, finance); created by ensureIndicatorTables in production.
+for (const t of ['entity_indicators', 'enrollments']) {
+  db.exec(`INSERT INTO ${t} SELECT * FROM prod.${t} WHERE entity_type = 'state' OR (entity_type = 'district' AND entity_id IN (SELECT id FROM districts)) OR (entity_type = 'school' AND entity_id IN (SELECT id FROM schools))`);
+}
+db.exec(`INSERT INTO district_finance SELECT * FROM prod.district_finance WHERE district_id IN (SELECT id FROM districts)`);
 db.exec(`DETACH DATABASE prod`);
 db.exec('VACUUM');
 
-const counts = Object.fromEntries(['counties', 'districts', 'schools', 'pssa_results', 'keystone_results', 'pvaas_results'].map((t) => [t, (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as any).n]));
+const counts = Object.fromEntries(['counties', 'districts', 'schools', 'pssa_results', 'keystone_results', 'pvaas_results', 'entity_indicators', 'enrollments', 'district_finance'].map((t) => [t, (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as any).n]));
 db.close();
 logger.info(`fixture written to ${out} (${Math.round(fs.statSync(out).size / 1024 / 1024)} MB): ${JSON.stringify(counts)}`);

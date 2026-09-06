@@ -92,7 +92,7 @@ export default function UploadPage() {
             <label className="block text-xs font-medium text-stone-500 mb-1.5">Select Files</label>
             <input ref={fileInputRef} type="file" multiple accept=".xlsx,.xls" onChange={handleFileChange}
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-navy-500/30" />
-            <p className="text-xs text-stone-400 mt-1">Only Excel files (.xlsx, .xls). Max 100MB per file.</p>
+            <p className="text-xs text-stone-500 mt-1">Only Excel files (.xlsx, .xls). Max 100MB per file.</p>
           </div>
 
           {files && files.length > 0 && (
@@ -134,7 +134,7 @@ export default function UploadPage() {
               <div key={idx} className="flex justify-between items-center p-3 bg-stone-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-stone-900">{file.filename}</p>
-                  <p className="text-xs text-stone-400">{file.path}</p>
+                  <p className="text-xs text-stone-500">{file.path}</p>
                 </div>
                 <span className="text-xs text-stone-500">{formatBytes(file.size)}</span>
               </div>

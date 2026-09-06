@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT, useSubjectLabel } from '../i18n';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { performanceApi } from '../services/api';
@@ -31,6 +32,8 @@ const TREND_COLORS: Record<string, string> = {
  * largest gaps have moved over time. Weighted by students tested.
  */
 export default function GapsPanel({ level, schoolId, districtId, countyId, exams = ['pssa', 'keystone'], year }: GapsPanelProps) {
+  const t = useT();
+  const subjectLabel = useSubjectLabel();
   const smUp = useIsSmUp();
   const [exam, setExam] = useState<Exam>(exams[0]);
   const activeExam = exams.includes(exam) ? exam : exams[0];
@@ -61,27 +64,27 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
         {exams.length > 1 && (
-          <FilterSelect label="Exam" value={activeExam} onChange={(e) => { setExam(e.target.value as Exam); setSubject(null); }}>
+          <FilterSelect label={t('common.exam')} value={activeExam} onChange={(e) => { setExam(e.target.value as Exam); setSubject(null); }}>
             <option value="pssa">PSSA</option>
             <option value="keystone">Keystone</option>
           </FilterSelect>
         )}
-        <FilterSelect label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
+        <FilterSelect label={t('common.subject')} value={subject} onChange={(e) => setSubject(e.target.value)}>
           {SUBJECTS[activeExam].map((s) => <option key={s} value={s}>{s}</option>)}
         </FilterSelect>
       </div>
 
       {isLoading ? (
-        <div className="card-surface p-8 text-center text-sm text-stone-400">Loading groups...</div>
+        <div className="card-surface p-8 text-center text-sm text-stone-500">{t('gaps.loading')}</div>
       ) : groups.length === 0 ? (
-        <div className="card-surface p-8 text-center text-sm text-stone-400">No student-group results for this selection.</div>
+        <div className="card-surface p-8 text-center text-sm text-stone-500">{t('gaps.none')}</div>
       ) : (
         <>
           <div className="card-surface overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-stone-100 flex flex-wrap items-start justify-between gap-2">
               <div>
-              <h3 className="text-base font-semibold text-stone-900">{subject} by student group ({data?.year})</h3>
-              <p className="text-xs text-stone-400 mt-0.5">
+              <h3 className="text-base font-semibold text-stone-900">{t('gaps.bySubject', { subject: subjectLabel(subject), year: data?.year ?? '' })}</h3>
+              <p className="text-xs text-stone-500 mt-0.5">
                 Gap is percentage points from All Students ({formatPct(data?.allStudents)}). Groups under 11 students are suppressed by PDE and do not appear.
               </p>
               </div>
@@ -108,7 +111,7 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
                         <td className="px-3 sm:px-6 py-2.5 text-sm text-stone-900">{SHORT[g.group] ?? g.group}</td>
                         <td className="px-3 sm:px-6 py-2.5 text-sm text-right tabular-nums text-stone-900">{formatPct(g.proficiency)}</td>
                         <td className="px-3 sm:px-6 py-2.5">
-                          {isAll || g.gap == null ? <span className="text-xs text-stone-400">—</span> : (
+                          {isAll || g.gap == null ? <span className="text-xs text-stone-500">—</span> : (
                             <div className="flex items-center gap-2 min-w-[7rem]">
                               <div className="relative h-2 w-24 bg-stone-100 rounded-full overflow-hidden" aria-hidden>
                                 <div className="absolute top-0 bottom-0 left-1/2 w-px bg-stone-300" />
@@ -137,8 +140,8 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
 
           {trendRows.length > 1 && trendGroupsPresent.length > 1 && (
             <div className="card-surface p-4 sm:p-6">
-              <h3 className="text-base font-semibold text-stone-900 mb-1">{subject} proficiency by group over time</h3>
-              <p className="text-xs text-stone-400 mb-4">The largest groups; a widening spread between lines is a widening gap</p>
+              <h3 className="text-base font-semibold text-stone-900 mb-1">{t('gaps.overTime', { subject: subjectLabel(subject) })}</h3>
+              <p className="text-xs text-stone-500 mb-4">{t('gaps.overTimeSub')}</p>
               <AccessibleChart label={`${subject} proficiency by student group over time`} rows={trendRows.filter((r) => Object.keys(r).length > 1)}>
               <ResponsiveContainer width="100%" height={smUp ? 320 : 260}>
                 <LineChart data={trendRows}>

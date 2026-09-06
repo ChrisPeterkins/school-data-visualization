@@ -22,7 +22,7 @@ interface ResultsTableProps {
 }
 
 const proficiencyClass = (value: number | null | undefined) => {
-  if (value == null) return 'text-stone-400';
+  if (value == null) return 'text-stone-500';
   if (value >= 70) return 'text-navy-800 font-semibold';
   if (value >= 50) return 'text-navy-600 font-semibold';
   return 'text-stone-700 font-semibold';
@@ -121,7 +121,7 @@ export default function ResultsTable({ results, showGrade, compact = false }: Re
         </table>
       </div>
       {hasGrowth && (
-        <p className="px-3 sm:px-5 py-2 text-xs text-stone-400 border-t border-stone-100">
+        <p className="px-3 sm:px-5 py-2 text-xs text-stone-500 border-t border-stone-100">
           {t('results.note')}
         </p>
       )}

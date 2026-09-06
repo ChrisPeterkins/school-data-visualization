@@ -88,3 +88,15 @@ Pre-2015 results: PDE's current site starts at 2015. The Wayback Machine preserv
 2. Account for missing 2020 data in trend analysis
 3. Normalize column names across different years
 4. Handle variations in school/district identifiers
+## Non-assessment sources (added September 2026)
+
+Imported by `backend/src/scripts/importIndicators.ts` into `entity_indicators`, `enrollments`, and `district_finance`. Year labels follow the assessment convention (SY 2024-25 = 2025).
+
+| Directory | Files | Source | Covers |
+|---|---|---|---|
+| `futureready/` | `fr-2018.xlsx` … `fr-2025.xlsx` | futureredypa.org → Data Files → "Future Ready Performance Data for SY …" | Regular attendance, career standards benchmark, rigorous courses, industry-based learning (to 2021), post-secondary transition, English learner proficiency, grade 3 reading, grade 7 math. Long layout (DataElement/DisplayValue) through 2021, wide layout from 2022. Statewide averages are included from 2022. |
+| `graduation/` | `grad4-2016-2017.xlsx` … `grad4-2024-2025.xlsx` | pa.gov → High School Graduation → 4-year cohort files | School, LEA, and statewide 4-year cohort graduation rate with cohort size; economically disadvantaged rate at school level. |
+| `enrollment/` | `enrollment-2015-16.xlsx` … `enrollment-2025-2026.xlsx`, `enrollment-1617-2526.xlsx` | pa.gov → Enrollment → Public School Enrollments | October 1 enrollment by school ("LEA and School" sheet) and LEA; the consolidated file is LEA-only and is skipped by the importer. |
+| `finance/` | `afr-expdetail-1516-2425.xlsx`, `adm-wadm-2015-16.xlsx` … `adm-wadm-2024-25.xlsx` | pa.gov → School Finances → AFR Data Detailed / Financial Data Elements | Total, instruction, and support-services expenditures per LEA per year; ADM and WADM (charter ADM in a "CS ADM" sheet from 2016-17, so charter per-pupil figures start with the 2019-20 file). |
+
+Match keys: district AUN, and PDE school number zero-padded to nine digits. Roughly 230 Future Ready rows and 400–600 enrollment rows per year are schools that never appear in assessment files (K-2 buildings, some CTCs) and are skipped.

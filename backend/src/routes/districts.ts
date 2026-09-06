@@ -11,7 +11,11 @@ const districtQuerySchema = z.object({
   search: z.string().optional(),
   countyId: z.coerce.number().optional(),
   countyName: z.string().optional(),
-  sortBy: z.enum(['name', 'countyName', 'schoolCount']).optional().default('name'),
+  /** District type as stored (Public, Charter, Cyber Charter, CTC, ...). */
+  type: z.string().optional(),
+  minEnrollment: z.coerce.number().optional(),
+  maxEnrollment: z.coerce.number().optional(),
+  sortBy: z.enum(['name', 'countyName', 'schoolCount', 'enrollment', 'proficiency']).optional().default('name'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
 });
 
@@ -45,6 +49,17 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
     if (query.countyName) {
       conditions.push(like(counties.name, `%${query.countyName}%`));
     }
+    if (query.type) conditions.push(eq(districts.districtType, query.type));
+    if (query.minEnrollment != null) conditions.push(sql`${districts.totalEnrollment} >= ${query.minEnrollment}`);
+    if (query.maxEnrollment != null) conditions.push(sql`${districts.totalEnrollment} <= ${query.maxEnrollment}`);
+
+    // Latest all-grades Math + ELA proficiency, student-weighted, for the list and for sorting.
+    const latestYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM pssa_results WHERE level = 'district'`).get() as { y: number | null }).y ?? 0;
+    const proficiencySql = sql<number | null>`(
+      SELECT ROUND(SUM(r.proficient_or_above_percent * r.total_tested) / SUM(r.total_tested), 1) FROM pssa_results r
+      WHERE r.level = 'district' AND r.district_id = districts.id AND r.year = ${latestYear} AND r.grade = 0
+        AND r.demographic_group = 'All Students' AND r.subject IN ('Mathematics', 'English Language Arts') AND r.total_tested > 0
+    )`;
 
     // Determine sort column
     let orderByColumn;
@@ -54,6 +69,12 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
         break;
       case 'schoolCount':
         orderByColumn = sql<number>`school_count`;
+        break;
+      case 'enrollment':
+        orderByColumn = sql<number>`COALESCE(${districts.totalEnrollment}, -1)`;
+        break;
+      case 'proficiency':
+        orderByColumn = sql<number>`COALESCE(${proficiencySql}, -1)`;
         break;
       default:
         orderByColumn = districts.name;
@@ -79,6 +100,8 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
         phoneNumber: districts.phoneNumber,
         websiteUrl: districts.websiteUrl,
         totalEnrollment: districts.totalEnrollment,
+        proficiency: proficiencySql,
+        proficiencyYear: sql<number>`${latestYear}`,
         schoolCount: sql<number>`(
           SELECT COUNT(*) FROM schools 
           WHERE schools.district_id = districts.id

@@ -116,7 +116,7 @@ export default function RankingsPage() {
               <Link to={pathFor(school.schoolId)} className="text-sm font-semibold text-stone-900 hover:text-navy-600 transition-colors truncate">
                 {school.schoolName}
               </Link>
-              <Link to={pathFor(school.schoolId)} className="flex-shrink-0 text-stone-400 hover:text-navy-500" aria-label={`Open ${school.schoolName}`}>
+              <Link to={pathFor(school.schoolId)} className="flex-shrink-0 text-stone-500 hover:text-navy-500" aria-label={`Open ${school.schoolName}`}>
                 <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -132,7 +132,7 @@ export default function RankingsPage() {
                 </span>
               )}
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
               <span className="flex items-center gap-1">
                 <UserGroupIcon className="w-3 h-3" />
                 {school.totalTested?.toLocaleString() ?? '—'} tested
@@ -161,17 +161,17 @@ export default function RankingsPage() {
 
       <div className="card-surface p-4 mb-8">
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-          <FilterSelect label="Rank" value={entity} onChange={(e) => setEntity(e.target.value as RankEntity)}>
-            <option value="school">Schools</option>
-            <option value="district">Districts</option>
-            <option value="county">Counties</option>
+          <FilterSelect label={t('rank.rank')} value={entity} onChange={(e) => setEntity(e.target.value as RankEntity)}>
+            <option value="school">{t('nav.schools')}</option>
+            <option value="district">{t('nav.districts')}</option>
+            <option value="county">{t('nav.counties')}</option>
           </FilterSelect>
-          <FilterSelect label="By" value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
-            <option value="level">Proficiency</option>
-            <option value="change">Change since a year</option>
+          <FilterSelect label={t('rank.by')} value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
+            <option value="level">{t('rank.level')}</option>
+            <option value="change">{t('rank.change')}</option>
           </FilterSelect>
           {isChange && (
-            <FilterSelect label="Since" value={compareYearParam ?? compareYear ?? ''} onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}>
+            <FilterSelect label={t('rank.since')} value={compareYearParam ?? compareYear ?? ''} onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}>
               {years.filter((y) => year == null || y < year).map((y) => <option key={y} value={y}>{y}</option>)}
             </FilterSelect>
           )}
@@ -183,29 +183,29 @@ export default function RankingsPage() {
             <option value="keystone">Keystone</option>
           </FilterSelect>
           <FilterSelect label={t('common.subject')} value={subject} onChange={(e) => setSubject(e.target.value)}>
-            <option value="">All Subjects</option>
+            <option value="">{t('common.allSubjects')}</option>
             {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
           </FilterSelect>
           {examType === 'pssa' && (
             <FilterSelect label={t('common.grade')} value={grade} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : '')}>
-              <option value="">All Grades</option>
+              <option value="">{t('common.allGrades')}</option>
               {[3, 4, 5, 6, 7, 8].map((g) => <option key={g} value={g}>Grade {g}</option>)}
             </FilterSelect>
           )}
           {entity === 'school' && (
-            <FilterSelect label="School Type" value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
-              <option value="">All Types</option>
+            <FilterSelect label={t('common.schoolType')} value={schoolType} onChange={(e) => setSchoolType(e.target.value)}>
+              <option value="">{t('common.allTypes')}</option>
               {filterOptions?.schoolTypes.map((t) => <option key={t} value={t}>{t}</option>)}
             </FilterSelect>
           )}
           <FilterSelect label={t('common.county')} value={countyId} onChange={(e) => setCountyId(e.target.value ? Number(e.target.value) : '')}>
-            <option value="">All Counties</option>
+            <option value="">{t('common.allCounties')}</option>
             {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </FilterSelect>
-          <FilterSelect label="Min. tested" value={minTested} onChange={(e) => setMinTested(Number(e.target.value))}>
+          <FilterSelect label={t('rank.minTested')} value={minTested} onChange={(e) => setMinTested(Number(e.target.value))}>
             {[20, 40, 100, 250].map((n) => <option key={n} value={n}>{n} students</option>)}
           </FilterSelect>
-          <FilterSelect label="Show" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+          <FilterSelect label={t('rank.show')} value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
             {[5, 10, 15, 25].map((n) => <option key={n} value={n}>Top/Bottom {n}</option>)}
           </FilterSelect>
         </div>
@@ -238,17 +238,17 @@ export default function RankingsPage() {
 
           <div className="card-surface p-4 sm:p-6 mb-8">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">{isChange ? `Change in proficiency${compareYear ? `, ${compareYear} to ${year}` : ''}` : 'Proficiency Rankings'}</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-1">{isChange ? t('rank.changeTitle', { range: compareYear ? `, ${compareYear} – ${year}` : '' }) : t('rank.levelTitle')}</h2>
               <ExportCsvButton
                 filename={`rankings-${entity}-${mode}-${examType}-${subject || 'all-subjects'}-${year}`}
                 rows={[...rankings.top.map((r: any) => ({ list: isChange ? 'most improved' : 'highest', ...r })), ...rankings.bottom.map((r: any) => ({ list: isChange ? 'most declined' : 'lowest', ...r }))]}
                 columns={[{ key: 'list', label: 'List' }, { key: 'rank', label: 'Rank' }, { key: 'schoolName', label: 'Name' }, { key: 'districtName', label: 'District' }, { key: 'countyName', label: 'County' }, { key: 'schoolType', label: 'Type' }, { key: 'avgProficiency', label: '% proficient or above' }, ...(isChange ? [{ key: 'previousProficiency', label: `% proficient in ${compareYear}` }, { key: 'change', label: 'Change (pts)' }] : []), { key: 'avgGrowth', label: 'Growth index' }, { key: 'totalTested', label: 'Students tested' }]}
               />
             </div>
-            <p className="text-xs text-stone-400 mb-4">
+            <p className="text-xs text-stone-500 mb-4">
               {isChange ? `Most improved ${rankings.top.length} and most declined ${rankings.bottom.length} ${entityNoun}, percentage points` : `Highest ${rankings.top.length} and lowest ${rankings.bottom.length} ${entityNoun} by % proficient or above`}
             </p>
-            <ResponsiveContainer width="100%" height={chartHeight}>
+            <div aria-hidden="true"><ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart layout="vertical" data={chartData} margin={{ left: smUp ? 10 : 0, right: smUp ? 30 : 16, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
                 <XAxis type="number" domain={isChange ? [-Math.ceil(changeExtent), Math.ceil(changeExtent)] : [0, 100]} tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => (isChange ? `${v > 0 ? '+' : ''}${v}` : `${v}%`)} />
@@ -268,17 +268,17 @@ export default function RankingsPage() {
                   {chartData.map((entry, index) => <Cell key={index} fill={isChange ? (entry.value >= 0 ? CHART_COLORS.teal : CHART_COLORS.brick) : entry.isTop ? CHART_COLORS.navy : CHART_COLORS.navyLight} />)}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           </div>
 
           {entity === 'school' && points.length > 0 && (
             <div className="card-surface p-4 sm:p-6 mb-8">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">Growth vs. achievement</h2>
-              <p className="text-xs text-stone-400 mb-4">
+              <h2 className="text-base font-semibold text-stone-900 mb-1">{t('rank.growthVs')}</h2>
+              <p className="text-xs text-stone-500 mb-4">
                 Every school matching the filters ({points.length.toLocaleString()}). Right is higher proficiency; up is more PVAAS growth than the state standard.
                 Schools low on achievement but high on growth (teal) are catching up; high achievement with low growth (gold) is coasting.
               </p>
-              <ResponsiveContainer width="100%" height={smUp ? 420 : 320}>
+              <div aria-hidden="true"><ResponsiveContainer width="100%" height={smUp ? 420 : 320}>
                 <ScatterChart margin={{ top: 10, right: smUp ? 30 : 12, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                   <XAxis type="number" dataKey="proficiency" domain={[0, 100]} name="Proficient or above" tick={{ fontSize: 11, fill: '#78716c' }} tickFormatter={(v) => `${v}%`}
@@ -304,19 +304,19 @@ export default function RankingsPage() {
                     {points.map((p, i) => <Cell key={i} fill={quadrant(p)} />)}
                   </Scatter>
                 </ScatterChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer></div>
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <h2 className="text-base font-semibold text-stone-900 mb-4">{isChange ? 'Most improved' : 'Highest proficiency'}</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">{t(isChange ? 'home.improved' : 'rank.highest')}</h2>
               <div className="space-y-3">
                 {rankings.top.map((school) => <SchoolCard key={school.schoolId} school={school} variant="top" />)}
               </div>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-stone-900 mb-4">{isChange ? 'Most declined' : 'Lowest proficiency'}</h2>
+              <h2 className="text-base font-semibold text-stone-900 mb-4">{t(isChange ? 'home.declined' : 'rank.lowest')}</h2>
               <div className="space-y-3">
                 {rankings.bottom.map((school) => <SchoolCard key={school.schoolId} school={school} variant="bottom" />)}
               </div>

@@ -45,7 +45,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             >
               1
             </button>
-            {start > 2 && <span className="px-1 text-stone-400">...</span>}
+            {start > 2 && <span className="px-1 text-stone-500">...</span>}
           </>
         )}
 
@@ -66,7 +66,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
         {end < totalPages && (
           <>
-            {end < totalPages - 1 && <span className="px-1 text-stone-400">...</span>}
+            {end < totalPages - 1 && <span className="px-1 text-stone-500">...</span>}
             <button
               onClick={() => onPageChange(totalPages)}
               className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"

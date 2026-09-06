@@ -298,3 +298,24 @@ export const performanceApi = {
 };
 
 export default api;
+// ---------- Non-assessment indicators ----------
+
+export interface IndicatorPoint { year: number; value: number | null; stateValue: number | null; n: number | null }
+export interface IndicatorSeries { indicator: string; label: string; series: IndicatorPoint[] }
+export interface EnrollmentPoint { year: number; total: number }
+export interface FinancePoint {
+  year: number; total: number | null; instruction: number | null; supportServices: number | null; adm: number | null;
+  perPupil: number | null; instructionPerPupil: number | null; statePerPupil: number | null; stateInstructionPerPupil: number | null;
+}
+export interface SpendingDistrict { id: number; name: string; type: string | null; county: string; perPupil: number; instructionPerPupil: number | null; adm: number | null; proficiency: number; tested: number }
+export interface SpendingResponse {
+  year: number | null; years: number[]; exam: 'pssa' | 'keystone'; subjects: string[];
+  districts: SpendingDistrict[]; state: { proficiency: number | null; medianPerPupil: number | null } | null;
+}
+
+export const indicatorApi = {
+  getSchool: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[] }>(`/api/indicators/school/${id}`)).data,
+  getDistrict: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: FinancePoint[] }>(`/api/indicators/district/${id}`)).data,
+  getState: async () => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: Array<{ year: number; perPupil: number; instructionPerPupil: number; districts: number }> }>('/api/indicators/state')).data,
+  getSpending: async (params: { year?: number; exam?: 'pssa' | 'keystone' }) => (await api.get<SpendingResponse>('/api/indicators/spending', { params })).data,
+};

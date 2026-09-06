@@ -103,7 +103,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
       {keystoneData.length > 0 && <ChartCard title="Keystone proficient or above" chartData={keystoneData} years={Object.keys(keystoneByYear).map(Number)} exam="keystone" />}
       {pssaData.length === 0 && keystoneData.length === 0 && (
         <div className="card-surface p-8 text-center">
-          <p className="text-stone-400">No performance data available for this school.</p>
+          <p className="text-stone-500">No performance data available for this school.</p>
         </div>
       )}
     </div>

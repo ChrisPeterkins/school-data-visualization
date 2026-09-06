@@ -6,6 +6,7 @@ import { useAvailableYears } from '../hooks/useAvailableYears';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import GapsPanel from '../components/GapsPanel';
 import DataNotes from '../components/DataNotes';
+import CountyMapInset from '../components/CountyMapInset';
 import TrendCard from '../components/TrendCard';
 import { fillYearGaps, formatPct } from '../lib/chartUtils';
 
@@ -65,7 +66,7 @@ export default function CountyDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-400 mb-6" aria-label="Breadcrumb">
+      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500 mb-6" aria-label="Breadcrumb">
         <Link to="/counties" className="hover:text-navy-600 transition-colors">Counties</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="text-stone-700 font-medium">{county.name} County</span>
@@ -80,6 +81,10 @@ export default function CountyDetailPage() {
           <div><dt className="text-stone-500">ELA proficient{latestEla ? `, ${latestEla.year}` : ''}</dt><dd className="text-lg font-semibold text-navy-700">{formatPct(latestEla?.proficiency)}</dd></div>
         </dl>
         {enrollment > 0 && <p className="mt-3 text-sm text-stone-500">{enrollment.toLocaleString()} students enrolled across the county's districts</p>}
+      </div>
+
+      <div className="mb-8">
+        <CountyMapInset countyId={Number(county.id)} />
       </div>
 
       <div className="mb-8 space-y-6">

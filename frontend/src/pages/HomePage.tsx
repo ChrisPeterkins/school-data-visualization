@@ -7,6 +7,7 @@ import { performanceApi } from '../services/api';
 import { formatPct } from '../lib/chartUtils';
 import { SUBJECTS } from '../lib/constants';
 import GlobalSearch from '../components/GlobalSearch';
+import WatchlistPanel from '../components/WatchlistPanel';
 import { useI18n } from '../i18n';
 
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
@@ -36,7 +37,7 @@ function Headline({ label, exam, subject, latest }: { label: string; exam: 'pssa
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-xs text-stone-400 tabular-nums">{cur ? (prev ? `${prev.year} → ${cur.year}` : String(cur.year)) : ''}{stale ? ` · ${t('home.noNewer')}` : ''}</div>
+      <div className="mt-0.5 text-xs text-stone-500 tabular-nums">{cur ? (prev ? `${prev.year} → ${cur.year}` : String(cur.year)) : ''}{stale ? ` · ${t('home.noNewer')}` : ''}</div>
     </Link>
   );
 }
@@ -114,12 +115,13 @@ export default function HomePage() {
 
       {/* State at a glance */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mb-10 empty:hidden"><WatchlistPanel /></div>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">{t('home.glance')}{latest ? <span className="text-stone-400 font-semibold"> · {latest}</span> : null}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">{t('home.glance')}{latest ? <span className="text-stone-500 font-semibold"> · {latest}</span> : null}</h2>
             <p className="mt-2 text-base text-stone-500 max-w-2xl">{t('home.glanceSub')}</p>
           </div>
-          {updated && <p className="text-xs text-stone-400">{t('home.updated', { date: updated })}</p>}
+          {updated && <p className="text-xs text-stone-500">{t('home.updated', { date: updated })}</p>}
         </div>
 
         {latest != null && (

@@ -144,7 +144,7 @@ export default function DatabasePage() {
                   }`}
                 >
                   <div>{table.label}</div>
-                  <div className="text-xs text-stone-400">
+                  <div className="text-xs text-stone-500">
                     {table.recordCount.toLocaleString()} records
                   </div>
                 </button>
@@ -270,7 +270,7 @@ export default function DatabasePage() {
 
             {/* Empty State */}
             {!selectedTable && (
-              <div className="p-12 text-center text-stone-400">
+              <div className="p-12 text-center text-stone-500">
                 <svg
                   className="mx-auto h-12 w-12 text-stone-300"
                   fill="none"

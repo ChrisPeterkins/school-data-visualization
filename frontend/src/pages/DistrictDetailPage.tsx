@@ -6,6 +6,8 @@ import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { districtApi, performanceApi } from '../services/api';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import ResultsTable from '../components/ResultsTable';
+import IndicatorsPanel from '../components/IndicatorsPanel';
+import PinButton from '../components/PinButton';
 import DataNotes from '../components/DataNotes';
 import TrendCard from '../components/TrendCard';
 import CohortChart from '../components/CohortChart';
@@ -86,7 +88,7 @@ export default function DistrictDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-400 mb-6 min-w-0" aria-label="Breadcrumb">
+      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500 mb-6 min-w-0" aria-label="Breadcrumb">
         <Link to="/districts" className="hover:text-navy-600 transition-colors">Districts</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
         <Link to={`/counties/${d.countyId}`} className="hover:text-navy-600 transition-colors">{d.countyName} County</Link>
@@ -97,9 +99,10 @@ export default function DistrictDetailPage() {
       <div className="card-surface p-4 sm:p-6 mb-8">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{d.name}</h1>
+          <PinButton pin={{ kind: 'district', id: Number(d.id), name: d.name, detail: `${d.countyName} County` }} />
           <PrintButton />
         </div>
-        <p className="text-sm text-stone-400 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>
+        <p className="text-sm text-stone-500 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>
         <div className="mt-3">
           <PercentileBadges entity="district" id={Number(d.id)} year={activeYear} exam={pssaForYear.length ? 'pssa' : 'keystone'} subject={pssaForYear.length ? 'Mathematics' : 'Algebra I'} />
         </div>
@@ -144,7 +147,7 @@ export default function DistrictDetailPage() {
       {pssaForYear.length > 0 && (
         <div className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h2 className="text-lg font-bold text-stone-900">PSSA Results <span className="text-sm font-normal text-stone-400">({activeYear})</span></h2>
+            <h2 className="text-lg font-bold text-stone-900">PSSA Results <span className="text-sm font-normal text-stone-500">({activeYear})</span></h2>
             <ExportCsvButton filename={`${d.name}-pssa-${activeYear}`} rows={pssaForYear} />
           </div>
           <ResultsTable results={pssaForYear} showGrade compact />
@@ -152,7 +155,7 @@ export default function DistrictDetailPage() {
       )}
       {keystoneForYear.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-stone-900 mb-3">Keystone Exam Results <span className="text-sm font-normal text-stone-400">({activeYear})</span></h2>
+          <h2 className="text-lg font-bold text-stone-900 mb-3">Keystone Exam Results <span className="text-sm font-normal text-stone-500">({activeYear})</span></h2>
           <ResultsTable results={keystoneForYear} showGrade={false} compact />
         </div>
       )}
@@ -163,6 +166,10 @@ export default function DistrictDetailPage() {
         <TrendCard title="PSSA proficient or above" data={pssaTrend} series={['Mathematics', 'English Language Arts', 'Science']} years={pssaYears} exam="pssa" />
         <TrendCard title="Keystone proficient or above" data={keystoneTrend} series={['Algebra I', 'Biology', 'Literature']} years={keystoneTrend.filter((r: any) => Object.keys(r).length > 1).map((r) => r.year)} exam="keystone" />
         {pssaRows.some((r) => r.grade && r.grade > 0) && <CohortChart rows={pssaRows} entityName={d.name} />}
+      </div>
+
+      <div className="mb-8">
+        <IndicatorsPanel entity="district" id={Number(d.id)} />
       </div>
 
       <div className="mb-8 space-y-4">

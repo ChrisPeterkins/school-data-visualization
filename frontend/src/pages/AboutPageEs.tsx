@@ -17,7 +17,7 @@ export default function AboutPageEs({ range }: { range: string }) {
       </div>
 
       <nav className="text-sm text-navy-700 flex flex-wrap gap-x-4 gap-y-1" aria-label="En esta página">
-        {[['sources', 'Fuentes'], ['measures', 'Qué significan las medidas'], ['methods', 'Cómo se calculan las cifras'], ['caveats', 'Advertencias por año'], ['updates', 'Actualizaciones'], ['privacy', 'Privacidad']].map(([id, label]) => (
+        {[['sources', 'Fuentes'], ['measures', 'Qué significan las medidas'], ['indicators', 'Más allá de los exámenes'], ['methods', 'Cómo se calculan las cifras'], ['caveats', 'Advertencias por año'], ['updates', 'Actualizaciones'], ['privacy', 'Privacidad']].map(([id, label]) => (
           <a key={id} href={`#${id}`} className="hover:underline">{label}</a>
         ))}
       </nav>
@@ -43,6 +43,24 @@ export default function AboutPageEs({ range }: { range: string }) {
           Bandas del PDE: aproximadamente +2 o más está muy por encima del estándar, +1 a +2 por encima, -1 a +1 lo cumple, -1 a -2 por debajo, -2 o menos muy por debajo. El crecimiento mide el progreso, no el nivel: una escuela puede tener baja competencia y alto crecimiento.
         </p>
         <p><strong>Estudiantes evaluados</strong> es el "número calificado" del PDE para la fila. Los grupos con menos de 11 estudiantes son suprimidos por el PDE y aparecen como N/A.</p>
+      </Section>
+
+      <Section id="indicators" title="Más allá de los exámenes">
+        <p>
+          <strong>Asistencia y preparación</strong> provienen de los <a className="text-navy-700 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">archivos de datos del Future Ready PA Index</a> del PDE (desde 2017-18).
+          La asistencia regular es el porcentaje de estudiantes que no tuvieron ausentismo crónico (faltar más del 10% de los días inscritos). Estándares de carrera, cursos rigurosos (AP, IB, matrícula doble o CTE), aprendizaje basado en la industria y transición postsecundaria son las medidas universitarias y profesionales del Índice; el dominio del inglés y la lectura de 3.º / matemáticas de 7.º son sus medidas de progreso.
+          El PDE dejó de publicar el porcentaje de aprendizaje basado en la industria después de 2020-21. Los valores suprimidos por el PDE (menos de 20 estudiantes) se omiten.
+        </p>
+        <p>
+          <strong>Las tasas de graduación</strong> son las tasas de cohorte a 4 años del PDE, de los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">archivos de graduación por cohorte</a> (desde 2016-17), por escuela, distrito y estado, con el tamaño de la cohorte. También se carga la tasa de estudiantes económicamente desfavorecidos cuando se publica.
+        </p>
+        <p>
+          <strong>La matrícula</strong> es el conteo del 1 de octubre del PDE según los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">informes de matrícula de escuelas públicas</a> de 2015-16 a 2025-26, por escuela y distrito. El conteo más reciente también dimensiona los puntos del mapa y alimenta los filtros de matrícula.
+        </p>
+        <p>
+          <strong>El gasto por alumno</strong> es el total de gastos dividido por la matrícula diaria promedio (ADM), ambos de los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">resúmenes del Informe Financiero Anual</a> del PDE (desde 2015-16). La ADM de las escuelas chárter está disponible desde 2019-20, así que no tienen cifra por alumno antes. Los centros técnicos informan gastos pero no ADM. El gasto compra muchas cosas además de resultados de exámenes; el gráfico de la página de distritos es un punto de partida, no un veredicto.
+        </p>
+        <p>Las etiquetas de año siguen la convención de las evaluaciones: 2025 significa el año escolar 2024-25 (para la matrícula, el conteo de octubre de 2024).</p>
       </Section>
 
       <Section id="methods" title="Cómo se calculan las cifras">

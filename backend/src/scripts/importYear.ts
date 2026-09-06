@@ -14,6 +14,8 @@ import { DataImporterFixed } from '../services/dataImporterFixed';
 import { PVAASImporter } from '../services/pvaasImporter';
 import { logger } from '../utils/logger';
 import { refreshSearchIndex } from '../services/searchIndex';
+import { buildImportReport } from './importReport';
+import { notify } from '../utils/notify';
 import { buildDataStatus, printDataStatus } from '../services/dataStatus';
 import { refreshMapPoints } from '../services/mapPoints';
 
@@ -73,6 +75,13 @@ async function main() {
 
   // Coverage report so a bad year is obvious before anyone looks at a chart.
   printDataStatus(buildDataStatus());
+
+  // Year-over-year sanity report, pushed to NOTIFY_URL when configured.
+  if (!pvaasOnly) {
+    const { text, warnings } = buildImportReport(parseInt(year, 10));
+    logger.info(`\n${text}`);
+    await notify(`PA School Data import ${year}${warnings.length ? ` — ${warnings.length} warning(s)` : ' looks clean'}`, text);
+  }
 }
 
 main().catch(err => {

@@ -187,7 +187,7 @@ export default function ImportProgressPage() {
             ))}
           </div>
           <div className="mt-4 pt-4 border-t border-stone-100">
-            <div className="text-xs text-stone-400 text-center">Last Updated: {new Date(status.stats.lastUpdate).toLocaleString()}</div>
+            <div className="text-xs text-stone-500 text-center">Last Updated: {new Date(status.stats.lastUpdate).toLocaleString()}</div>
           </div>
         </div>
       )}

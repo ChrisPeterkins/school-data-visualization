@@ -31,6 +31,16 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Edge cache**: nginx caches public API responses for 10 minutes (`X-Cache` header); the deploy script purges it
 - **Alerting**: a 5xx burst posts to `NOTIFY_URL` (at most every 10 minutes), and `scripts/healthcheck.sh` runs every 15 minutes from cron and notifies when the site or API is down
 - **Phone layout**: result tables render as cards below the `sm` breakpoint so nothing scrolls sideways
+- **Beyond test scores**: Future Ready PA Index indicators (regular attendance, career standards benchmark, rigorous courses, post-secondary transition, English learner proficiency, grade 3 reading, grade 7 math), PDE 4-year cohort graduation rates with cohort size, and October 1 enrollment history on every school, district, and the state page
+- **District finance**: AFR total and instruction spending per pupil (ADM) by year on district pages, and a spending-vs-outcomes scatter on the districts list
+- **Districts list**: county, type, and enrollment filters, sort by enrollment or latest Math + ELA proficiency, CSV export; county pages get a map inset of their schools
+- **Watchlist**: pin schools and districts (browser-only); the home page shows their latest Math and ELA with the change from the prior year and flags new imports
+- **Link previews**: crawlers fetching a school, district, or county URL get a server-rendered page with Open Graph tags (`/api/preview/...`, routed by nginx on user agent) and a 1200×630 card image
+- **Fuzzy search**: a trigram FTS5 twin catches misspellings when the word index finds fewer than three hits
+- **Import report**: every yearly import ends with a year-over-year sanity report (entity counts, suppression, statewide figures per subject) posted to `NOTIFY_URL`; `importReport.ts` runs it on demand
+- **Install to home screen**: web app manifest and icons
+- **Traffic**: nightly GoAccess report over the nginx log (no cookies, anonymised IPs) at `/paschools/admin/traffic` behind admin auth
+- **Tests**: backend route tests against the fixture DB (23), frontend vitest + Testing Library (i18n, URL state, results table), and axe-core accessibility checks inside the e2e suite
 
 ## 🛠 Tech Stack
 
@@ -160,6 +170,16 @@ Data is sourced from the Pennsylvania Department of Education:
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+
+### Non-assessment sources
+
+`sources/futureready/fr-YYYY.xlsx` (Future Ready PA Index performance data files), `sources/graduation/grad4-YYYY-YYYY.xlsx` (PDE 4-year cohort graduation rates), `sources/enrollment/enrollment-YYYY-YY.xlsx` (PDE public school enrollment), and `sources/finance/afr-expdetail-*.xlsx` + `adm-wadm-YYYY-YY.xlsx` (AFR expenditures and ADM). Import all of them with:
+
+```bash
+cd backend && npx tsx src/scripts/importIndicators.ts all   # or futureready | graduation | enrollment | finance
+```
+
+Rows land in `entity_indicators`, `enrollments`, and `district_finance` (created by `ensureIndicatorTables`); the script is idempotent and refreshes map points afterwards. Add next year's files with the same names and rerun.
 
 ## 📝 API Endpoints
 

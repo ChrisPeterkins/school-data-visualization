@@ -87,7 +87,7 @@ export const gradeLabel = (grade: number | null | undefined): string =>
 
 /** PVAAS growth index bands used in PDE reporting. */
 export function growthBand(growth: number | null | undefined): { label: string; className: string } {
-  if (growth == null || Number.isNaN(growth)) return { label: '—', className: 'text-stone-400' };
+  if (growth == null || Number.isNaN(growth)) return { label: '—', className: 'text-stone-500' };
   if (growth >= 2) return { label: 'Well above', className: 'text-navy-800 font-semibold' };
   if (growth >= 1) return { label: 'Above', className: 'text-navy-600 font-semibold' };
   if (growth > -1) return { label: 'Meets', className: 'text-stone-700' };

@@ -167,16 +167,16 @@ export default function Layout() {
               <BuildingLibraryIcon className="w-5 h-5 text-gold-500" />
               <span className="text-sm text-navy-300">{t('footer.brand')}</span>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-navy-500 text-center sm:text-right">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-navy-300 text-center sm:text-right">
               <p>
                 {t('footer.source')}
                 {yearRange ? ` ${t('footer.results', { range: yearRange })}` : ''}
                 {asOf ? ` ${t('footer.asOf', { date: asOf })}` : ''}
               </p>
               <Link to="/about" className="text-navy-300 hover:text-white transition-colors">{t('nav.about')}</Link>
-              <a href="/paschools/api/docs/" className="text-navy-500 hover:text-navy-300 transition-colors">API</a>
+              <a href="/paschools/api/docs/" className="text-navy-300 hover:text-white transition-colors">API</a>
               {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
-              <Link to="/import" className="text-navy-500 hover:text-navy-300 transition-colors">{t('nav.admin')}</Link>
+              <Link to="/import" className="text-navy-300 hover:text-white transition-colors">{t('nav.admin')}</Link>
             </div>
           </div>
         </div>

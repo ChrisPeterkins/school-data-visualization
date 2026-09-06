@@ -176,7 +176,7 @@ export default function TrendsPage() {
           {yoy.length > 0 && (
             <div className="card-surface p-4 sm:p-6">
               <h2 className="text-base font-semibold text-stone-900 mb-1">Change from the previous results</h2>
-              <p className="text-xs text-stone-400 mb-4">Percentage points. The 2019 to 2021 bar spans the year with no testing.</p>
+              <p className="text-xs text-stone-500 mb-4">Percentage points. The 2019 to 2021 bar spans the year with no testing.</p>
               <ResponsiveContainer width="100%" height={smUp ? 300 : 260}>
                 <BarChart data={yoy}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />

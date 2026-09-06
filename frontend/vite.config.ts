@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -6,6 +7,12 @@ const API_TARGET = process.env.API_TARGET || 'http://localhost:3000';
 
 export default defineConfig({
   base: '/paschools/',
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
+  },
   plugins: [react()],
   resolve: {
     alias: {

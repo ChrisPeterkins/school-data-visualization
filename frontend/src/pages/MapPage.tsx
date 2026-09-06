@@ -322,7 +322,7 @@ export default function MapPage() {
       <div className="relative card-surface sm:overflow-hidden rounded-none sm:rounded-xl border-x-0 sm:border-x">
         <div className="absolute z-[1000] top-3 left-14 right-3 sm:right-auto sm:w-80 flex gap-2">
           <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
             <input
               type="search"
               value={searchTerm}
@@ -495,7 +495,7 @@ export default function MapPage() {
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold text-stone-900">Filters</h2>
-              <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="text-stone-400"><XMarkIcon className="w-5 h-5" /></button>
+              <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="text-stone-500"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             {filters}
             <button onClick={() => setFiltersOpen(false)} className="mt-4 w-full py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium">Show {withValue.length.toLocaleString()} schools</button>
@@ -507,7 +507,7 @@ export default function MapPage() {
         <section className="card-surface mt-4 mx-4 sm:mx-0 overflow-hidden" aria-label={`Schools on the map, ${sorted.length} with a ${metric} value, sorted highest first`}>
           <div className="px-4 sm:px-6 py-3 border-b border-stone-100">
             <h2 className="text-base font-semibold text-stone-900">Schools shown ({sorted.length.toLocaleString()})</h2>
-            <p className="text-xs text-stone-400">Sorted by {metric === 'quadrant' ? 'proficiency' : metric}. Click a row to show it on the map; the arrow opens the school page.</p>
+            <p className="text-xs text-stone-500">Sorted by {metric === 'quadrant' ? 'proficiency' : metric}. Click a row to show it on the map; the arrow opens the school page.</p>
           </div>
           <div ref={listRef} className="overflow-y-auto" style={{ height: ROW * VISIBLE }} onScroll={(e) => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
             <ul style={{ height: sorted.length * ROW, position: 'relative' }}>
@@ -532,10 +532,10 @@ export default function MapPage() {
                           <span className="text-sm font-medium text-stone-900 truncate">{p.name}</span>
                         </span>
                         <span className="text-sm tabular-nums text-stone-700 whitespace-nowrap">
-                          {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-400"> · g {p.growth.toFixed(1)}</span> : null}
+                          {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-500"> · g {p.growth.toFixed(1)}</span> : null}
                         </span>
                       </button>
-                      <Link to={`/schools/${p.id}`} aria-label={`Open ${p.name}`} className="flex-shrink-0 p-1 text-stone-400 hover:text-navy-600">
+                      <Link to={`/schools/${p.id}`} aria-label={`Open ${p.name}`} className="flex-shrink-0 p-1 text-stone-500 hover:text-navy-600">
                         <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                       </Link>
                     </div>

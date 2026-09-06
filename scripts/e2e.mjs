@@ -4,6 +4,7 @@
 //   BASE=http://localhost:4173/paschools node scripts/e2e.mjs
 //   BASE=https://chrispeterkins.com/paschools RESOLVE=127.0.0.1 node scripts/e2e.mjs
 import { createRequire } from 'module';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -73,6 +74,23 @@ await page.setViewportSize({ width: 1280, height: 900 });
 // 8. Public API docs.
 const docs = await page.request.get(`${BASE}/api/docs/json`);
 check('api docs json', docs.ok() && (await docs.json()).openapi === '3.0.3');
+
+// 9. Accessibility: axe-core on three representative pages; serious and critical violations fail.
+const axePath = ['frontend/node_modules/axe-core/axe.min.js', 'node_modules/axe-core/axe.min.js'].map((p) => new URL('../' + p, import.meta.url).pathname).find((p) => fs.existsSync(p));
+if (axePath) {
+  const axeSource = fs.readFileSync(axePath, 'utf8');
+  for (const path of ['/', `/schools/${process.env.SCHOOL_ID || '1'}`, '/rankings']) {
+    await page.goto(`${BASE}${path}`, { waitUntil: 'load' }); await page.waitForTimeout(2500);
+    await page.evaluate(axeSource);
+    const result = await page.evaluate(async () => {
+      const r = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] }, rules: { 'color-contrast': { enabled: true } } });
+      return r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id} (${v.nodes.length}): ${v.nodes[0]?.target?.[0] ?? ''}`);
+    });
+    check(`axe ${path}`, result.length === 0, result.join(' | ').slice(0, 400));
+  }
+} else {
+  console.log(' --  axe-core not installed; skipping accessibility checks');
+}
 
 check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 300));
 await browser.close();
