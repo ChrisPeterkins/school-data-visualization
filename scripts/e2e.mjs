@@ -109,8 +109,8 @@ const csv = await page.request.get(`${BASE}/api/data/counties.csv`);
 check('table csv download', csv.ok() && (csv.headers()['content-type'] || '').includes('text/csv') && (await csv.text()).split('\n').length > 10);
 await page.goto(`${BASE}/districts/${process.env.DISTRICT_ID || '4'}`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('peer districts', (await page.locator('text=Peer districts').count()) === 1);
-await page.goto(`${BASE}/rankings?entity=school&poc=40-60`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
-check('rankings students-of-color band', (await page.locator('select').filter({ has: page.locator('option[value="40-60"]') }).nth(1).inputValue()) === '40-60' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
+await page.goto(`${BASE}/rankings?entity=school&poc=0-20`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
+check('rankings students-of-color band', (await page.locator('select').filter({ has: page.locator('option[value="0-20"]') }).nth(1).inputValue()) === '0-20' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
 await page.goto(`${BASE}/counties/${process.env.COUNTY_ID || '1'}/report`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('county report card', (await page.locator('h1').count()) === 1 && (await page.locator('text=Report card').count()) >= 1);
 // Dark mode: toggle via the nav button, confirm the class lands, run axe in the dark theme too.
