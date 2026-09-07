@@ -32,9 +32,9 @@ export default function DataNotes({ subject, exam = 'pssa', years, latestAvailab
 
   if (notes.length === 0) return null;
   return (
-    <ul className="text-xs text-stone-500 space-y-1 border-l-2 border-gold-300 pl-3">
+    <ul className="text-xs text-stone-500 dark:text-stone-400 space-y-1 border-l-2 border-gold-300 pl-3">
       {notes.map((n) => <li key={n}>{n}</li>)}
-      <li><Link to="/about#caveats" className="text-navy-600 underline">{t('notes.about')}</Link></li>
+      <li><Link to="/about#caveats" className="text-navy-600 dark:text-navy-300 underline">{t('notes.about')}</Link></li>
     </ul>
   );
 }

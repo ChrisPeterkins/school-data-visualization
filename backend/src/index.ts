@@ -31,10 +31,12 @@ import verifyRoutes from './routes/verify';
 import filesRoutes from './routes/files';
 import databaseRoutes from './routes/database';
 import uploadRoutes from './routes/upload';
+import dataRoutes from './routes/data';
+import statusRoutes from './routes/status';
 
 const buildApp = async () => {
   const fastify = Fastify({
-    logger: logger as any, // Pino logger compatibility
+    loggerInstance: logger as any, // Pino logger (Fastify 5 name for a ready-made instance)
     // Per-request access logs are noise in production; slow and failed
     // requests are logged by the onResponse hook below instead.
     disableRequestLogging: true,
@@ -124,6 +126,8 @@ const buildApp = async () => {
   await fastify.register(indicatorRoutes, { prefix: '/api/indicators' });
   await fastify.register(previewRoutes, { prefix: '/api/preview' });
   await fastify.register(feedRoutes, { prefix: '/api/feed' });
+  await fastify.register(dataRoutes, { prefix: '/api/data' });
+  await fastify.register(statusRoutes, { prefix: '/api/status' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
   await fastify.register(importRoutes, { prefix: '/api/import' });
   await fastify.register(verifyRoutes, { prefix: '/api/verify' });

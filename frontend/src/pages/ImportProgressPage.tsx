@@ -107,8 +107,8 @@ export default function ImportProgressPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Data Import Progress</h1>
-        <p className="mt-1 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Data Import Progress</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           Monitor the real-time progress of data imports from Pennsylvania Department of Education
         </p>
       </div>
@@ -117,7 +117,7 @@ export default function ImportProgressPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center">
             <div className={`w-2.5 h-2.5 rounded-full mr-3 ${status.isRunning ? 'bg-civic-500 animate-pulse' : 'bg-stone-400'}`}></div>
-            <span className="text-base font-semibold text-stone-900">
+            <span className="text-base font-semibold text-stone-900 dark:text-stone-100">
               {status.isRunning ? 'Import in Progress' : 'Import Idle'}
             </span>
           </div>
@@ -131,18 +131,18 @@ export default function ImportProgressPage() {
         </div>
 
         <div className="mb-6">
-          <div className="flex justify-between text-sm text-stone-500 mb-2">
+          <div className="flex justify-between text-sm text-stone-500 dark:text-stone-400 mb-2">
             <span>{status.currentStep || 'Ready to import'}</span>
             <span>{status.progress}%</span>
           </div>
-          <div className="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-stone-200 dark:bg-stone-700 rounded-full h-2.5 overflow-hidden">
             <div className={`h-full transition-all duration-500 ease-out rounded-full ${getProgressBarColor()}`} style={{ width: `${status.progress}%` }} />
           </div>
         </div>
 
         {status.currentFile && (
-          <div className="mb-4 p-3 bg-navy-50 rounded-lg border border-navy-100">
-            <span className="text-sm font-medium text-navy-800">Processing: {status.currentFile}</span>
+          <div className="mb-4 p-3 bg-navy-50 dark:bg-navy-900/50 rounded-lg border border-navy-100">
+            <span className="text-sm font-medium text-navy-800 dark:text-navy-200">Processing: {status.currentFile}</span>
           </div>
         )}
 
@@ -153,15 +153,15 @@ export default function ImportProgressPage() {
             { label: 'Start Time', value: formatTime(status.startTime) || '--:--:--' },
             { label: 'Errors', value: status.errors?.length || 0, error: (status.errors?.length || 0) > 0 },
           ].map((s, i) => (
-            <div key={i} className="bg-stone-50 p-3 rounded-lg">
-              <div className="text-sm text-stone-500">{s.label}</div>
-              <div className={`text-xl font-bold mt-1 ${s.error ? 'text-brick-600' : 'text-stone-900'}`}>{s.value}</div>
+            <div key={i} className="bg-stone-50 dark:bg-stone-950 p-3 rounded-lg">
+              <div className="text-sm text-stone-500 dark:text-stone-400">{s.label}</div>
+              <div className={`text-xl font-bold mt-1 ${s.error ? 'text-brick-600 dark:text-brick-400' : 'text-stone-900 dark:text-stone-100'}`}>{s.value}</div>
             </div>
           ))}
         </div>
 
         {status.errors && status.errors.length > 0 && (
-          <div className="mt-4 p-3 bg-brick-50 rounded-lg border border-brick-200">
+          <div className="mt-4 p-3 bg-brick-50 dark:bg-brick-900/30 rounded-lg border border-brick-200">
             <h4 className="text-sm font-medium text-brick-800 mb-2">Errors:</h4>
             <ul className="text-sm text-brick-700 space-y-1">
               {status.errors.map((error, idx) => (<li key={idx}>- {error}</li>))}
@@ -172,7 +172,7 @@ export default function ImportProgressPage() {
 
       {status.stats && (
         <div className="card-surface p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-4">Database Statistics</h2>
+          <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4">Database Statistics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
               { value: status.stats.pssaRecords, label: 'PSSA Records', color: 'text-navy-600' },
@@ -182,50 +182,50 @@ export default function ImportProgressPage() {
             ].map((s, i) => (
               <div key={i} className="text-center">
                 <div className={`text-2xl font-bold ${s.color}`}>{s.value.toLocaleString()}</div>
-                <div className="text-xs text-stone-500 mt-1">{s.label}</div>
+                <div className="text-xs text-stone-500 dark:text-stone-400 mt-1">{s.label}</div>
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-stone-100">
-            <div className="text-xs text-stone-500 text-center">Last Updated: {new Date(status.stats.lastUpdate).toLocaleString()}</div>
+          <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800">
+            <div className="text-xs text-stone-500 dark:text-stone-400 text-center">Last Updated: {new Date(status.stats.lastUpdate).toLocaleString()}</div>
           </div>
         </div>
       )}
 
       <div className="card-surface p-6 mt-6">
-        <h2 className="text-lg font-bold text-stone-900 mb-1">PDE Release Check</h2>
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">PDE Release Check</h2>
         {releaseStatus ? (
-          <div className="text-sm text-stone-600 space-y-1">
-            <p>Last checked {new Date(releaseStatus.checkedAt).toLocaleString()}. Newest year on PDE's page: <span className="font-medium text-stone-900">{releaseStatus.latestYearOnPage || '—'}</span>.</p>
+          <div className="text-sm text-stone-600 dark:text-stone-400 space-y-1">
+            <p>Last checked {new Date(releaseStatus.checkedAt).toLocaleString()}. Newest year on PDE's page: <span className="font-medium text-stone-900 dark:text-stone-100">{releaseStatus.latestYearOnPage || '—'}</span>.</p>
             {releaseStatus.newYears.length ? (
-              <p className="text-gold-800">New year(s) found: {releaseStatus.newYears.join(', ')}. Downloaded {releaseStatus.downloaded.length} file(s){releaseStatus.imported.length ? `, imported ${releaseStatus.imported.join(', ')}` : ''}.</p>
+              <p className="text-gold-800 dark:text-gold-200">New year(s) found: {releaseStatus.newYears.join(', ')}. Downloaded {releaseStatus.downloaded.length} file(s){releaseStatus.imported.length ? `, imported ${releaseStatus.imported.join(', ')}` : ''}.</p>
             ) : (
               <p>No new files since the last import. The check runs weekly and imports new years automatically.</p>
             )}
-            {releaseStatus.otherFiles?.length ? <p className="text-gold-800">Non-assessment files downloaded: {releaseStatus.otherFiles.map((f) => f.file).join(', ')}.</p> : <p className="text-stone-500">Graduation, enrollment, low-income, finance, staff, and Future Ready pages are checked at the same time.</p>}
-            {releaseStatus.note && <p className="text-stone-500">{releaseStatus.note}</p>}
+            {releaseStatus.otherFiles?.length ? <p className="text-gold-800 dark:text-gold-200">Non-assessment files downloaded: {releaseStatus.otherFiles.map((f) => f.file).join(', ')}.</p> : <p className="text-stone-500 dark:text-stone-400">Graduation, enrollment, low-income, finance, staff, and Future Ready pages are checked at the same time.</p>}
+            {releaseStatus.note && <p className="text-stone-500 dark:text-stone-400">{releaseStatus.note}</p>}
           </div>
         ) : (
-          <p className="text-sm text-stone-500">The weekly check has not run yet.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400">The weekly check has not run yet.</p>
         )}
       </div>
 
       {dataStatus && (
         <div className="card-surface p-6 mt-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-1">Data Coverage</h2>
-          <p className="text-sm text-stone-500 mb-4">
+          <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">Data Coverage</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
             Rows per year for "All Students" at each level, PVAAS growth coverage of school rows, and anything that looks off.
             Generated {new Date(dataStatus.generatedAt).toLocaleString()}.
           </p>
           {(dataStatus.flags.length > 0) && (
-            <ul className="mb-4 text-sm text-brick-700 bg-brick-50 border border-brick-200 rounded-lg p-3 space-y-1">
+            <ul className="mb-4 text-sm text-brick-700 bg-brick-50 dark:bg-brick-900/30 border border-brick-200 rounded-lg p-3 space-y-1">
               {dataStatus.flags.map((f) => <li key={f}>{f}</li>)}
             </ul>
           )}
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-stone-50 border-b border-stone-200 text-xs text-stone-500 uppercase tracking-wider">
+                <tr className="bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-700 text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                   <th className="px-3 py-2 text-left">Year</th>
                   <th className="px-3 py-2 text-right" colSpan={3}>PSSA school / district / state</th>
                   <th className="px-3 py-2 text-right">Growth</th>
@@ -234,10 +234,10 @@ export default function ImportProgressPage() {
                   <th className="px-3 py-2 text-left">Flags</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {dataStatus.years.map((y) => (
                   <tr key={y.year} className={y.flags.length ? 'bg-gold-50/40' : ''}>
-                    <td className="px-3 py-2 font-medium text-stone-900">{y.year}</td>
+                    <td className="px-3 py-2 font-medium text-stone-900 dark:text-stone-100">{y.year}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{y.pssa.school.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{y.pssa.district.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{y.pssa.state}</td>
@@ -246,7 +246,7 @@ export default function ImportProgressPage() {
                     <td className="px-3 py-2 text-right tabular-nums">{y.keystone.district.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{y.keystone.state}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{y.keystone.growthCoverage == null ? '—' : `${y.keystone.growthCoverage}%`}</td>
-                    <td className="px-3 py-2 text-xs text-stone-600">{y.flags.join('; ')}</td>
+                    <td className="px-3 py-2 text-xs text-stone-600 dark:text-stone-400">{y.flags.join('; ')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -263,11 +263,11 @@ export default function ImportProgressPage() {
                 <circle cx="60" cy="60" r="54" stroke="currentColor" strokeWidth="12" fill="none" className="text-stone-200" />
                 <circle cx="60" cy="60" r="54" stroke="currentColor" strokeWidth="12" fill="none"
                   strokeDasharray={`${2 * Math.PI * 54}`} strokeDashoffset={`${2 * Math.PI * 54 * (1 - (status.progress || 0) / 100)}`}
-                  className="text-navy-600 transition-all duration-500" />
+                  className="text-navy-600 dark:text-navy-300 transition-all duration-500" />
               </svg>
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-stone-900">{status.progress}%</span>
+              <span className="text-2xl font-bold text-stone-900 dark:text-stone-100">{status.progress}%</span>
             </div>
           </div>
         </div>

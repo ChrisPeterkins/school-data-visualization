@@ -138,8 +138,8 @@ export default function VerifyPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-stone-900">Data Verification</h1>
-        <p className="mt-2 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">Data Verification</h1>
+        <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
           Verify that database records match the source Excel files
         </p>
       </div>
@@ -183,11 +183,11 @@ export default function VerifyPage() {
 
         {/* Progress Bar */}
         <div className="mb-6">
-          <div className="flex justify-between text-sm text-stone-500 mb-2">
+          <div className="flex justify-between text-sm text-stone-500 dark:text-stone-400 mb-2">
             <span>{status.currentStep || 'Ready to verify'}</span>
             <span>{status.progress || 0}%</span>
           </div>
-          <div className="w-full bg-stone-200 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-stone-200 dark:bg-stone-700 rounded-full h-3 overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ease-out ${getProgressBarColor()}`}
               style={{ width: `${status.progress || 0}%` }}
@@ -199,17 +199,17 @@ export default function VerifyPage() {
 
         {/* Current File */}
         {status.currentFile && (
-          <div className="mb-4 p-3 bg-navy-50 rounded-md">
-            <div className="text-sm font-medium text-navy-900">Currently Verifying:</div>
-            <div className="text-sm text-navy-700">{status.currentFile}</div>
+          <div className="mb-4 p-3 bg-navy-50 dark:bg-navy-900/50 rounded-md">
+            <div className="text-sm font-medium text-navy-900 dark:text-stone-100">Currently Verifying:</div>
+            <div className="text-sm text-navy-700 dark:text-navy-200">{status.currentFile}</div>
           </div>
         )}
 
         {/* Progress Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="bg-stone-50 p-3 rounded-md">
-            <div className="text-sm text-stone-500">Files Verified</div>
-            <div className="text-2xl font-bold text-stone-900">
+          <div className="bg-stone-50 dark:bg-stone-950 p-3 rounded-md">
+            <div className="text-sm text-stone-500 dark:text-stone-400">Files Verified</div>
+            <div className="text-2xl font-bold text-stone-900 dark:text-stone-100">
               {status.processedFiles || 0} / {status.totalFiles || 0}
             </div>
           </div>
@@ -217,13 +217,13 @@ export default function VerifyPage() {
             <div className="text-sm text-civic-700">Passed</div>
             <div className="text-2xl font-bold text-civic-700">{status.filesPassed || 0}</div>
           </div>
-          <div className="bg-brick-50 p-3 rounded-md">
-            <div className="text-sm text-brick-600">Failed</div>
+          <div className="bg-brick-50 dark:bg-brick-900/30 p-3 rounded-md">
+            <div className="text-sm text-brick-600 dark:text-brick-400">Failed</div>
             <div className="text-2xl font-bold text-brick-700">{status.filesFailed || 0}</div>
           </div>
-          <div className="bg-navy-50 p-3 rounded-md">
-            <div className="text-sm text-navy-600">Status</div>
-            <div className="text-lg font-bold text-navy-700">
+          <div className="bg-navy-50 dark:bg-navy-900/50 p-3 rounded-md">
+            <div className="text-sm text-navy-600 dark:text-navy-300">Status</div>
+            <div className="text-lg font-bold text-navy-700 dark:text-navy-200">
               {status.isRunning ? 'Running' : 'Idle'}
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function VerifyPage() {
 
         {/* Errors */}
         {status.errors && status.errors.length > 0 && (
-          <div className="mt-4 p-4 bg-brick-50 border border-brick-200 rounded-md">
+          <div className="mt-4 p-4 bg-brick-50 dark:bg-brick-900/30 border border-brick-200 rounded-md">
             <div className="font-semibold text-brick-800 mb-2">Errors:</div>
             <ul className="text-sm text-brick-700 space-y-1">
               {status.errors.map((error, index) => (
@@ -245,24 +245,24 @@ export default function VerifyPage() {
       {/* File Results Log */}
       {status.fileResults && status.fileResults.length > 0 && (
         <div className="card-surface p-6 mb-6">
-          <h2 className="text-xl font-bold text-stone-900 mb-4">
+          <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 mb-4">
             File Verification Log ({status.fileResults.length} files)
           </h2>
           <div className="max-h-96 overflow-auto">
-            <table className="min-w-full divide-y divide-stone-200">
-              <thead className="bg-stone-50 sticky top-0">
+            <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+              <thead className="bg-stone-50 dark:bg-stone-950 sticky top-0">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">File</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">Status</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 uppercase">Source Records</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 uppercase">DB Records</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 uppercase">Difference</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">File</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">Status</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">Source Records</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">DB Records</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">Difference</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-stone-200">
+              <tbody className="bg-white dark:bg-stone-900 divide-y divide-stone-200 dark:divide-stone-700">
                 {status.fileResults.map((result, index) => (
-                  <tr key={index} className={result.status === 'pass' ? 'bg-civic-50/50' : 'bg-brick-50/50'}>
-                    <td className="px-4 py-2 text-sm text-stone-900 whitespace-nowrap">
+                  <tr key={index} className={result.status === 'pass' ? 'bg-civic-50/50' : 'bg-brick-50 dark:bg-brick-900/30/50'}>
+                    <td className="px-4 py-2 text-sm text-stone-900 dark:text-stone-100 whitespace-nowrap">
                       {result.fileName}
                     </td>
                     <td className="px-4 py-2 text-sm whitespace-nowrap">
@@ -282,10 +282,10 @@ export default function VerifyPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-sm text-stone-900 text-right whitespace-nowrap">
+                    <td className="px-4 py-2 text-sm text-stone-900 dark:text-stone-100 text-right whitespace-nowrap">
                       {result.sourceRowCount.toLocaleString()}
                     </td>
-                    <td className="px-4 py-2 text-sm text-stone-900 text-right whitespace-nowrap">
+                    <td className="px-4 py-2 text-sm text-stone-900 dark:text-stone-100 text-right whitespace-nowrap">
                       {result.dbRowCount.toLocaleString()}
                     </td>
                     <td className={`px-4 py-2 text-sm text-right whitespace-nowrap font-medium ${
@@ -307,19 +307,19 @@ export default function VerifyPage() {
         <div className="card-surface p-6">
           <div className="flex items-center mb-4">
             {getStatusIcon()}
-            <h2 className="text-xl sm:text-2xl font-bold text-stone-900 ml-3">Verification Report</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100 ml-3">Verification Report</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-stone-900 mb-3">File Summary</h3>
+              <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">File Summary</h3>
               <dl className="space-y-2">
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Total Files:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Total Files:</dt>
                   <dd className="font-semibold">{status.report.totalFiles}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Files Verified:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Files Verified:</dt>
                   <dd className="font-semibold">{status.report.filesVerified}</dd>
                 </div>
                 <div className="flex justify-between">
@@ -327,25 +327,25 @@ export default function VerifyPage() {
                   <dd className="font-semibold text-civic-700">{status.report.filesPassed}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-brick-600">Files Failed:</dt>
+                  <dt className="text-brick-600 dark:text-brick-400">Files Failed:</dt>
                   <dd className="font-semibold text-brick-700">{status.report.filesFailed}</dd>
                 </div>
               </dl>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-stone-900 mb-3">Record Summary</h3>
+              <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">Record Summary</h3>
               <dl className="space-y-2">
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Source Records:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Source Records:</dt>
                   <dd className="font-semibold">{status.report.summary.totalSourceRecords.toLocaleString()}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Database Records:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Database Records:</dt>
                   <dd className="font-semibold">{status.report.summary.totalDbRecords.toLocaleString()}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Difference:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Difference:</dt>
                   <dd className={`font-semibold ${
                     status.report.summary.totalSourceRecords === status.report.summary.totalDbRecords
                       ? 'text-civic-700'
@@ -355,7 +355,7 @@ export default function VerifyPage() {
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-stone-500">Overall Match:</dt>
+                  <dt className="text-stone-500 dark:text-stone-400">Overall Match:</dt>
                   <dd className={`font-semibold ${status.report.summary.overallMatch ? 'text-civic-700' : 'text-gold-700'}`}>
                     {status.report.summary.overallMatch ? '✓ YES' : '⚠ NO'}
                   </dd>
@@ -366,9 +366,9 @@ export default function VerifyPage() {
 
           {/* Critical Issues */}
           {status.report.summary.criticalIssues && status.report.summary.criticalIssues.length > 0 && (
-            <div className="mt-6 p-4 bg-gold-50 border border-gold-200 rounded-md">
-              <h3 className="font-semibold text-gold-900 mb-2">Critical Issues:</h3>
-              <ul className="text-sm text-gold-800 space-y-1">
+            <div className="mt-6 p-4 bg-gold-50 dark:bg-gold-900/30 border border-gold-200 rounded-md">
+              <h3 className="font-semibold text-gold-900 dark:text-gold-100 mb-2">Critical Issues:</h3>
+              <ul className="text-sm text-gold-800 dark:text-gold-200 space-y-1">
                 {status.report.summary.criticalIssues.map((issue, index) => (
                   <li key={index}>⚠ {issue}</li>
                 ))}

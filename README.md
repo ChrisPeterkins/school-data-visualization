@@ -40,7 +40,7 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Import report**: every yearly import ends with a year-over-year sanity report (entity counts, suppression, statewide figures per subject) posted to `NOTIFY_URL`; `importReport.ts` runs it on demand
 - **Install to home screen**: web app manifest and icons
 - **Traffic**: nightly GoAccess report over the nginx log (no cookies, anonymised IPs) at `/paschools/admin/traffic` behind admin auth
-- **Tests**: backend route tests against the fixture DB (32), frontend vitest + Testing Library (i18n, URL state, results table), axe-core accessibility checks inside the e2e suite, and a gzipped size budget (`scripts/perf-budget.mjs`) enforced in CI and by the deploy script
+- **Tests**: backend route tests against the fixture DB (37), frontend vitest + Testing Library (i18n, URL state, results table), axe-core accessibility checks inside the e2e suite, and a gzipped size budget (`scripts/perf-budget.mjs`) enforced in CI and by the deploy script
 - **Beating the odds**: PDE's percent-low-income files give every school and district a poverty share; the rankings page can rank by the residual of Math + ELA proficiency against the statewide poverty line (with the scatter), and also by graduation rate, attendance, low-income share, spending per pupil, or students per teacher
 - **Student-group indicators**: attendance and graduation rates by student group with gaps against All Students on school and district pages
 - **Staffing**: PDE professional staff summaries give teachers, students per teacher, average salary and experience per district, compared with the state
@@ -54,12 +54,23 @@ A comprehensive web application for visualizing and analyzing Pennsylvania schoo
 - **Demographics**: NCES Common Core of Data enrollment by race and ethnicity on every school page, and enrollment-weighted for districts (`importDemographics.ts`)
 - **Every public school**: buildings that have no PSSA or Keystone results (K-2 schools, some career and technical centers) are entities too, with enrollment, indicators, and demographics (`addMissingSchools.ts`)
 - **Summary bundle**: `/api/performance/summary-bundle` returns every subject series for one entity in one request; the detail pages use it instead of six calls. Data status is precomputed at start-up and the deploy script warms the edge cache (`scripts/warm-cache.sh`)
-- **Security**: CSP, frame, referrer, and permissions headers on the app; nginx rate limits the API (20 r/s per address, burst 60, 429 beyond); Vite 6 / Vitest 3 upgrade; the remaining `npm audit` advisories are all semver-major upgrades (Fastify 5, Drizzle 0.45, React Router 7) plus `xlsx` (no fix published; only used by the server-side import scripts on files we download ourselves)
+- **Security**: CSP, frame, referrer, and permissions headers on the app; nginx rate limits the API (20 r/s per address, burst 60, 429 beyond); Fastify 5 / Drizzle 0.45 / React Router 7 / Vite 6 / Vitest 3; the remaining `npm audit` advisories are `xlsx` (no fix published; only used by the server-side import scripts on files we download ourselves) and dev-only tooling
 - **Keyboard**: skip link, focus moves to the new page's heading on navigation, arrow keys walk the map's school list
 - **Report card**: `/schools/:id/report` and `/districts/:id/report` render a printable one-page card (headline proficiency, trend, indicators, gaps, results table); `?print=1` opens the print dialog
 - **Spanish** now covers rankings, compare, map controls and legend, and chart subtitles
 - **Data updates**: `/updates` lists every data load grouped into releases, with an Atom feed at `/paschools/feed.xml`; the admin page shows the other-source files the weekly check downloaded
 - **Indicator trends**: the trends page charts statewide attendance, graduation, poverty, readiness, enrollment, spending, and staffing by year
+- **Peer districts**: each district page lists the districts of the same type closest in enrollment, low-income share, spending per pupil, and distance, with a one-click comparison (`/api/districts/:id/similar`)
+- **Beating the odds, multivariate**: the expectation line is fitted on low-income share plus English learner and IEP shares (students tested in the group over all students tested), so schools serving several high-need groups are judged against a fairer baseline; the scatter still draws the low-income line at the average ELL/IEP shares, and `fit.model` in the API carries the coefficients
+- **Bulk downloads** (`/data`): every table as CSV by year (gzipped on the fly, generated once per import into `backend/data/dumps/`), plus everything about one school or district in one long-format CSV (`/api/data/schools/:id.csv`)
+- **Import anomaly alerts**: the import report now lists entities whose Math or ELA proficiency moved 25+ points with 40+ tested, schools whose enrollment halved or doubled, and any rows labelled beyond the current school year
+- **Demographic history**: several NCES CCD years (`importDemographics.ts 2019-2023`); the composition strip shows the change since the earliest year, and school rankings can be restricted to a students-of-color band (`pocMin`/`pocMax`)
+- **Report cards** for counties (`/counties/:id/report`) and the state (`/state/report`); the compare page has a print view
+- **Dark mode** (system / light / dark toggle in the nav, remembered in the browser, applied before first paint by `public/theme.js`) and the OS reduced-motion setting is honoured for page transitions and CSS animations
+- **Offline**: a service worker (`public/sw.js`) caches the app shell, hashed assets, and recently viewed API responses; a banner says when a page is showing saved figures
+- **School safety and emergency permits**: PDE Safe Schools incident reports (2017-18 onward, school and LEA level) as incidents per 100 students with category breakdown and truancy rate, and emergency teaching permits per district (2015-16 onward) per 100 teachers, both against the statewide rate (`importSafety.ts`, watched by the release checker)
+- **Status page** (`/status`): last data load, backup, restore drill, release check, 30-day uptime from the health-check log, incidents, and the running build; Dependabot opens weekly grouped dependency PRs
+- **Stack**: Fastify 5, Drizzle 0.45, React Router 7, Vite 6, Vitest 3
 
 ## 🛠 Tech Stack
 
@@ -198,7 +209,7 @@ Data is sourced from the Pennsylvania Department of Education:
 cd backend && npx tsx src/scripts/importIndicators.ts all   # or futureready | graduation | enrollment | finance
 ```
 
-Also `sources/lowincome/lowincome-YYYY.xlsx` (PDE percent low income by school and LEA) and `sources/staff/staff-YYYY-YY.xlsx` (professional staff summary). `importDemographics.ts [ccdYear]` pulls NCES CCD race/ethnicity enrollment from the Urban Institute Education Data API into `school_demographics`; `addMissingSchools.ts [--dry-run]` creates entities for schools in the latest enrollment file that have no assessment rows. Rows land in `entity_indicators`, `indicator_groups`, `enrollments`, `district_finance`, and `district_staff` (created by `ensureIndicatorTables`); the script is idempotent and refreshes map points afterwards. The Monday release watcher downloads new files from all of these pages and imports them, so the yearly refresh is normally automatic.
+Also `sources/lowincome/lowincome-YYYY.xlsx` (PDE percent low income by school and LEA) and `sources/staff/staff-YYYY-YY.xlsx` (professional staff summary). `importSafety.ts [safety|permits|all]` loads `sources/safeschools/safeschools-YYYY-YY-{schools,lea}.xlsx` (Safe Schools Online, HistoricV2 Excel reports; the Truancy count/rate columns are read by position because 2019-20 to 2021-22 mislabel them) and `sources/permits/permits-YYYY-YY.xls(x)` (emergency permits by LEA × subject, summed per AUN) into `school_safety` and `district_permits`; district_id 0 / entity_type state hold the statewide totals. `importDemographics.ts [ccdYear | 2019-2023]` pulls NCES CCD race/ethnicity enrollment from the Urban Institute Education Data API into `school_demographics`; `addMissingSchools.ts [--dry-run]` creates entities for schools in the latest enrollment file that have no assessment rows. Rows land in `entity_indicators`, `indicator_groups`, `enrollments`, `district_finance`, and `district_staff` (created by `ensureIndicatorTables`); the script is idempotent and refreshes map points afterwards. The Monday release watcher downloads new files from all of these pages and imports them, so the yearly refresh is normally automatic.
 
 ## 📝 API Endpoints
 
@@ -216,6 +227,9 @@ The public API is documented as OpenAPI 3 at `/paschools/api/docs/` (Swagger UI)
 - `GET /api/performance/pssa` - PSSA results
 - `GET /api/performance/summary-bundle?level=&id=` - every subject series for one entity
 - `GET /api/performance/imports` - data loads grouped into releases (also `GET /api/feed`, Atom)
+- `GET /api/data`, `GET /api/data/:table.csv?year=`, `GET /api/data/{schools|districts}/:id.csv` - bulk downloads
+- `GET /api/status` - operational status
+- `GET /api/districts/:id/similar` - peer districts
 - `GET /api/performance/keystone` - Keystone results
 - `GET /api/performance/trends/:schoolId` - Historical trends
 - `POST /api/performance/compare` - Compare entities

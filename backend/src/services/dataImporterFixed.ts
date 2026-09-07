@@ -388,7 +388,8 @@ export class DataImporterFixed {
     }
 
     // Look up in database
-    const existing = await db.select().from(counties).where(eq(counties.name, countyName)).limit(1);
+    // PDE files vary between 'Adams' and 'ADAMS'; match case-insensitively and prefer the row with a numeric code.
+    const existing = await db.select().from(counties).where(sql`lower(${counties.name}) = lower(${countyName})`).orderBy(sql`${counties.countyCode} GLOB '[0-9]*' DESC`).limit(1);
 
     if (existing.length > 0) {
       countyCache.set(countyCode, existing[0].id);

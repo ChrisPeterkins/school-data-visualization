@@ -94,11 +94,37 @@ check('atom feed', feed.ok() && (feed.headers()['content-type'] || '').includes(
 await page.goto(`${BASE}/schools/${process.env.SCHOOL_ID || '1'}/report`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('report card', (await page.locator('text=Report card').count()) >= 1 && (await page.locator('h1').count()) === 1);
 await page.goto(`${BASE}/rankings?entity=school&band=60-80`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
-check('rankings low-income band', (await page.locator('select').filter({ has: page.locator('option[value="60-80"]') }).inputValue()) === '60-80' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
+check('rankings low-income band', (await page.locator('select').filter({ has: page.locator('option[value="60-80"]') }).first().inputValue()) === '60-80' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
 await page.keyboard.press('Tab');
 check('skip link focusable', ((await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('href'))) || '') === '#main');
 await page.goto(`${BASE}/trends`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('indicator trends on trends page', (await page.locator('#ind-trends-heading').count()) === 1 && (await page.locator('.recharts-line').count()) >= 1);
+
+// 8d. Round E: status and data pages, peer districts, students-of-color band, dark mode (with axe), county report card.
+await page.goto(`${BASE}/status`, { waitUntil: 'load' }); await page.waitForTimeout(2500);
+check('status page', (await page.locator('h1').textContent()) === 'Site status' && (await page.locator('text=Uptime, last 30 days').count()) === 1);
+await page.goto(`${BASE}/data`, { waitUntil: 'load' }); await page.waitForTimeout(2500);
+check('data downloads page', (await page.locator('a[href*="/api/data/"]').count()) >= 10);
+const csv = await page.request.get(`${BASE}/api/data/counties.csv`);
+check('table csv download', csv.ok() && (csv.headers()['content-type'] || '').includes('text/csv') && (await csv.text()).split('\n').length > 10);
+await page.goto(`${BASE}/districts/${process.env.DISTRICT_ID || '4'}`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('peer districts', (await page.locator('text=Peer districts').count()) === 1);
+await page.goto(`${BASE}/rankings?entity=school&poc=40-60`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
+check('rankings students-of-color band', (await page.locator('select').filter({ has: page.locator('option[value="40-60"]') }).nth(1).inputValue()) === '40-60' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
+await page.goto(`${BASE}/counties/${process.env.COUNTY_ID || '1'}/report`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('county report card', (await page.locator('h1').count()) === 1 && (await page.locator('text=Report card').count()) >= 1);
+// Dark mode: toggle via the nav button, confirm the class lands, run axe in the dark theme too.
+await page.goto(`${BASE}/`, { waitUntil: 'load' }); await page.waitForTimeout(2000);
+await page.evaluate(() => { localStorage.setItem('theme', 'dark'); });
+await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(2500);
+check('dark mode applies', await page.evaluate(() => document.documentElement.classList.contains('dark')));
+const axeFileDark = ['frontend/node_modules/axe-core/axe.min.js', 'node_modules/axe-core/axe.min.js'].map((p) => new URL('../' + p, import.meta.url).pathname).find((p) => fs.existsSync(p));
+if (axeFileDark) {
+  await page.evaluate(fs.readFileSync(axeFileDark, 'utf8'));
+  const dark = await page.evaluate(async () => { const r = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] }, rules: { 'color-contrast': { enabled: true } } }); return r.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => `${v.id} (${v.nodes.length}): ${v.nodes[0]?.target?.[0] ?? ''}`); });
+  check('axe / (dark)', dark.length === 0, dark.join(' | ').slice(0, 400));
+}
+await page.evaluate(() => { localStorage.removeItem('theme'); });
 
 // 9. Accessibility: axe-core on three representative pages; serious and critical violations fail.
 const axePath = ['frontend/node_modules/axe-core/axe.min.js', 'node_modules/axe-core/axe.min.js'].map((p) => new URL('../' + p, import.meta.url).pathname).find((p) => fs.existsSync(p));

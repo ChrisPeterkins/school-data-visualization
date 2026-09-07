@@ -121,8 +121,8 @@ export default function DatabasePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-stone-900">Database Viewer</h1>
-        <p className="mt-2 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">Database Viewer</h1>
+        <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
           Browse the raw database tables
         </p>
       </div>
@@ -131,7 +131,7 @@ export default function DatabasePage() {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="card-surface p-4">
-            <h2 className="text-lg font-bold text-stone-900 mb-4">Tables</h2>
+            <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4">Tables</h2>
             <div className="space-y-2">
               {tables?.map((table) => (
                 <button
@@ -144,7 +144,7 @@ export default function DatabasePage() {
                   }`}
                 >
                   <div>{table.label}</div>
-                  <div className="text-xs text-stone-500">
+                  <div className="text-xs text-stone-500 dark:text-stone-400">
                     {table.recordCount.toLocaleString()} records
                   </div>
                 </button>
@@ -159,19 +159,19 @@ export default function DatabasePage() {
           <div className="card-surface overflow-hidden">
             {/* Table Info Header */}
             {tableData && (
-              <div className="p-4 border-b border-stone-200 bg-stone-50">
+              <div className="p-4 border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-bold text-stone-900">
+                    <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">
                       {tables?.find((t) => t.name === selectedTable)?.label}
                     </h2>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-stone-500 dark:text-stone-400">
                       {tableData.totalRecords.toLocaleString()} total records
                     </p>
                   </div>
                   {tableData.totalPages > 1 && (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-stone-500">
+                      <span className="text-sm text-stone-500 dark:text-stone-400">
                         Page {tableData.page} of {tableData.totalPages}
                       </span>
                       <div className="flex gap-1">
@@ -211,19 +211,19 @@ export default function DatabasePage() {
                 {/* Schema Info */}
                 {schema && schema.length > 0 && (
                   <details className="mt-3">
-                    <summary className="text-sm text-navy-600 cursor-pointer hover:text-navy-800">
+                    <summary className="text-sm text-navy-600 dark:text-navy-300 cursor-pointer hover:text-navy-800 dark:hover:text-navy-100 dark:text-navy-200">
                       View Table Schema ({schema.length} columns)
                     </summary>
                     <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                       {schema.map((col) => (
-                        <div key={col.name} className="bg-white p-2 rounded border">
+                        <div key={col.name} className="bg-white dark:bg-stone-900 p-2 rounded border">
                           <div className="font-semibold flex items-center gap-1">
                             {col.name}
                             {col.primaryKey && (
-                              <span className="text-xs bg-navy-100 text-navy-800 px-1 rounded">PK</span>
+                              <span className="text-xs bg-navy-100 text-navy-800 dark:text-navy-200 px-1 rounded">PK</span>
                             )}
                           </div>
-                          <div className="text-stone-500">
+                          <div className="text-stone-500 dark:text-stone-400">
                             {col.type} {col.notNull && '(NOT NULL)'}
                           </div>
                         </div>
@@ -237,9 +237,9 @@ export default function DatabasePage() {
             {/* Error Display */}
             {error && (
               <div className="p-6">
-                <div className="bg-brick-50 border border-brick-200 rounded-md p-4">
+                <div className="bg-brick-50 dark:bg-brick-900/30 border border-brick-200 rounded-md p-4">
                   <p className="text-brick-700 font-semibold">Error</p>
-                  <p className="text-sm text-brick-600">
+                  <p className="text-sm text-brick-600 dark:text-brick-400">
                     {error instanceof Error ? error.message : 'An error occurred'}
                   </p>
                 </div>
@@ -250,7 +250,7 @@ export default function DatabasePage() {
             {isLoading && (
               <div className="p-6 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-navy-600"></div>
-                <p className="mt-2 text-stone-500">Loading data...</p>
+                <p className="mt-2 text-stone-500 dark:text-stone-400">Loading data...</p>
               </div>
             )}
 
@@ -270,7 +270,7 @@ export default function DatabasePage() {
 
             {/* Empty State */}
             {!selectedTable && (
-              <div className="p-12 text-center text-stone-500">
+              <div className="p-12 text-center text-stone-500 dark:text-stone-400">
                 <svg
                   className="mx-auto h-12 w-12 text-stone-300"
                   fill="none"

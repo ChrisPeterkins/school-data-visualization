@@ -39,7 +39,7 @@ export default function PercentileBadges({ entity, id, year, exam, subject, comp
 
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${compact ? 'text-[11px]' : 'text-xs'}`}>
-      <span className="text-stone-500">{subject === 'English Language Arts' ? 'ELA' : subject} {data.year}:</span>
+      <span className="text-stone-500 dark:text-stone-400">{subject === 'English Language Arts' ? 'ELA' : subject} {data.year}:</span>
       {items.map((it) => (
         <span key={it.label} className={`inline-flex items-baseline gap-1 rounded-full px-2 py-0.5 ${tone(it.pct)}`} title={`${it.n.toLocaleString()} compared, minimum 20 students tested`}>
           <span className="font-semibold tabular-nums">{ordinal(it.pct)}</span>

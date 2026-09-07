@@ -13,6 +13,8 @@ const CountiesPage = lazy(() => import('./pages/CountiesPage'));
 const CountyDetailPage = lazy(() => import('./pages/CountyDetailPage'));
 const NearbyPage = lazy(() => import('./pages/NearbyPage'));
 const UpdatesPage = lazy(() => import('./pages/UpdatesPage'));
+const DataPage = lazy(() => import('./pages/DataPage'));
+const StatusPage = lazy(() => import('./pages/StatusPage'));
 const ReportCardPage = lazy(() => import('./pages/ReportCardPage'));
 const MapPage = lazy(() => import('./pages/MapPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -46,6 +48,10 @@ function App() {
         <Route path="counties/:id" element={<Suspense fallback={<PageFallback />}><CountyDetailPage /></Suspense>} />
         <Route path="nearby" element={<Suspense fallback={<PageFallback />}><NearbyPage /></Suspense>} />
         <Route path="updates" element={<Suspense fallback={<PageFallback />}><UpdatesPage /></Suspense>} />
+        <Route path="data" element={<Suspense fallback={<PageFallback />}><DataPage /></Suspense>} />
+        <Route path="status" element={<Suspense fallback={<PageFallback />}><StatusPage /></Suspense>} />
+        <Route path="counties/:id/report" element={<Suspense fallback={<PageFallback />}><ReportCardPage entity="county" /></Suspense>} />
+        <Route path="state/report" element={<Suspense fallback={<PageFallback />}><ReportCardPage entity="state" /></Suspense>} />
         <Route path="schools/:id/report" element={<Suspense fallback={<PageFallback />}><ReportCardPage entity="school" /></Suspense>} />
         <Route path="districts/:id/report" element={<Suspense fallback={<PageFallback />}><ReportCardPage entity="district" /></Suspense>} />
         <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />

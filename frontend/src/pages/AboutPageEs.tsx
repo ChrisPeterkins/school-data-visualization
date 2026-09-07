@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom';
 
 const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
   <section id={id} className="card-surface p-5 sm:p-7 space-y-3">
-    <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
-    <div className="text-sm text-stone-600 leading-relaxed space-y-3">{children}</div>
+    <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+    <div className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed space-y-3">{children}</div>
   </section>
 );
 
@@ -12,11 +12,11 @@ export default function AboutPageEs({ range }: { range: string }) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6" lang="es">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Acerca de los datos</h1>
-        <p className="mt-1 text-sm text-stone-500">Cada cifra de este sitio proviene de un archivo público. Esta página explica cuáles, qué se hizo con ellos y dónde conviene tener cuidado.</p>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Acerca de los datos</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Cada cifra de este sitio proviene de un archivo público. Esta página explica cuáles, qué se hizo con ellos y dónde conviene tener cuidado.</p>
       </div>
 
-      <nav className="text-sm text-navy-700 flex flex-wrap gap-x-4 gap-y-1" aria-label="En esta página">
+      <nav className="text-sm text-navy-700 dark:text-navy-200 flex flex-wrap gap-x-4 gap-y-1" aria-label="En esta página">
         {[['sources', 'Fuentes'], ['measures', 'Qué significan las medidas'], ['indicators', 'Más allá de los exámenes'], ['methods', 'Cómo se calculan las cifras'], ['caveats', 'Advertencias por año'], ['updates', 'Actualizaciones'], ['privacy', 'Privacidad']].map(([id, label]) => (
           <a key={id} href={`#${id}`} className="hover:underline">{label}</a>
         ))}
@@ -26,7 +26,7 @@ export default function AboutPageEs({ range }: { range: string }) {
         <p>
           <strong>Los resultados de evaluación</strong> provienen de las hojas de cálculo públicas del Departamento de Educación de Pensilvania (PDE) para el
           PSSA (grados 3 a 8) y los exámenes Keystone (grado 11), publicadas cada año a nivel de escuela, distrito y estado en la{' '}
-          <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/assessment-reporting" target="_blank" rel="noreferrer">página de informes de evaluación del PDE</a>.
+          <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/assessment-reporting" target="_blank" rel="noreferrer">página de informes de evaluación del PDE</a>.
           Actualmente cargado: {range || '2015-2025'} para PSSA y Keystone, más los resultados Keystone de 2013 y 2014 recuperados del sitio archivado del PDE.
         </p>
         <p>
@@ -47,18 +47,18 @@ export default function AboutPageEs({ range }: { range: string }) {
 
       <Section id="indicators" title="Más allá de los exámenes">
         <p>
-          <strong>Asistencia y preparación</strong> provienen de los <a className="text-navy-700 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">archivos de datos del Future Ready PA Index</a> del PDE (desde 2017-18).
+          <strong>Asistencia y preparación</strong> provienen de los <a className="text-navy-700 dark:text-navy-200 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">archivos de datos del Future Ready PA Index</a> del PDE (desde 2017-18).
           La asistencia regular es el porcentaje de estudiantes que no tuvieron ausentismo crónico (faltar más del 10% de los días inscritos). Estándares de carrera, cursos rigurosos (AP, IB, matrícula doble o CTE), aprendizaje basado en la industria y transición postsecundaria son las medidas universitarias y profesionales del Índice; el dominio del inglés y la lectura de 3.º / matemáticas de 7.º son sus medidas de progreso.
           El PDE dejó de publicar el porcentaje de aprendizaje basado en la industria después de 2020-21. Los valores suprimidos por el PDE (menos de 20 estudiantes) se omiten.
         </p>
         <p>
-          <strong>Las tasas de graduación</strong> son las tasas de cohorte a 4 años del PDE, de los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">archivos de graduación por cohorte</a> (desde 2016-17), por escuela, distrito y estado, con el tamaño de la cohorte. También se carga la tasa de estudiantes económicamente desfavorecidos cuando se publica.
+          <strong>Las tasas de graduación</strong> son las tasas de cohorte a 4 años del PDE, de los <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">archivos de graduación por cohorte</a> (desde 2016-17), por escuela, distrito y estado, con el tamaño de la cohorte. También se carga la tasa de estudiantes económicamente desfavorecidos cuando se publica.
         </p>
         <p>
-          <strong>La matrícula</strong> es el conteo del 1 de octubre del PDE según los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">informes de matrícula de escuelas públicas</a> de 2015-16 a 2025-26, por escuela y distrito. El conteo más reciente también dimensiona los puntos del mapa y alimenta los filtros de matrícula.
+          <strong>La matrícula</strong> es el conteo del 1 de octubre del PDE según los <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">informes de matrícula de escuelas públicas</a> de 2015-16 a 2025-26, por escuela y distrito. El conteo más reciente también dimensiona los puntos del mapa y alimenta los filtros de matrícula.
         </p>
         <p>
-          <strong>El gasto por alumno</strong> es el total de gastos dividido por la matrícula diaria promedio (ADM), ambos de los <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">resúmenes del Informe Financiero Anual</a> del PDE (desde 2015-16). La ADM de las escuelas chárter está disponible desde 2019-20, así que no tienen cifra por alumno antes. Los centros técnicos informan gastos pero no ADM. El gasto compra muchas cosas además de resultados de exámenes; el gráfico de la página de distritos es un punto de partida, no un veredicto.
+          <strong>El gasto por alumno</strong> es el total de gastos dividido por la matrícula diaria promedio (ADM), ambos de los <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">resúmenes del Informe Financiero Anual</a> del PDE (desde 2015-16). La ADM de las escuelas chárter está disponible desde 2019-20, así que no tienen cifra por alumno antes. Los centros técnicos informan gastos pero no ADM. El gasto compra muchas cosas además de resultados de exámenes; el gráfico de la página de distritos es un punto de partida, no un veredicto.
         </p>
         <p>
           <strong>El porcentaje de bajos ingresos</strong> es el porcentaje de matrícula de familias de bajos ingresos del PDE (informes de condonación de préstamos, desde 2016-17). "Superando las expectativas" en la página de clasificación ajusta una recta de competencia en Matemáticas + ELA frente a ese porcentaje entre todas las escuelas (o distritos) del año y clasifica por la distancia por encima o por debajo de la recta; el r² indica cuánta variación explica por sí solo el porcentaje de pobreza.
@@ -106,7 +106,7 @@ export default function AboutPageEs({ range }: { range: string }) {
         </p>
         <p>
           El código fuente, los scripts de importación y una descripción completa del formato de cada archivo están en{' '}
-          <a className="text-navy-700 underline" href="https://github.com/ChrisPeterkins/school-data-visualization" target="_blank" rel="noreferrer">GitHub</a>.
+          <a className="text-navy-700 dark:text-navy-200 underline" href="https://github.com/ChrisPeterkins/school-data-visualization" target="_blank" rel="noreferrer">GitHub</a>.
         </p>
       </Section>
 
@@ -114,8 +114,8 @@ export default function AboutPageEs({ range }: { range: string }) {
         <p>El sitio muestra solo cifras agregadas que el PDE ya publicó; no contiene datos de estudiantes individuales. No usa cookies de seguimiento. Los mosaicos del mapa se cargan desde OpenStreetMap.</p>
       </Section>
 
-      <p className="text-sm text-stone-500">
-        ¿Preguntas sobre una cifra concreta? Empiece por la <Link to="/state" className="text-navy-700 underline">vista estatal</Link> y luego la página de la escuela o el distrito, donde cada tabla muestra el año, el grupo y los estudiantes evaluados detrás de la cifra.
+      <p className="text-sm text-stone-500 dark:text-stone-400">
+        ¿Preguntas sobre una cifra concreta? Empiece por la <Link to="/state" className="text-navy-700 dark:text-navy-200 underline">vista estatal</Link> y luego la página de la escuela o el distrito, donde cada tabla muestra el año, el grupo y los estudiantes evaluados detrás de la cifra.
       </p>
     </div>
   );

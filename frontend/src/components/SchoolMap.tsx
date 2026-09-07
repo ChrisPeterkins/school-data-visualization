@@ -10,7 +10,7 @@ interface SchoolMapProps {
 /** Small locator map. A circle marker avoids Leaflet's bundled icon images. */
 export default function SchoolMap({ latitude, longitude, name }: SchoolMapProps) {
   return (
-    <div className="h-40 sm:h-full min-h-[10rem] rounded-lg overflow-hidden border border-stone-200">
+    <div className="h-40 sm:h-full min-h-[10rem] rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700">
       <MapContainer
         center={[latitude, longitude]}
         zoom={12}

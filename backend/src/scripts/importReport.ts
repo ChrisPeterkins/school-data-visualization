@@ -52,6 +52,40 @@ export function buildImportReport(year?: number): { text: string; warnings: stri
   }
   const growth = sqliteDb.prepare(`SELECT COUNT(*) AS n FROM pvaas_results WHERE year = ?`).get(latest) as { n: number };
   lines.push(`pvaas rows: ${growth.n}`);
+  // Entity-level anomalies: a school or district whose all-grades Math or ELA proficiency moved
+  // 25+ points with 40+ tested in both years usually means a mis-keyed file, not a real change.
+  if (prev) {
+    const jumps = sqliteDb.prepare(`
+      SELECT c.level, c.subject, COALESCE(s.name, d.name) AS name, p.proficient_or_above_percent AS old, c.proficient_or_above_percent AS new, c.total_tested AS tested
+      FROM pssa_results c JOIN pssa_results p ON p.level = c.level AND p.year = ? AND p.subject = c.subject AND p.grade = 0 AND p.demographic_group = 'All Students'
+        AND COALESCE(p.school_id, 0) = COALESCE(c.school_id, 0) AND COALESCE(p.district_id, 0) = COALESCE(c.district_id, 0)
+      LEFT JOIN schools s ON s.id = c.school_id LEFT JOIN districts d ON d.id = c.district_id AND c.level = 'district'
+      WHERE c.year = ? AND c.grade = 0 AND c.demographic_group = 'All Students' AND c.level IN ('school', 'district') AND c.subject IN ('Mathematics', 'English Language Arts')
+        AND c.total_tested >= 40 AND p.total_tested >= 40 AND ABS(c.proficient_or_above_percent - p.proficient_or_above_percent) >= 25
+      ORDER BY ABS(c.proficient_or_above_percent - p.proficient_or_above_percent) DESC LIMIT 15
+    `).all(prev, latest) as Array<{ level: string; subject: string; name: string; old: number; new: number; tested: number }>;
+    lines.push(`entities moving 25+ points (${prev} → ${latest}, 40+ tested): ${jumps.length}`);
+    for (const j of jumps) lines.push(`  ${j.level} ${j.name} ${j.subject}: ${j.old}% → ${j.new}% (${j.tested} tested)`);
+    if (jumps.length > 10) warnings.push(`${jumps.length}+ entities moved 25 or more points in one year; check the file mapping`);
+  }
+  // Year labels ahead of the current school year point at a parsing slip in a file name or header.
+  const nowY = new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0);
+  for (const [table, col] of [['pssa_results', 'year'], ['keystone_results', 'year'], ['entity_indicators', 'year'], ['enrollments', 'year'], ['district_finance', 'year'], ['school_demographics', 'year']]) {
+    try {
+      const bad = sqliteDb.prepare(`SELECT ${col} AS y, COUNT(*) AS n FROM ${table} WHERE ${col} > ? GROUP BY ${col}`).all(nowY) as Array<{ y: number; n: number }>;
+      for (const b of bad) warnings.push(`${table} has ${b.n} rows labelled ${b.y}, beyond the current school year ${nowY}`);
+    } catch { /* table may not exist on a fresh database */ }
+  }
+  // Enrollment collapses or explosions in the latest enrollment year.
+  const enrollYears = sqliteDb.prepare(`SELECT DISTINCT year FROM enrollments ORDER BY year DESC LIMIT 2`).all() as Array<{ year: number }>;
+  if (enrollYears.length === 2) {
+    const swings = sqliteDb.prepare(`
+      SELECT s.name, a.total AS old, b.total AS new FROM enrollments a JOIN enrollments b ON b.entity_type = a.entity_type AND b.entity_id = a.entity_id AND b.year = ?
+      JOIN schools s ON s.id = a.entity_id WHERE a.entity_type = 'school' AND a.year = ? AND a.total >= 100 AND (b.total < a.total * 0.5 OR b.total > a.total * 2) ORDER BY ABS(b.total - a.total) DESC LIMIT 10
+    `).all(enrollYears[0].year, enrollYears[1].year) as Array<{ name: string; old: number; new: number }>;
+    lines.push(`schools whose enrollment halved or doubled (${enrollYears[1].year} → ${enrollYears[0].year}): ${swings.length}`);
+    for (const w of swings) lines.push(`  ${w.name}: ${w.old} → ${w.new}`);
+  }
   if (warnings.length) lines.push('', 'WARNINGS:', ...warnings.map((w) => `  - ${w}`)); else lines.push('', 'No anomalies detected.');
   return { text: lines.join('\n'), warnings };
 }

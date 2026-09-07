@@ -50,19 +50,19 @@ export default function WatchlistPanel() {
   return (
     <section className="card-surface p-5 sm:p-6" aria-labelledby="watchlist-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 id="watchlist-heading" className="text-lg font-semibold text-stone-900 inline-flex items-center gap-2"><BookmarkIcon className="w-5 h-5 text-gold-600" />{t('pin.title')}</h3>
-        <p className="text-xs text-stone-500">{isNew ? <span className="text-teal-700 font-medium">{t('pin.newData')}</span> : t('pin.sub', { year: latest ?? '' })}</p>
+        <h3 id="watchlist-heading" className="text-lg font-semibold text-stone-900 dark:text-stone-100 inline-flex items-center gap-2"><BookmarkIcon className="w-5 h-5 text-gold-600" />{t('pin.title')}</h3>
+        <p className="text-xs text-stone-500 dark:text-stone-400">{isNew ? <span className="text-teal-700 dark:text-teal-400 font-medium">{t('pin.newData')}</span> : t('pin.sub', { year: latest ?? '' })}</p>
       </div>
-      <ul className="mt-3 divide-y divide-stone-100">
+      <ul className="mt-3 divide-y divide-stone-100 dark:divide-stone-800">
         {pins.map((p) => {
           const pssaCur = lookup(p.kind, 'pssa', latest ?? undefined, p.id);
           const exam = pssaCur && Object.values(pssaCur.subjects).some((s) => s.proficiency != null) ? 'pssa' : 'keystone';
           const cur = lookup(p.kind, exam, latest ?? undefined, p.id), old = lookup(p.kind, exam, prev, p.id);
           return (
             <li key={`${p.kind}-${p.id}`} className="py-2 flex items-center gap-3">
-              <Link to={`/${p.kind}s/${p.id}`} className="min-w-0 flex-1 hover:text-navy-700">
-                <span className="block text-sm font-medium text-stone-900 truncate">{p.name}</span>
-                <span className="block text-xs text-stone-500 truncate">{p.detail ?? t(p.kind === 'school' ? 'nav.schools' : 'nav.districts')}</span>
+              <Link to={`/${p.kind}s/${p.id}`} className="min-w-0 flex-1 hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200">
+                <span className="block text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{p.name}</span>
+                <span className="block text-xs text-stone-500 dark:text-stone-400 truncate">{p.detail ?? t(p.kind === 'school' ? 'nav.schools' : 'nav.districts')}</span>
               </Link>
               <div className="flex gap-4 text-right">
                 {SUBJECTS_BY_EXAM[exam].map(([s, short]) => {
@@ -70,19 +70,19 @@ export default function WatchlistPanel() {
                   const d = v != null && o != null ? Math.round((v - o) * 10) / 10 : null;
                   return (
                     <div key={s} className="w-16 sm:w-20">
-                      <div className="text-[10px] uppercase tracking-wide text-stone-500">{short}</div>
-                      <div className="text-sm font-semibold text-navy-900 tabular-nums">{formatPct(v)}</div>
-                      {d != null && <div className={`text-[11px] tabular-nums ${d >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>{d > 0 ? '+' : ''}{d}</div>}
+                      <div className="text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-400">{short}</div>
+                      <div className="text-sm font-semibold text-navy-900 dark:text-stone-100 tabular-nums">{formatPct(v)}</div>
+                      {d != null && <div className={`text-[11px] tabular-nums ${d >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-brick-600 dark:text-brick-400'}`}>{d > 0 ? '+' : ''}{d}</div>}
                     </div>
                   );
                 })}
               </div>
-              <button type="button" onClick={() => remove(p.kind, p.id)} aria-label={t('pin.remove')} className="p-1 rounded text-stone-300 hover:text-stone-600 hover:bg-stone-100"><XMarkIcon className="w-4 h-4" /></button>
+              <button type="button" onClick={() => remove(p.kind, p.id)} aria-label={t('pin.remove')} className="p-1 rounded text-stone-300 hover:text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800"><XMarkIcon className="w-4 h-4" /></button>
             </li>
           );
         })}
       </ul>
-      {isNew && lastImportAt && <button type="button" onClick={() => markImportSeen(lastImportAt)} className="mt-2 text-xs text-navy-600 hover:underline">{t('pin.dismiss')}</button>}
+      {isNew && lastImportAt && <button type="button" onClick={() => markImportSeen(lastImportAt)} className="mt-2 text-xs text-navy-600 dark:text-navy-300 hover:underline">{t('pin.dismiss')}</button>}
     </section>
   );
 }

@@ -134,16 +134,19 @@ export default function ComparePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.compare.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">{t('pages.compare.sub')}</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.compare.title')}</h1>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('pages.compare.sub')}</p>
+        </div>
+        <button type="button" onClick={() => window.print()} className="print:hidden px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800">{t('common.print')}</button>
       </div>
 
-      <div className="card-surface p-5 mb-6">
+      <div className="card-surface p-5 mb-6 print:hidden">
         <div className="flex flex-wrap items-end gap-3 sm:gap-4 mb-4">
-          <div className="inline-flex rounded-lg border border-stone-200 text-sm font-medium overflow-hidden self-end" role="group" aria-label="Compare schools or districts">
+          <div className="inline-flex rounded-lg border border-stone-200 dark:border-stone-700 text-sm font-medium overflow-hidden self-end" role="group" aria-label="Compare schools or districts">
             {(['school', 'district'] as Entity[]).map((e) => (
-              <button key={e} onClick={() => setEntity(e)} aria-pressed={entity === e} className={`px-3 py-2 ${entity === e ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'} ${e === 'district' ? 'border-l border-stone-200' : ''}`}>
+              <button key={e} onClick={() => setEntity(e)} aria-pressed={entity === e} className={`px-3 py-2 ${entity === e ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'} ${e === 'district' ? 'border-l border-stone-200 dark:border-stone-700' : ''}`}>
                 {e === 'school' ? 'Schools' : 'Districts'}
               </button>
             ))}
@@ -158,9 +161,9 @@ export default function ComparePage() {
           <FilterSelect label={t('common.studentGroup')} value={group} onChange={(e) => setGroup(e.target.value)} fluid={false}>
             {GROUPS.map((g) => <option key={g} value={g}>{labelFor(g)}</option>)}
           </FilterSelect>
-          <div className="inline-flex rounded-lg border border-stone-200 text-sm font-medium overflow-hidden self-end" role="group" aria-label="View">
-            <button onClick={() => setView('snapshot')} aria-pressed={view === 'snapshot'} className={`px-3 py-2 ${view === 'snapshot' ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>{year} snapshot</button>
-            <button onClick={() => setView('trend')} aria-pressed={view === 'trend'} className={`px-3 py-2 border-l border-stone-200 ${view === 'trend' ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>Over time</button>
+          <div className="inline-flex rounded-lg border border-stone-200 dark:border-stone-700 text-sm font-medium overflow-hidden self-end" role="group" aria-label="View">
+            <button onClick={() => setView('snapshot')} aria-pressed={view === 'snapshot'} className={`px-3 py-2 ${view === 'snapshot' ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}>{year} snapshot</button>
+            <button onClick={() => setView('trend')} aria-pressed={view === 'trend'} className={`px-3 py-2 border-l border-stone-200 dark:border-stone-700 ${view === 'trend' ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}>Over time</button>
           </div>
           {view === 'trend' && (
             <FilterSelect label={t('common.subject')} value={trendSubject} onChange={(e) => setTrendSubject(e.target.value)} fluid={false}>
@@ -178,25 +181,25 @@ export default function ComparePage() {
 
         {showSearch && (
           <div className="mb-4">
-            <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
+            <div className="p-4 bg-stone-50 dark:bg-stone-950 rounded-lg border border-stone-200 dark:border-stone-700">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 dark:text-stone-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={`Search for a ${entity}...`}
-                  className="w-full pl-10 pr-4 py-2.5 border border-stone-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-navy-500/30"
+                  className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-700 rounded-lg text-sm bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-navy-500/30"
                   autoFocus
                 />
               </div>
               {searchResults && searchResults.length > 0 && (
-                <ul className="mt-2 max-h-48 overflow-auto divide-y divide-stone-100 border border-stone-200 rounded-lg bg-white">
+                <ul className="mt-2 max-h-48 overflow-auto divide-y divide-stone-100 dark:divide-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900">
                   {searchResults.map((item: any) => (
                     <li key={item.id}>
-                      <button onClick={() => add(item)} disabled={ids.includes(item.id)} className="w-full px-4 py-2.5 text-left text-sm hover:bg-stone-50 disabled:opacity-40 transition-colors">
-                        <div className="font-medium text-stone-900">{item.name}</div>
-                        <div className="text-xs text-stone-500">{entity === 'school' ? `${item.districtName}${item.type ? ` · ${item.type}` : ''}` : `${item.countyName} County`}</div>
+                      <button onClick={() => add(item)} disabled={ids.includes(item.id)} className="w-full px-4 py-2.5 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 transition-colors">
+                        <div className="font-medium text-stone-900 dark:text-stone-100">{item.name}</div>
+                        <div className="text-xs text-stone-500 dark:text-stone-400">{entity === 'school' ? `${item.districtName}${item.type ? ` · ${item.type}` : ''}` : `${item.countyName} County`}</div>
                       </button>
                     </li>
                   ))}
@@ -208,10 +211,10 @@ export default function ComparePage() {
 
         <div className="flex flex-wrap gap-2">
           {figures.map((f, index) => (
-            <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-full" style={{ borderColor: COMPARE_COLORS[index] }}>
+            <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-stone-900 border rounded-full" style={{ borderColor: COMPARE_COLORS[index] }}>
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COMPARE_COLORS[index] }} />
-              <span className="text-sm font-medium text-stone-700">{f.name}</span>
-              <button onClick={() => remove(f.id)} aria-label={`Remove ${f.name}`} className="text-stone-500 hover:text-stone-600 transition-colors">
+              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">{f.name}</span>
+              <button onClick={() => remove(f.id)} aria-label={`Remove ${f.name}`} className="text-stone-500 hover:text-stone-600 dark:text-stone-400 transition-colors">
                 <XMarkIcon className="h-4 w-4" />
               </button>
             </div>
@@ -222,12 +225,12 @@ export default function ComparePage() {
       {ids.length === 0 ? (
         <div className="card-surface p-12 text-center">
           <ArrowsRightLeftIcon className="w-10 h-10 text-stone-300 mx-auto mb-4" />
-          <p className="text-stone-500">Add up to 5 {entity}s to compare their results</p>
+          <p className="text-stone-500 dark:text-stone-400">Add up to 5 {entity}s to compare their results</p>
         </div>
       ) : isLoading ? (
-        <div className="card-surface p-12 text-center text-sm text-stone-500">Loading…</div>
+        <div className="card-surface p-12 text-center text-sm text-stone-500 dark:text-stone-400">Loading…</div>
       ) : noData ? (
-        <div className="card-surface p-8 text-center text-sm text-stone-500">
+        <div className="card-surface p-8 text-center text-sm text-stone-500 dark:text-stone-400">
           None of the selected {entity}s have {exam === 'pssa' ? 'PSSA' : 'Keystone'} results for {groupLabel} in {year}.
           {exam === 'pssa' ? ' High schools report Keystone exams; switch the exam above.' : ''} Groups under 11 students are suppressed by PDE.
         </div>
@@ -244,13 +247,13 @@ export default function ComparePage() {
             height={smUp ? 400 : 300}
           />
         ) : (
-          <div className="card-surface p-12 text-center text-sm text-stone-500">{trendQueries.some((q) => q.isLoading) ? 'Loading…' : `No ${trendSubject} results for ${labelFor(group)} over time.`}</div>
+          <div className="card-surface p-12 text-center text-sm text-stone-500 dark:text-stone-400">{trendQueries.some((q) => q.isLoading) ? 'Loading…' : `No ${trendSubject} results for ${labelFor(group)} over time.`}</div>
         )
       ) : figures.length > 0 && (
         <div className="space-y-6">
           <div className="card-surface p-4 sm:p-6">
-            <h2 className="text-base font-semibold text-stone-900 mb-1">{t('cmp.bySubject', { year: year ?? '' })}</h2>
-            <p className="text-xs text-stone-500 mb-4">{groupLabel}, all grades</p>
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">{t('cmp.bySubject', { year: year ?? '' })}</h2>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{groupLabel}, all grades</p>
             <AccessibleChart label={`Proficient or above by subject, ${groupLabel}, ${year}`} rows={barData}>
             <ResponsiveContainer width="100%" height={smUp ? 400 : 300}>
               <BarChart data={barData}>
@@ -266,8 +269,8 @@ export default function ComparePage() {
           </div>
 
           <div className="card-surface p-4 sm:p-6">
-            <h2 className="text-base font-semibold text-stone-900 mb-1">{t('cmp.vsState', { year: year ?? '' })}</h2>
-            <p className="text-xs text-stone-500 mb-4">Each dot is one {entity}'s % proficient or above for {groupLabel}; the gold diamond is the statewide figure for the same group</p>
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">{t('cmp.vsState', { year: year ?? '' })}</h2>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">Each dot is one {entity}'s % proficient or above for {groupLabel}; the gold diamond is the statewide figure for the same group</p>
             <ResponsiveContainer width="100%" height={smUp ? 260 : 220}>
               <ScatterChart margin={{ top: 10, right: smUp ? 30 : 16, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
@@ -282,10 +285,10 @@ export default function ComparePage() {
           </div>
 
           <div className="card-surface overflow-hidden">
-            <div className="px-6 py-4 border-b border-stone-100 flex flex-wrap items-start justify-between gap-2">
+            <div className="px-6 py-4 border-b border-stone-100 dark:border-stone-800 flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h2 className="text-base font-semibold text-stone-900">{t('cmp.summary', { year: year ?? '' })}</h2>
-                <p className="text-xs text-stone-500 mt-0.5">{groupLabel} proficient or above per subject; growth is the PVAAS index for all students</p>
+                <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('cmp.summary', { year: year ?? '' })}</h2>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{groupLabel} proficient or above per subject; growth is the PVAAS index for all students</p>
               </div>
               <ExportCsvButton
                 filename={`compare-${entity}s-${group}-${year}`}
@@ -295,34 +298,34 @@ export default function ComparePage() {
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-stone-50/80 border-b border-stone-200">
-                    <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">{entity === 'school' ? 'School' : 'District'}</th>
-                    {subjects.map((s) => <th key={s} className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">{SHORT[s]}</th>)}
-                    <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Average</th>
-                    <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 uppercase tracking-wider">Growth</th>
+                  <tr className="bg-stone-50/80 border-b border-stone-200 dark:border-stone-700">
+                    <th className="px-3 sm:px-5 py-3 text-left text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">{entity === 'school' ? 'School' : 'District'}</th>
+                    {subjects.map((s) => <th key={s} className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">{SHORT[s]}</th>)}
+                    <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Average</th>
+                    <th className="px-3 sm:px-5 py-3 text-center text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Growth</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                   {figures.map((f, index) => {
                     const vals = subjects.map((s) => f.subjects[s]?.proficiency).filter((v): v is number => v != null);
                     const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : NaN;
                     const growth = meanGrowth(f);
                     const band = growthBand(growth);
                     return (
-                      <tr key={f.id} className="hover:bg-stone-50/50 transition-colors">
+                      <tr key={f.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
                         <td className="px-3 sm:px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COMPARE_COLORS[index] }} />
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-stone-900">{f.name}</div>
-                              <div className="text-xs text-stone-500 truncate">{f.parent}{f.enrollment ? ` · ${f.enrollment.toLocaleString()} students` : ''}</div>
+                              <div className="text-sm font-medium text-stone-900 dark:text-stone-100">{f.name}</div>
+                              <div className="text-xs text-stone-500 dark:text-stone-400 truncate">{f.parent}{f.enrollment ? ` · ${f.enrollment.toLocaleString()} students` : ''}</div>
                             </div>
                           </div>
                         </td>
                         {subjects.map((s) => (
-                          <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap" title={f.subjects[s]?.tested ? `${f.subjects[s].tested} tested` : undefined}>{formatPct(f.subjects[s]?.proficiency)}</td>
+                          <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 dark:text-stone-400 whitespace-nowrap" title={f.subjects[s]?.tested ? `${f.subjects[s].tested} tested` : undefined}>{formatPct(f.subjects[s]?.proficiency)}</td>
                         ))}
-                        <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-navy-600 whitespace-nowrap">{isNaN(avg) ? 'N/A' : formatPct(avg)}</td>
+                        <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-navy-600 dark:text-navy-300 whitespace-nowrap">{isNaN(avg) ? 'N/A' : formatPct(avg)}</td>
                         <td className={`px-3 sm:px-5 py-3.5 text-center text-sm whitespace-nowrap ${band.className}`}>{growth == null ? '—' : `${growth.toFixed(1)} · ${band.label}`}</td>
                       </tr>
                     );
@@ -332,12 +335,12 @@ export default function ComparePage() {
                       <td className="px-3 sm:px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rotate-45 flex-shrink-0" style={{ backgroundColor: STATE_COLOR }} />
-                          <span className="text-sm font-medium text-stone-700">State, {groupLabel}</span>
+                          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">State, {groupLabel}</span>
                         </div>
                       </td>
-                      {subjects.map((s) => <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 whitespace-nowrap">{formatPct(stateBySubject[s])}</td>)}
-                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-stone-700 whitespace-nowrap">{isNaN(stateAverage) ? 'N/A' : formatPct(stateAverage)}</td>
-                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-500">—</td>
+                      {subjects.map((s) => <td key={s} className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-600 dark:text-stone-400 whitespace-nowrap">{formatPct(stateBySubject[s])}</td>)}
+                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm font-semibold text-stone-700 dark:text-stone-300 whitespace-nowrap">{isNaN(stateAverage) ? 'N/A' : formatPct(stateAverage)}</td>
+                      <td className="px-3 sm:px-5 py-3.5 text-center text-sm text-stone-500 dark:text-stone-400">—</td>
                     </tr>
                   )}
                 </tbody>

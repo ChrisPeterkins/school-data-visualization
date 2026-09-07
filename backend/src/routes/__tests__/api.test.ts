@@ -169,7 +169,7 @@ describe('measures, beating the odds, nearby, previews', () => {
     const body = await get('/api/performance/rankings?year=2025&examType=pssa&entity=school&measure=beating_odds&limit=5');
     if (!body.fit) return; // fixture may hold too few schools with low-income data
     const r = body.top[0];
-    expect(r.residual).toBeCloseTo(r.avgProficiency - (body.fit.intercept + body.fit.slope * r.lowIncome), 0);
+    expect(r.residual).toBeCloseTo(r.avgProficiency - r.expectedProficiency, 1); // expectation is multivariate; see the round E test for the model
     expect(body.points.length).toBe(body.fit.n);
   });
 
@@ -239,5 +239,65 @@ describe('summary bundle, imports, feed, poverty-aware similar schools', () => {
       const li = raw.prepare(`SELECT value FROM entity_indicators WHERE entity_type = 'school' AND entity_id = ? AND indicator = 'low_income' AND year = ?`).get(r.id, year) as { value: number } | undefined;
       expect(li?.value ?? -1).toBeGreaterThanOrEqual(40);
     }
+  });
+});
+
+describe('round E: peers, multivariate odds, data downloads, status, safety', () => {
+  it('peer districts share the district type and come sorted by closeness', async () => {
+    const d = raw.prepare(`SELECT id, district_type AS type FROM districts WHERE is_active = 1 AND total_enrollment > 0 ORDER BY total_enrollment DESC LIMIT 1`).get() as { id: number; type: string | null };
+    const body = await get(`/api/districts/${d.id}/similar?limit=4`);
+    expect(body.districtId).toBe(d.id);
+    expect(body.similar.length).toBeGreaterThan(0);
+    for (const s of body.similar) { expect(s.id).not.toBe(d.id); expect(s.type ?? 'Public').toBe(d.type ?? 'Public'); }
+  });
+
+  it('beating the odds: residual equals proficiency minus the multivariate expectation', async () => {
+    const body = await get('/api/performance/rankings?year=2025&examType=pssa&entity=school&measure=beating_odds&limit=5');
+    if (!body.fit) return;
+    const m = body.fit.model;
+    for (const r of body.top) {
+      const expected = m.intercept + m.lowIncome * r.lowIncome + m.ell * (r.ellShare ?? 0) + m.iep * (r.iepShare ?? 0);
+      expect(r.expectedProficiency).toBeCloseTo(expected, 0);
+      expect(r.residual).toBeCloseTo(r.avgProficiency - r.expectedProficiency, 1);
+    }
+  });
+
+  it('table CSV has one line per row and the entity export covers results and indicators', async () => {
+    const years = await get('/api/data');
+    const enr = years.tables.find((x: any) => x.table === 'enrollments');
+    const year = enr.years[0];
+    const res = await app.inject({ method: 'GET', url: `/api/data/enrollments.csv?year=${year}` });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+    const n = (raw.prepare(`SELECT COUNT(*) AS n FROM enrollments WHERE year = ?`).get(year) as { n: number }).n;
+    expect(res.body.trim().split('\n').length - 1).toBe(n);
+    const bad = await app.inject({ method: 'GET', url: '/api/data/nope.csv' });
+    expect(bad.statusCode).toBe(404);
+    const s = raw.prepare(`SELECT school_id AS id FROM pssa_results WHERE level = 'school' GROUP BY school_id ORDER BY COUNT(*) DESC LIMIT 1`).get() as { id: number };
+    const exp = await app.inject({ method: 'GET', url: `/api/data/schools/${s.id}.csv` });
+    expect(exp.statusCode).toBe(200);
+    const lines = exp.body.trim().split('\n');
+    expect(lines[0]).toBe('source,year,measure,subject,grade,student_group,value,n,state_value,advanced,proficient,basic,below_basic,growth');
+    const results = (raw.prepare(`SELECT COUNT(*) AS n FROM pssa_results WHERE level = 'school' AND school_id = ?`).get(s.id) as { n: number }).n + (raw.prepare(`SELECT COUNT(*) AS n FROM keystone_results WHERE level = 'school' AND school_id = ?`).get(s.id) as { n: number }).n;
+    expect(lines.filter((l: string) => /^(PSSA|Keystone),/.test(l)).length).toBe(results);
+  });
+
+  it('status reports the last import and a 30-day uptime figure', async () => {
+    const body = await get('/api/status');
+    expect(body.data.lastImportAt).toBeTruthy();
+    expect(body.health.uptime30d).toBeGreaterThanOrEqual(0);
+    expect(body.health.uptime30d).toBeLessThanOrEqual(100);
+    expect(body.data.counts.schools).toBeGreaterThan(0);
+  });
+
+  it('safety rates are incidents per 100 students with the statewide rate attached', async () => {
+    const row = raw.prepare(`SELECT entity_id AS id, year, incidents, enrollment FROM school_safety WHERE entity_type = 'district' AND enrollment > 0 ORDER BY year DESC LIMIT 1`).get() as { id: number; year: number; incidents: number; enrollment: number } | undefined;
+    if (!row) return;
+    const body = await get(`/api/indicators/district/${row.id}`);
+    const pt = body.safety.find((p: any) => p.year === row.year);
+    expect(pt.incidentsPer100).toBeCloseTo((row.incidents / row.enrollment) * 100, 1);
+    const st = raw.prepare(`SELECT incidents, enrollment FROM school_safety WHERE entity_type = 'state' AND year = ?`).get(row.year) as { incidents: number; enrollment: number } | undefined;
+    if (st) expect(pt.stateIncidentsPer100).toBeCloseTo((st.incidents / st.enrollment) * 100, 1);
+    expect(Array.isArray(body.permits)).toBe(true);
   });
 });

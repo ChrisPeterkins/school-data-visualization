@@ -32,10 +32,10 @@ export default function CountyMapInset({ countyId }: { countyId: number }) {
     <section className="card-surface overflow-hidden" aria-labelledby="county-map-heading">
       <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
         <div>
-          <h2 id="county-map-heading" className="text-base font-semibold text-stone-900">{t('county.map')}</h2>
-          <p className="text-xs text-stone-500">{t('county.mapSub', { year: latest })}</p>
+          <h2 id="county-map-heading" className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('county.map')}</h2>
+          <p className="text-xs text-stone-500 dark:text-stone-400">{t('county.mapSub', { year: latest })}</p>
         </div>
-        <Link to={`/map?county=${countyId}&year=${latest}`} className="text-sm font-medium text-navy-600 hover:text-navy-800">{t('county.openMap')} →</Link>
+        <Link to={`/map?county=${countyId}&year=${latest}`} className="text-sm font-medium text-navy-600 dark:text-navy-300 hover:text-navy-800 dark:hover:text-navy-100 dark:text-navy-200">{t('county.openMap')} →</Link>
       </div>
       <div className="h-72 sm:h-80" role="img" aria-label={t('county.map')}>
         <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>

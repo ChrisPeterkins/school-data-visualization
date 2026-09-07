@@ -9,6 +9,7 @@ import ResultsTable from '../components/ResultsTable';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import PinButton from '../components/PinButton';
 import ShareButton from '../components/ShareButton';
+import PeerDistricts from '../components/PeerDistricts';
 import { useT } from '../i18n';
 import { useSummaryBundle, bundleAsQueries } from '../hooks/useSummaryBundle';
 import DataNotes from '../components/DataNotes';
@@ -44,16 +45,16 @@ export default function DistrictDetailPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
         <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
-        <p className="mt-3 text-sm text-stone-500">Loading district...</p>
+        <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">Loading district...</p>
       </div>
     );
   }
   if (error || !district) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card-surface border-brick-200 bg-brick-50 p-6">
+        <div className="card-surface border-brick-200 bg-brick-50 dark:bg-brick-900/30 p-6">
           <p className="text-brick-700 font-medium">District not found.</p>
-          <Link to="/districts" className="mt-2 inline-block text-sm text-navy-600 hover:text-navy-800">&larr; Back to districts</Link>
+          <Link to="/districts" className="mt-2 inline-block text-sm text-navy-600 dark:text-navy-300 hover:text-navy-800 dark:hover:text-navy-100 dark:text-navy-200">&larr; Back to districts</Link>
         </div>
       </div>
     );
@@ -84,56 +85,56 @@ export default function DistrictDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500 mb-6 min-w-0" aria-label="Breadcrumb">
-        <Link to="/districts" className="hover:text-navy-600 transition-colors">Districts</Link>
+      <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500 dark:text-stone-400 mb-6 min-w-0" aria-label="Breadcrumb">
+        <Link to="/districts" className="hover:text-navy-600 dark:text-navy-300 transition-colors">Districts</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
-        <Link to={`/counties/${d.countyId}`} className="hover:text-navy-600 transition-colors">{d.countyName} County</Link>
+        <Link to={`/counties/${d.countyId}`} className="hover:text-navy-600 dark:text-navy-300 transition-colors">{d.countyName} County</Link>
         <ChevronRightIcon className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="text-stone-700 font-medium break-words">{d.name}</span>
+        <span className="text-stone-700 dark:text-stone-300 font-medium break-words">{d.name}</span>
       </nav>
 
       <div className="card-surface p-4 sm:p-6 mb-8">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{d.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100 break-words">{d.name}</h1>
           <PinButton pin={{ kind: 'district', id: Number(d.id), name: d.name, detail: `${d.countyName} County` }} />
           <ShareButton title={`${d.name} · PA School Data`} />
-          <Link to={`/districts/${d.id}/report`} className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-600 hover:border-navy-300 hover:text-navy-700 print:hidden">{t('report.title')}</Link>
+          <Link to={`/districts/${d.id}/report`} className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-navy-300 dark:hover:border-navy-500 hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200 print:hidden">{t('report.title')}</Link>
           <PrintButton />
         </div>
-        <p className="text-sm text-stone-500 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>
         <div className="mt-3">
           <PercentileBadges entity="district" id={Number(d.id)} year={activeYear} exam={pssaForYear.length ? 'pssa' : 'keystone'} subject={pssaForYear.length ? 'Mathematics' : 'Algebra I'} />
         </div>
         <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           <div>
-            <dt className="text-stone-500">Schools</dt>
-            <dd className="text-lg font-semibold text-stone-900">{(d.schools ?? []).length}</dd>
+            <dt className="text-stone-500 dark:text-stone-400">Schools</dt>
+            <dd className="text-lg font-semibold text-stone-900 dark:text-stone-100">{(d.schools ?? []).length}</dd>
           </div>
           <div>
-            <dt className="text-stone-500">Enrollment</dt>
-            <dd className="text-lg font-semibold text-stone-900">{d.totalEnrollment ? d.totalEnrollment.toLocaleString() : '—'}</dd>
+            <dt className="text-stone-500 dark:text-stone-400">Enrollment</dt>
+            <dd className="text-lg font-semibold text-stone-900 dark:text-stone-100">{d.totalEnrollment ? d.totalEnrollment.toLocaleString() : '—'}</dd>
           </div>
           <div>
-            <dt className="text-stone-500">Math proficient{activeYear ? `, ${activeYear}` : ''}</dt>
-            <dd className="text-lg font-semibold text-navy-700">{formatPct(headline?.percentProficientOrAbove)}</dd>
+            <dt className="text-stone-500 dark:text-stone-400">Math proficient{activeYear ? `, ${activeYear}` : ''}</dt>
+            <dd className="text-lg font-semibold text-navy-700 dark:text-navy-200">{formatPct(headline?.percentProficientOrAbove)}</dd>
           </div>
           <div>
-            <dt className="text-stone-500">ELA proficient{activeYear ? `, ${activeYear}` : ''}</dt>
-            <dd className="text-lg font-semibold text-navy-700">{formatPct(headlineEla?.percentProficientOrAbove)}</dd>
+            <dt className="text-stone-500 dark:text-stone-400">ELA proficient{activeYear ? `, ${activeYear}` : ''}</dt>
+            <dd className="text-lg font-semibold text-navy-700 dark:text-navy-200">{formatPct(headlineEla?.percentProficientOrAbove)}</dd>
           </div>
         </dl>
       </div>
 
       {allYears.length > 0 && (
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-          <span className="text-sm font-medium text-stone-600">Assessment Year</span>
+          <span className="text-sm font-medium text-stone-600 dark:text-stone-400">Assessment Year</span>
           <div className="flex flex-wrap gap-1.5">
             {allYears.map((year) => (
               <button
                 key={year}
                 onClick={() => setSelectedYear(year)}
                 aria-pressed={activeYear === year}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeYear === year ? 'bg-navy-700 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeYear === year ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
               >
                 {year}
               </button>
@@ -145,7 +146,7 @@ export default function DistrictDetailPage() {
       {pssaForYear.length > 0 && (
         <div className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h2 className="text-lg font-bold text-stone-900">PSSA Results <span className="text-sm font-normal text-stone-500">({activeYear})</span></h2>
+            <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">PSSA Results <span className="text-sm font-normal text-stone-500 dark:text-stone-400">({activeYear})</span></h2>
             <ExportCsvButton filename={`${d.name}-pssa-${activeYear}`} rows={pssaForYear} />
           </div>
           <ResultsTable results={pssaForYear} showGrade compact />
@@ -153,13 +154,13 @@ export default function DistrictDetailPage() {
       )}
       {keystoneForYear.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-stone-900 mb-3">Keystone Exam Results <span className="text-sm font-normal text-stone-500">({activeYear})</span></h2>
+          <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">Keystone Exam Results <span className="text-sm font-normal text-stone-500 dark:text-stone-400">({activeYear})</span></h2>
           <ResultsTable results={keystoneForYear} showGrade={false} compact />
         </div>
       )}
 
       <div className="mb-8 space-y-6">
-        <h2 className="text-lg font-bold text-stone-900">Trends</h2>
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">Trends</h2>
         <DataNotes exam="pssa" years={pssaYears} latestAvailable={latest} subject={pssaSci.data?.series?.length ? 'Science' : undefined} />
         <TrendCard title="PSSA proficient or above" data={pssaTrend} series={['Mathematics', 'English Language Arts', 'Science']} years={pssaYears} exam="pssa" />
         <TrendCard title="Keystone proficient or above" data={keystoneTrend} series={['Algebra I', 'Biology', 'Literature']} years={keystoneTrend.filter((r: any) => Object.keys(r).length > 1).map((r) => r.year)} exam="keystone" />
@@ -168,24 +169,25 @@ export default function DistrictDetailPage() {
 
       <div className="mb-8">
         <IndicatorsPanel entity="district" id={Number(d.id)} />
+        <PeerDistricts districtId={Number(d.id)} districtName={d.name} />
       </div>
 
       <div className="mb-8 space-y-4">
-        <h2 className="text-lg font-bold text-stone-900">Achievement gaps</h2>
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">Achievement gaps</h2>
         <GapsPanel level="district" districtId={Number(d.id)} year={activeYear} exams={[...(pssaRows.length ? ['pssa'] : []), ...(keystoneRows.length ? ['keystone'] : [])] as Array<'pssa' | 'keystone'>} />
       </div>
 
       {(d.schools ?? []).length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-stone-900 mb-3">Schools</h2>
+          <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">Schools</h2>
           <div className="card-surface overflow-hidden">
-            <ul className="divide-y divide-stone-100">
+            <ul className="divide-y divide-stone-100 dark:divide-stone-800">
               {d.schools.map((s) => (
                 <li key={s.id}>
-                  <Link to={`/schools/${s.id}`} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 hover:bg-stone-50 transition-colors">
+                  <Link to={`/schools/${s.id}`} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-stone-900">{s.name}</div>
-                      <div className="text-xs text-stone-500">{[s.schoolType, s.city].filter(Boolean).join(' · ')}</div>
+                      <div className="text-sm font-medium text-stone-900 dark:text-stone-100">{s.name}</div>
+                      <div className="text-xs text-stone-500 dark:text-stone-400">{[s.schoolType, s.city].filter(Boolean).join(' · ')}</div>
                     </div>
                     <ChevronRightIcon className="w-4 h-4 text-stone-300 flex-shrink-0" />
                   </Link>

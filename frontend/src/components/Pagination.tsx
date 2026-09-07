@@ -30,7 +30,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         aria-label="Previous page"
-        className="inline-flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+        className="inline-flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
       >
         <ChevronLeftIcon className="w-4 h-4" />
         <span className="hidden sm:inline">Previous</span>
@@ -41,11 +41,11 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
           <>
             <button
               onClick={() => onPageChange(1)}
-              className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"
+              className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800 transition-colors"
             >
               1
             </button>
-            {start > 2 && <span className="px-1 text-stone-500">...</span>}
+            {start > 2 && <span className="px-1 text-stone-500 dark:text-stone-400">...</span>}
           </>
         )}
 
@@ -66,10 +66,10 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
         {end < totalPages && (
           <>
-            {end < totalPages - 1 && <span className="px-1 text-stone-500">...</span>}
+            {end < totalPages - 1 && <span className="px-1 text-stone-500 dark:text-stone-400">...</span>}
             <button
               onClick={() => onPageChange(totalPages)}
-              className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"
+              className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800 transition-colors"
             >
               {totalPages}
             </button>
@@ -81,7 +81,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         aria-label="Next page"
-        className="inline-flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-stone-600 rounded-lg hover:bg-stone-100 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+        className="inline-flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
       >
         <span className="hidden sm:inline">Next</span>
         <ChevronRightIcon className="w-4 h-4" />

@@ -27,7 +27,7 @@ function ChartCard({ title, chartData, years, exam, action }: { title: string; c
   return (
     <div className="card-surface p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <h3 className="text-base font-semibold text-stone-900">{title}</h3>
+        <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h3>
         {action}
       </div>
       <AccessibleChart label={`${title} by year`} rows={chartData.filter((r) => Object.keys(r).length > 1)}>
@@ -93,9 +93,9 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
           years={pssaYears}
           exam="pssa"
           action={hasTotals ? (
-            <div className="inline-flex rounded-lg border border-stone-200 text-xs font-medium overflow-hidden" role="group" aria-label="PSSA chart detail">
-              <button onClick={() => setByGrade(false)} aria-pressed={!byGrade} className={`px-3 py-1.5 ${!byGrade ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>All grades</button>
-              <button onClick={() => setByGrade(true)} aria-pressed={byGrade} className={`px-3 py-1.5 border-l border-stone-200 ${byGrade ? 'bg-navy-700 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>By grade</button>
+            <div className="inline-flex rounded-lg border border-stone-200 dark:border-stone-700 text-xs font-medium overflow-hidden" role="group" aria-label="PSSA chart detail">
+              <button onClick={() => setByGrade(false)} aria-pressed={!byGrade} className={`px-3 py-1.5 ${!byGrade ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}>All grades</button>
+              <button onClick={() => setByGrade(true)} aria-pressed={byGrade} className={`px-3 py-1.5 border-l border-stone-200 dark:border-stone-700 ${byGrade ? 'bg-navy-700 text-white' : 'bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}>By grade</button>
             </div>
           ) : undefined}
         />
@@ -103,7 +103,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
       {keystoneData.length > 0 && <ChartCard title="Keystone proficient or above" chartData={keystoneData} years={Object.keys(keystoneByYear).map(Number)} exam="keystone" />}
       {pssaData.length === 0 && keystoneData.length === 0 && (
         <div className="card-surface p-8 text-center">
-          <p className="text-stone-500">No performance data available for this school.</p>
+          <p className="text-stone-500 dark:text-stone-400">No performance data available for this school.</p>
         </div>
       )}
     </div>

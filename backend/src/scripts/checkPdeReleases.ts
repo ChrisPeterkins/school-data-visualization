@@ -33,6 +33,10 @@ const SOURCES: Source[] = [
     match: (href) => { const m = decodeURIComponent(href).match(/(\d{4}-\d{2}) professional staff summary report(?:_revised)?\.xlsx$/i); return m ? `staff-${m[1]}.xlsx` : null; } },
   { key: 'futureready', page: 'https://futurereadypa.org/Home/DataFiles', dir: 'futureready',
     match: (href, text) => { const m = text.match(/Performance Data for SY (\d{4})-(\d{4})/i); return m && /getdatafile/i.test(href) ? `fr-${m[2]}.xlsx` : null; } },
+  { key: 'safety', page: 'https://www.safeschools.pa.gov/HistoricV2/SchoolExcel.aspx', dir: 'safeschools',
+    match: (href) => { const m = decodeURIComponent(href).match(/SY(\d{2})-(\d{2}) (LEA-District|Public Schools)\.xlsx$/i); return m ? `safeschools-20${m[1]}-${m[2]}-${m[3].startsWith('LEA') ? 'lea' : 'schools'}.xlsx` : null; } },
+  { key: 'permits', page: 'https://www.pa.gov/agencies/education/data-and-reporting/school-staff/professional-and-support-personnel', dir: 'permits',
+    match: (href) => { const m = decodeURIComponent(href).match(/(\d{2})-(\d{2})emergencypermitsbylea\.(xlsx?)$/i); return m ? `permits-20${m[1]}-${m[2]}.${m[3]}` : null; } },
 ];
 
 async function checkOtherSources(): Promise<Array<{ key: string; file: string }>> {
@@ -61,7 +65,8 @@ async function checkOtherSources(): Promise<Array<{ key: string; file: string }>
         const r = await fetch(url, { headers: { 'User-Agent': UA } });
         if (!r.ok) { logger.warn(`${src.key}: download failed ${url}: HTTP ${r.status}`); continue; }
         const buf = Buffer.from(await r.arrayBuffer());
-        if (buf.length < 10000 || buf[0] !== 0x50 || buf[1] !== 0x4b) { logger.warn(`${src.key}: ${url} is not an xlsx`); continue; }
+        const isXls = target.endsWith('.xls') && buf[0] === 0xd0 && buf[1] === 0xcf; // legacy binary workbook (permits before 2023-24)
+        if (!isXls && (buf.length < 10000 || buf[0] !== 0x50 || buf[1] !== 0x4b)) { logger.warn(`${src.key}: ${url} is not an xlsx`); continue; }
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.writeFileSync(dest, buf);
         got.push({ key: src.key, file: path.relative(sources, dest) });
@@ -73,7 +78,8 @@ async function checkOtherSources(): Promise<Array<{ key: string; file: string }>
   if (doImport && !dryRun) {
     for (const key of importKeys) {
       logger.info(`importing ${key}...`);
-      execFileSync('npx', ['tsx', 'src/scripts/importIndicators.ts', key], { stdio: 'inherit' });
+      if (key === 'safety' || key === 'permits') execFileSync('npx', ['tsx', 'src/scripts/importSafety.ts', key], { stdio: 'inherit' });
+      else execFileSync('npx', ['tsx', 'src/scripts/importIndicators.ts', key], { stdio: 'inherit' });
     }
   }
   return got;

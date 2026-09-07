@@ -58,6 +58,17 @@ export function ensureIndicatorTables() {
       white REAL, black REAL, hispanic REAL, asian REAL, aian REAL, nhpi REAL, multi REAL, unknown REAL,
       source TEXT, PRIMARY KEY (year, school_id)
     );
+    CREATE TABLE IF NOT EXISTS school_safety (
+      year INTEGER NOT NULL, entity_type TEXT NOT NULL, entity_id INTEGER NOT NULL, enrollment INTEGER,
+      incidents INTEGER, offenders INTEGER, arrests INTEGER, law_enforcement INTEGER,
+      assaults INTEGER, harassment INTEGER, fighting INTEGER, weapons INTEGER, drugs_alcohol INTEGER, tobacco_vaping INTEGER, threats INTEGER, property INTEGER,
+      truant INTEGER, truancy_rate REAL, security_staff INTEGER, source_file TEXT,
+      PRIMARY KEY (year, entity_type, entity_id)
+    );
+    CREATE TABLE IF NOT EXISTS district_permits (
+      year INTEGER NOT NULL, district_id INTEGER NOT NULL, total INTEGER, day_to_day INTEGER, long_term INTEGER, waiver INTEGER, other INTEGER, source_file TEXT,
+      PRIMARY KEY (year, district_id)
+    );
     CREATE TABLE IF NOT EXISTS district_staff (
       year INTEGER NOT NULL,
       district_id INTEGER NOT NULL,

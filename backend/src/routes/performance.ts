@@ -137,7 +137,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     if (q.exam === 'pssa') { where.push('grade = ?'); args.push(q.grade ?? 0); }
     if (q.schoolId) { where.push('school_id = ?'); args.push(q.schoolId); }
     if (q.districtId) { where.push('district_id = ?'); args.push(q.districtId); }
-    if (q.countyId) { where.push('county_id = ?'); args.push(q.countyId); }
+    if (q.countyId) { where.push('district_id IN (SELECT id FROM districts WHERE county_id = ?)'); args.push(q.countyId); } // derived from the district, not the results row
     if (q.yearFrom) { where.push('year >= ?'); args.push(q.yearFrom); }
     if (q.yearTo) { where.push('year <= ?'); args.push(q.yearTo); }
 
@@ -216,7 +216,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     const args: (string | number)[] = [q.level, q.subject];
     if (q.schoolId) { where.push('school_id = ?'); args.push(q.schoolId); }
     if (q.districtId) { where.push('district_id = ?'); args.push(q.districtId); }
-    if (q.countyId) { where.push('county_id = ?'); args.push(q.countyId); }
+    if (q.countyId) { where.push('district_id IN (SELECT id FROM districts WHERE county_id = ?)'); args.push(q.countyId); } // derived from the district, not the results row
 
     const w = 'CASE WHEN total_tested > 0 THEN total_tested ELSE 1 END';
     const aggregate = (gradeClause: string) => sqliteDb.prepare(`
@@ -765,10 +765,18 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     /** What to rank by: assessment proficiency (default) or a non-assessment measure. */
     measure: z.enum(['proficiency', 'grad_rate_4yr', 'regular_attendance', 'low_income', 'per_pupil', 'students_per_teacher', 'beating_odds']).optional().default('proficiency'),
     /** Only entities whose latest low-income share falls in this band (peer-group rankings). */
+    pocMin: z.coerce.number().min(0).max(100).optional(),
+    pocMax: z.coerce.number().min(0).max(100).optional(),
     lowIncomeMin: z.coerce.number().min(0).max(100).optional(),
     lowIncomeMax: z.coerce.number().min(0).max(100).optional(),
   });
   /** SQL fragment restricting an entity id expression to the requested low-income band. */
+  /** Restrict schools to a band of students-of-color share (100 - white %, latest CCD year). Schools only. */
+  function pocClause(query: { pocMin?: number; pocMax?: number }, entity: 'school' | 'district', idExpr: string): { sql: string; args: number[] } {
+    if ((query.pocMin == null && query.pocMax == null) || entity !== 'school') return { sql: '', args: [] };
+    return { sql: `AND EXISTS (SELECT 1 FROM school_demographics sd WHERE sd.school_id = ${idExpr} AND sd.year = (SELECT MAX(year) FROM school_demographics) AND sd.white IS NOT NULL AND (100 - sd.white) >= ? AND (100 - sd.white) <= ?)`, args: [query.pocMin ?? 0, query.pocMax ?? 100] };
+  }
+
   function lowIncomeClause(query: { lowIncomeMin?: number; lowIncomeMax?: number }, entity: 'school' | 'district', idExpr: string): { sql: string; args: number[] } {
     if (query.lowIncomeMin == null && query.lowIncomeMax == null) return { sql: '', args: [] };
     const y = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE indicator = 'low_income' AND entity_type = ?`).get(entity) as { y: number | null }).y ?? 0;
@@ -796,7 +804,9 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
     if (entity === 'school') where.push('s.is_active = 1');
     const band = lowIncomeClause(query, entity, entity === 'school' ? 's.id' : 'd.id');
+    const bandPoc = pocClause(query, entity, entity === 'school' ? 's.id' : 'd.id');
     if (band.sql) { where.push(band.sql.replace(/^AND /, '')); args.push(...band.args); }
+    if (bandPoc.sql) { where.push(bandPoc.sql.replace(/^AND /, '')); args.push(...bandPoc.args); }
     const extra = where.length ? `AND ${where.join(' AND ')}` : '';
     const measureYear = (table: string, yearCol = 'year', filter = '') => (sqliteDb.prepare(`SELECT MAX(${yearCol}) AS y FROM ${table} WHERE ${yearCol} <= ? ${filter}`).get(query.year) as { y: number | null }).y;
     let rows: any[] = []; let year: number | null = null;
@@ -845,34 +855,79 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
     if (entity === 'school') where.push('s.is_active = 1');
     if (query.lowIncomeMin != null || query.lowIncomeMax != null) { where.push('li.value >= ? AND li.value <= ?'); args.push(query.lowIncomeMin ?? 0, query.lowIncomeMax ?? 100); }
+    const oddsPoc = pocClause(query, entity, idCol);
+    if (oddsPoc.sql) { where.push(oddsPoc.sql.replace(/^AND /, '')); args.push(...oddsPoc.args); }
+    // English learner and IEP shares come from the same results file: students tested in the
+    // group over students tested overall (suppressed groups count as 0).
+    const groupCte = `grp AS (
+        SELECT ${idCol.replace('r.', 'g.')} AS eid,
+          SUM(CASE WHEN g.demographic_group = 'ELL' THEN g.total_tested ELSE 0 END) AS ell,
+          SUM(CASE WHEN g.demographic_group = 'IEP' THEN g.total_tested ELSE 0 END) AS iep,
+          SUM(CASE WHEN g.demographic_group = 'All Students' THEN g.total_tested ELSE 0 END) AS allTested
+        FROM ${table} g WHERE g.level = ? AND g.year = ? AND g.subject IN (?, ?) AND g.total_tested > 0 ${gradeClause.replace('r.grade', 'g.grade')}
+        GROUP BY eid)`;
+    const groupArgs = [entity, query.year, subjects[0], subjects[1]];
+    const shareSql = `ROUND(COALESCE(grp.ell * 100.0 / NULLIF(grp.allTested, 0), 0), 1) AS ellShare, ROUND(COALESCE(grp.iep * 100.0 / NULLIF(grp.allTested, 0), 0), 1) AS iepShare`;
     const all = sqliteDb.prepare(`
-      SELECT ${nameSql}, li.value AS lowIncome,
+      WITH ${groupCte}
+      SELECT ${nameSql}, li.value AS lowIncome, ${shareSql},
         ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested), 1) AS avgProficiency,
         SUM(r.total_tested) AS totalTested, COUNT(DISTINCT r.subject) AS subjectCount, ROUND(AVG(r.growth_score), 2) AS avgGrowth
       FROM ${table} r ${joins}
       JOIN entity_indicators li ON li.entity_type = ? AND li.entity_id = ${idCol} AND li.indicator = 'low_income' AND li.year = ?
+      LEFT JOIN grp ON grp.eid = ${idCol}
       WHERE r.level = ? AND r.year = ? AND r.demographic_group = 'All Students' AND r.subject IN (?, ?) AND r.proficient_or_above_percent IS NOT NULL AND r.total_tested > 0 ${gradeClause}
         ${where.length ? `AND ${where.join(' AND ')}` : ''}
       GROUP BY ${idCol} HAVING SUM(r.total_tested) >= ?
-    `).all(entity, liYear, entity, query.year, subjects[0], subjects[1], ...args, query.minTested) as Array<any>;
+    `).all(...groupArgs, entity, liYear, entity, query.year, subjects[0], subjects[1], ...args, query.minTested) as Array<any>;
     // Fit proficiency = a + b * lowIncome across every ranked entity (not just the filtered county), so the line is the statewide expectation.
-    const universe = query.countyId || query.schoolType ? sqliteDb.prepare(`
-      SELECT li.value AS x, SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested) AS y
+    const filtered = query.countyId || query.schoolType || query.lowIncomeMin != null || query.lowIncomeMax != null || query.pocMin != null || query.pocMax != null;
+    const universe = filtered ? sqliteDb.prepare(`
+      WITH ${groupCte}
+      SELECT li.value AS x, ${shareSql}, SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested) AS y
       FROM ${table} r JOIN entity_indicators li ON li.entity_type = ? AND li.entity_id = ${idCol} AND li.indicator = 'low_income' AND li.year = ?
+      LEFT JOIN grp ON grp.eid = ${idCol}
       WHERE r.level = ? AND r.year = ? AND r.demographic_group = 'All Students' AND r.subject IN (?, ?) AND r.proficient_or_above_percent IS NOT NULL AND r.total_tested > 0 ${gradeClause}
       GROUP BY ${idCol} HAVING SUM(r.total_tested) >= ?
-    `).all(entity, liYear, entity, query.year, subjects[0], subjects[1], query.minTested) as Array<{ x: number; y: number }> : all.map((r) => ({ x: r.lowIncome, y: r.avgProficiency }));
+    `).all(...groupArgs, entity, liYear, entity, query.year, subjects[0], subjects[1], query.minTested) as Array<{ x: number; y: number; ellShare: number; iepShare: number }> : all.map((r) => ({ x: r.lowIncome, y: r.avgProficiency, ellShare: r.ellShare, iepShare: r.iepShare }));
     const n = universe.length;
     if (n < 10) return { rows: [], year: liYear, fit: null };
-    const mx = universe.reduce((s, p) => s + p.x, 0) / n, my = universe.reduce((s, p) => s + p.y, 0) / n;
-    const sxy = universe.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0), sxx = universe.reduce((s, p) => s + (p.x - mx) ** 2, 0);
-    const slope = sxx ? sxy / sxx : 0, intercept = my - slope * mx;
-    const sst = universe.reduce((s, p) => s + (p.y - my) ** 2, 0), sse = universe.reduce((s, p) => s + (p.y - (intercept + slope * p.x)) ** 2, 0);
+    // Expectation = a + b1*lowIncome + b2*ellShare + b3*iepShare, fitted by least squares over the whole
+    // universe (not just the filtered subset), so the line is the statewide expectation.
+    const fit = olsFit(universe.map((p) => [p.x, p.ellShare ?? 0, p.iepShare ?? 0]), universe.map((p) => p.y));
+    const expectedFor = (r: { lowIncome: number; ellShare?: number; iepShare?: number }) => fit.intercept + fit.coef[0] * r.lowIncome + fit.coef[1] * (r.ellShare ?? 0) + fit.coef[2] * (r.iepShare ?? 0);
     const rows = all.map((r) => {
-      const expected = Math.round((intercept + slope * r.lowIncome) * 10) / 10;
+      const expected = Math.round(expectedFor(r) * 10) / 10;
       return { ...r, expectedProficiency: expected, residual: Math.round((r.avgProficiency - expected) * 10) / 10 };
     });
-    return { rows, year: liYear, fit: { slope: Math.round(slope * 1000) / 1000, intercept: Math.round(intercept * 10) / 10, r2: sst ? Math.round((1 - sse / sst) * 100) / 100 : null, n } };
+    // `slope`/`intercept` describe the line drawn on the scatter: low income alone, at the average ELL and IEP shares.
+    const meanEll = universe.reduce((s, p) => s + (p.ellShare ?? 0), 0) / n, meanIep = universe.reduce((s, p) => s + (p.iepShare ?? 0), 0) / n;
+    const lineIntercept = fit.intercept + fit.coef[1] * meanEll + fit.coef[2] * meanIep;
+    return { rows, year: liYear, fit: { slope: Math.round(fit.coef[0] * 1000) / 1000, intercept: Math.round(lineIntercept * 10) / 10, r2: fit.r2, n,
+      model: { intercept: Math.round(fit.intercept * 10) / 10, lowIncome: Math.round(fit.coef[0] * 1000) / 1000, ell: Math.round(fit.coef[1] * 1000) / 1000, iep: Math.round(fit.coef[2] * 1000) / 1000, meanEll: Math.round(meanEll * 10) / 10, meanIep: Math.round(meanIep * 10) / 10 } } };
+  }
+
+  /** Ordinary least squares with an intercept, solved by Gaussian elimination on the normal equations. */
+  function olsFit(X: number[][], y: number[]): { intercept: number; coef: number[]; r2: number | null } {
+    const k = X[0].length + 1, n = y.length;
+    const A = Array.from({ length: k }, () => new Array(k + 1).fill(0));
+    for (let i = 0; i < n; i++) {
+      const row = [1, ...X[i]];
+      for (let a = 0; a < k; a++) { for (let b = 0; b < k; b++) A[a][b] += row[a] * row[b]; A[a][k] += row[a] * y[i]; }
+    }
+    // Ridge of 1e-9 keeps a collinear column (e.g. no ELL data anywhere) from blowing up.
+    for (let a = 1; a < k; a++) A[a][a] += 1e-9;
+    for (let c = 0; c < k; c++) {
+      let piv = c; for (let r = c + 1; r < k; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]];
+      if (Math.abs(A[c][c]) < 1e-12) continue;
+      for (let r = 0; r < k; r++) { if (r === c) continue; const f = A[r][c] / A[c][c]; for (let cc = c; cc <= k; cc++) A[r][cc] -= f * A[c][cc]; }
+    }
+    const beta = A.map((row, i) => (Math.abs(row[i]) < 1e-12 ? 0 : row[k] / row[i]));
+    const my = y.reduce((s, v) => s + v, 0) / n;
+    const sst = y.reduce((s, v) => s + (v - my) ** 2, 0);
+    const sse = y.reduce((s, v, i) => s + (v - (beta[0] + X[i].reduce((t, x, j) => t + beta[j + 1] * x, 0))) ** 2, 0);
+    return { intercept: beta[0], coef: beta.slice(1), r2: sst ? Math.round((1 - sse / sst) * 100) / 100 : null };
   }
 
   /**
@@ -917,7 +972,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       const sorted = rows.slice().sort((a, b) => b.residual - a.residual);
       const top = sorted.slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
       const bottom = sorted.slice().reverse().slice(0, query.limit).map((r, i) => ({ rank: i + 1, ...r, schoolId: r.id, schoolName: r.name }));
-      const response = { filters: { ...query, compareYear: null, ranked: rows.length, measureYear: lowIncomeYear }, top, bottom, stateAverage: null, stateChange: null, fit, points: rows.map((r) => ({ id: r.id, name: r.name, lowIncome: r.lowIncome, proficiency: r.avgProficiency, tested: r.totalTested, residual: r.residual })) };
+      const response = { filters: { ...query, compareYear: null, ranked: rows.length, measureYear: lowIncomeYear }, top, bottom, stateAverage: null, stateChange: null, fit, points: rows.map((r) => ({ id: r.id, name: r.name, lowIncome: r.lowIncome, ellShare: r.ellShare, iepShare: r.iepShare, proficiency: r.avgProficiency, expected: r.expectedProficiency, tested: r.totalTested, residual: r.residual })) };
       await cache.set(cacheKey, response, 1800);
       return response;
     }
@@ -950,6 +1005,8 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       const idExpr = query.entity === 'school' ? 's.id' : query.entity === 'district' ? 'd.id' : 'd.county_id';
       const band = query.entity === 'county' ? { sql: '', args: [] as number[] } : lowIncomeClause(query, query.entity, idExpr);
       if (band.sql) { where.push(band.sql.replace(/^AND /, '')); args.push(...band.args); }
+      const bandPoc = query.entity === 'county' ? { sql: '', args: [] as number[] } : pocClause(query, query.entity, idExpr);
+      if (bandPoc.sql) { where.push(bandPoc.sql.replace(/^AND /, '')); args.push(...bandPoc.args); }
       const nameSql = query.entity === 'school'
         ? 's.name AS name, s.school_type AS schoolType, d.name AS districtName, c.name AS countyName, s.city AS city'
         : query.entity === 'district'

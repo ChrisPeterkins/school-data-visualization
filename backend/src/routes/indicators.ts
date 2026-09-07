@@ -72,6 +72,28 @@ const enrollmentRows = (type: string, id: number) => sqliteDb.prepare(`
  * Non-assessment measures: Future Ready PA Index indicators, cohort
  * graduation rates, October 1 enrollment, and AFR spending.
  */
+
+/** Safe Schools incidents per 100 students by year, with the statewide rate for the same year. */
+function safetyRows(entity: 'school' | 'district' | 'state', id: number) {
+  const state = new Map((sqliteDb.prepare(`SELECT year, enrollment, incidents, arrests, truancy_rate AS truancyRate FROM school_safety WHERE entity_type = 'state'`).all() as any[]).map((r) => [r.year, r]));
+  const rows = sqliteDb.prepare(`SELECT year, enrollment, incidents, offenders, arrests, law_enforcement AS lawEnforcement, assaults, harassment, fighting, weapons, drugs_alcohol AS drugsAlcohol, tobacco_vaping AS tobaccoVaping, threats, property, truant, truancy_rate AS truancyRate, security_staff AS securityStaff FROM school_safety WHERE entity_type = ? AND entity_id = ? ORDER BY year`).all(entity, id) as any[];
+  const per100 = (n: number | null, enrollment: number | null) => (n == null || !enrollment ? null : Math.round((n / enrollment) * 1000) / 10);
+  return rows.map((r) => {
+    const st = state.get(r.year);
+    return { ...r, incidentsPer100: per100(r.incidents, r.enrollment), arrestsPer100: per100(r.arrests, r.enrollment), stateIncidentsPer100: st ? per100(st.incidents, st.enrollment) : null, stateArrestsPer100: st ? per100(st.arrests, st.enrollment) : null, stateTruancyRate: st?.truancyRate ?? null };
+  });
+}
+
+/** Emergency teaching permits per district by year, per 100 teachers where the staff file gives a count, with the statewide rate. */
+function permitRows(districtId: number) {
+  const teachers = new Map((sqliteDb.prepare(`SELECT year, teachers FROM district_staff WHERE district_id = ?`).all(districtId) as any[]).map((r) => [r.year, r.teachers]));
+  const stateTeachers = new Map((sqliteDb.prepare(`SELECT year, SUM(teachers) AS t FROM district_staff GROUP BY year`).all() as any[]).map((r) => [r.year, r.t]));
+  const state = new Map((sqliteDb.prepare(`SELECT year, total FROM district_permits WHERE district_id = 0`).all() as any[]).map((r) => [r.year, r.total]));
+  const rows = sqliteDb.prepare(`SELECT year, total, day_to_day AS dayToDay, long_term AS longTerm, waiver, other FROM district_permits WHERE district_id = ? ORDER BY year`).all(districtId) as any[];
+  const rate = (n: number | null | undefined, t: number | null | undefined) => (n == null || !t ? null : Math.round((n / t) * 1000) / 10);
+  return rows.map((r) => ({ ...r, teachers: teachers.get(r.year) ?? null, per100Teachers: rate(r.total, teachers.get(r.year)), statePer100Teachers: rate(state.get(r.year), stateTeachers.get(r.year)), stateTotal: state.get(r.year) ?? null }));
+}
+
 const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/school/:id', async (request, reply) => {
     const id = Number((request.params as { id: string }).id);
@@ -79,8 +101,9 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
     const key = cache.generateKey('indicators-school', String(id));
     const cached = await cache.get(key);
     if (cached) return cached;
-    const demographics = sqliteDb.prepare(`SELECT year, total, white, black, hispanic, asian, aian, nhpi, multi, unknown FROM school_demographics WHERE school_id = ? ORDER BY year DESC LIMIT 1`).get(id) ?? null;
-    const response = { indicators: percentiles('school', groupSeries(entityRows('school', id))), enrollment: enrollmentRows('school', id), groups: groupRows('school', id), demographics };
+    const demographicsHistory = sqliteDb.prepare(`SELECT year, total, white, black, hispanic, asian, aian, nhpi, multi, unknown FROM school_demographics WHERE school_id = ? ORDER BY year`).all(id) as any[];
+    const demographics = demographicsHistory.length ? { ...demographicsHistory[demographicsHistory.length - 1], history: demographicsHistory } : null;
+    const response = { indicators: percentiles('school', groupSeries(entityRows('school', id))), enrollment: enrollmentRows('school', id), groups: groupRows('school', id), demographics, safety: safetyRows('school', id) };
     await cache.set(key, response, 3600);
     return response;
   });
@@ -118,11 +141,18 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
         ROUND(SUM(asian * total) / SUM(total), 1) AS asian, ROUND(SUM(aian * total) / SUM(total), 1) AS aian, ROUND(SUM(nhpi * total) / SUM(total), 1) AS nhpi, ROUND(SUM(multi * total) / SUM(total), 1) AS multi, ROUND(SUM(unknown * total) / SUM(total), 1) AS unknown
       FROM school_demographics d JOIN schools s ON s.id = d.school_id WHERE s.district_id = ? AND d.year = (SELECT MAX(year) FROM school_demographics)
     `).get(id) as { total: number | null } | undefined;
+    const demographicsHistory = sqliteDb.prepare(`
+      SELECT d.year, SUM(total) AS total, ROUND(SUM(white * total) / SUM(total), 1) AS white, ROUND(SUM(black * total) / SUM(total), 1) AS black, ROUND(SUM(hispanic * total) / SUM(total), 1) AS hispanic,
+        ROUND(SUM(asian * total) / SUM(total), 1) AS asian, ROUND(SUM(aian * total) / SUM(total), 1) AS aian, ROUND(SUM(nhpi * total) / SUM(total), 1) AS nhpi, ROUND(SUM(multi * total) / SUM(total), 1) AS multi, ROUND(SUM(unknown * total) / SUM(total), 1) AS unknown
+      FROM school_demographics d JOIN schools s ON s.id = d.school_id WHERE s.district_id = ? GROUP BY d.year ORDER BY d.year
+    `).all(id) as any[];
     const response = {
       indicators: percentiles('district', groupSeries([...entityRows('district', id), ...schoolRows])),
       enrollment: enrollmentRows('district', id),
       finance: finance.map((f) => ({ ...f, statePerPupil: stateFinance.find((s) => s.year === f.year)?.perPupil ?? null, stateInstructionPerPupil: stateFinance.find((s) => s.year === f.year)?.instructionPerPupil ?? null })),
-      demographics: demographics?.total ? demographics : null,
+      demographics: demographics?.total ? { ...demographics, history: demographicsHistory } : null,
+      safety: safetyRows('district', id),
+      permits: permitRows(id),
       staff: staffRows(id).map((r) => { const s = st.find((x) => x.year === r.year); return { ...r, stateAvgTeacherSalary: s?.avgTeacherSalary ?? null, stateAvgTeacherExperience: s?.avgTeacherExperience ?? null, stateStudentsPerTeacher: s?.studentsPerTeacher ?? null }; }),
       groups: groupRows('district', id),
     };
@@ -139,6 +169,8 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
       enrollment: enrollmentRows('state', 0),
       staff: stateStaff(),
       groups: [],
+      safety: safetyRows('state', 0),
+      permits: permitRows(0),
       finance: sqliteDb.prepare(`
         SELECT year, ROUND(SUM(total_expenditures) / SUM(adm)) AS perPupil, ROUND(SUM(instruction) / SUM(adm)) AS instructionPerPupil, COUNT(*) AS districts
         FROM district_finance WHERE adm > 0 AND total_expenditures IS NOT NULL GROUP BY year ORDER BY year

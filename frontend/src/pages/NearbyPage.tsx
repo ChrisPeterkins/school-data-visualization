@@ -45,8 +45,8 @@ export default function NearbyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('near.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">{t('near.sub')}</p>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('near.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('near.sub')}</p>
       </div>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
         <button type="button" onClick={locate} disabled={locating} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-700 text-white text-sm font-medium rounded-lg hover:bg-navy-600 disabled:opacity-60">
@@ -56,27 +56,27 @@ export default function NearbyPage() {
           <option value="">{t('common.allTypes')}</option>
           {filterOptions?.schoolTypes.map((x) => <option key={x} value={x}>{x}</option>)}
         </FilterSelect>
-        {lat != null && lng != null && <Link to={`/map?view=${lat},${lng},12`} className="text-sm font-medium text-navy-600 hover:text-navy-800 sm:ml-auto">{t('county.openMap')} →</Link>}
+        {lat != null && lng != null && <Link to={`/map?view=${lat},${lng},12`} className="text-sm font-medium text-navy-600 dark:text-navy-300 hover:text-navy-800 dark:hover:text-navy-100 dark:text-navy-200 sm:ml-auto">{t('county.openMap')} →</Link>}
       </div>
-      {geoError && <p className="mb-4 text-sm text-brick-600">{geoError}</p>}
-      {lat == null && !geoError && <p className="text-sm text-stone-500">{t('near.waiting')}</p>}
+      {geoError && <p className="mb-4 text-sm text-brick-600 dark:text-brick-400">{geoError}</p>}
+      {lat == null && !geoError && <p className="text-sm text-stone-500 dark:text-stone-400">{t('near.waiting')}</p>}
       {isLoading && <div className="card-surface p-8 text-center"><div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" /></div>}
       {data && (
         <div className="card-surface overflow-hidden">
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-stone-100 dark:divide-stone-800">
             {data.schools.map((s) => {
               const hs = s.math == null && s.ela == null;
               return (
                 <li key={s.id}>
-                  <Link to={`/schools/${s.id}`} className="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-stone-50">
-                    <div className="w-14 flex-shrink-0 text-right"><span className="text-sm font-semibold text-navy-800 tabular-nums">{s.km < 10 ? s.km.toFixed(1) : Math.round(s.km)}</span><span className="text-[10px] text-stone-500"> km</span></div>
+                  <Link to={`/schools/${s.id}`} className="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-stone-50 dark:hover:bg-stone-800">
+                    <div className="w-14 flex-shrink-0 text-right"><span className="text-sm font-semibold text-navy-800 dark:text-navy-200 tabular-nums">{s.km < 10 ? s.km.toFixed(1) : Math.round(s.km)}</span><span className="text-[10px] text-stone-500 dark:text-stone-400"> km</span></div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-stone-900 truncate">{s.name}</div>
-                      <div className="text-xs text-stone-500 truncate">{[s.type, s.districtName, s.city].filter(Boolean).join(' · ')}</div>
+                      <div className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{s.name}</div>
+                      <div className="text-xs text-stone-500 dark:text-stone-400 truncate">{[s.type, s.districtName, s.city].filter(Boolean).join(' · ')}</div>
                     </div>
                     <div className="hidden sm:flex gap-4 text-right">
                       {(hs ? [['Alg I', s.algebra], ['Lit', s.literature]] : [['Math', s.math], ['ELA', s.ela]]).map(([label, v]) => (
-                        <div key={String(label)} className="w-14"><div className="text-[10px] uppercase tracking-wide text-stone-500">{label}</div><div className="text-sm font-semibold tabular-nums text-stone-900">{formatPct(v as number | null)}</div></div>
+                        <div key={String(label)} className="w-14"><div className="text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-400">{label}</div><div className="text-sm font-semibold tabular-nums text-stone-900 dark:text-stone-100">{formatPct(v as number | null)}</div></div>
                       ))}
                     </div>
                     <ChevronRightIcon className="w-4 h-4 text-stone-300 flex-shrink-0" />
@@ -85,7 +85,7 @@ export default function NearbyPage() {
               );
             })}
           </ul>
-          <p className="px-4 sm:px-5 py-2 text-xs text-stone-500 border-t border-stone-100">{t('near.note', { year: data.year ?? '' })}</p>
+          <p className="px-4 sm:px-5 py-2 text-xs text-stone-500 dark:text-stone-400 border-t border-stone-100 dark:border-stone-800">{t('near.note', { year: data.year ?? '' })}</p>
         </div>
       )}
     </div>

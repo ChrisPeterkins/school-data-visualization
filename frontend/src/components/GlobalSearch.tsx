@@ -45,7 +45,7 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
 
   return (
     <div ref={box} className={`relative ${className}`} role="combobox" aria-expanded={open && hits.length > 0} aria-haspopup="listbox" {...(open && hits.length > 0 ? { 'aria-owns': listId } : {})}>
-      <MagnifyingGlassIcon className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${large ? 'left-4 w-5 h-5 text-stone-500' : 'left-3 w-4 h-4 text-navy-300'}`} />
+      <MagnifyingGlassIcon className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${large ? 'left-4 w-5 h-5 text-stone-500 dark:text-stone-400' : 'left-3 w-4 h-4 text-navy-300'}`} />
       <input
         type="search"
         value={term}
@@ -63,11 +63,11 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
         aria-autocomplete="list"
         {...(open && hits.length > 0 ? { 'aria-controls': listId } : {})}
         className={large
-          ? 'w-full pl-12 pr-4 py-3.5 sm:py-4 rounded-lg bg-white text-stone-900 placeholder-stone-400 border-0 focus:outline-none focus:ring-2 focus:ring-gold-400'
+          ? 'w-full pl-12 pr-4 py-3.5 sm:py-4 rounded-lg bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 placeholder-stone-400 border-0 focus:outline-none focus:ring-2 focus:ring-gold-400'
           : 'w-full pl-9 pr-3 py-1.5 rounded-lg bg-navy-800/80 border border-navy-700 text-sm text-white placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-gold-400/60 focus:bg-navy-800'}
       />
       {open && hits.length > 0 && (
-        <ul id={listId} role="listbox" className="absolute z-50 mt-1 left-0 right-0 sm:w-96 bg-white border border-stone-200 rounded-lg shadow-xl divide-y divide-stone-100 overflow-hidden">
+        <ul id={listId} role="listbox" className="absolute z-50 mt-1 left-0 right-0 sm:w-96 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden">
           {hits.map((h, i) => (
             <li key={`${h.kind}-${h.id}`} role="option" aria-selected={i === active}>
               <button
@@ -75,17 +75,17 @@ export default function GlobalSearch({ onNavigate, autoFocus = false, className 
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => go(h)}
                 onMouseEnter={() => setActive(i)}
-                className={`w-full text-left px-3 py-2 flex items-center justify-between gap-3 ${i === active ? 'bg-stone-50' : ''}`}
+                className={`w-full text-left px-3 py-2 flex items-center justify-between gap-3 ${i === active ? 'bg-stone-50 dark:bg-stone-950' : ''}`}
               >
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-stone-900 truncate">{h.name}</span>
-                  <span className="block text-xs text-stone-500 truncate">{h.detail}</span>
+                  <span className="block text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{h.name}</span>
+                  <span className="block text-xs text-stone-500 dark:text-stone-400 truncate">{h.detail}</span>
                 </span>
-                <span className="text-[10px] uppercase tracking-wide text-stone-500 flex-shrink-0">{(KIND_LABEL[lang] ?? KIND_LABEL.en)[h.kind]}</span>
+                <span className="text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-400 flex-shrink-0">{(KIND_LABEL[lang] ?? KIND_LABEL.en)[h.kind]}</span>
               </button>
             </li>
           ))}
-          <li className="px-3 py-2 text-xs text-stone-500">{t('nav.searchHint')}</li>
+          <li className="px-3 py-2 text-xs text-stone-500 dark:text-stone-400">{t('nav.searchHint')}</li>
         </ul>
       )}
     </div>

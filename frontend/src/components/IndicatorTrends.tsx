@@ -29,14 +29,14 @@ export default function IndicatorTrends() {
     <section className="card-surface p-4 sm:p-6" aria-labelledby="ind-trends-heading">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
         <div>
-          <h2 id="ind-trends-heading" className="text-base font-semibold text-stone-900">{t('trends.indTitle')}</h2>
-          <p className="text-xs text-stone-500">{t('trends.indSub')}</p>
+          <h2 id="ind-trends-heading" className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('trends.indTitle')}</h2>
+          <p className="text-xs text-stone-500 dark:text-stone-400">{t('trends.indSub')}</p>
         </div>
         <FilterSelect label={t('cmp.measure')} value={measure} onChange={(e) => setMeasure(e.target.value as M)} fluid={false}>
           {MEASURES.map((m) => <option key={m} value={m} disabled={!(m === 'enrollment' ? data.enrollment.length : m === 'perPupil' ? data.finance.length : m === 'studentsPerTeacher' || m === 'avgTeacherSalary' ? ((data as any).staff ?? []).length : data.indicators.some((s) => s.indicator === m))}>{t(`ind.${m}`)}</option>)}
         </FilterSelect>
       </div>
-      {pts.length < 2 ? <p className="text-sm text-stone-500">{t('common.nothing')}</p> : (
+      {pts.length < 2 ? <p className="text-sm text-stone-500 dark:text-stone-400">{t('common.nothing')}</p> : (
         <ChartActions filename={`statewide-${measure}`} title={`${label} · Pennsylvania`}>
           <AccessibleChart label={`${label}, statewide by year`} rows={pts} columns={[{ key: 'year', label: t('common.year') }, { key: 'value', label }]}>
             <ResponsiveContainer width="100%" height={280}>
@@ -51,7 +51,7 @@ export default function IndicatorTrends() {
           </AccessibleChart>
         </ChartActions>
       )}
-      {pts.length > 1 && <p className="mt-2 text-xs text-stone-500">{pts[0].year}: {fmt(measure, pts[0].value)} → {pts[pts.length - 1].year}: {fmt(measure, pts[pts.length - 1].value)}</p>}
+      {pts.length > 1 && <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{pts[0].year}: {fmt(measure, pts[0].value)} → {pts[pts.length - 1].year}: {fmt(measure, pts[pts.length - 1].value)}</p>}
     </section>
   );
 }

@@ -75,16 +75,16 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
       </div>
 
       {isLoading ? (
-        <div className="card-surface p-8 text-center text-sm text-stone-500">{t('gaps.loading')}</div>
+        <div className="card-surface p-8 text-center text-sm text-stone-500 dark:text-stone-400">{t('gaps.loading')}</div>
       ) : groups.length === 0 ? (
-        <div className="card-surface p-8 text-center text-sm text-stone-500">{t('gaps.none')}</div>
+        <div className="card-surface p-8 text-center text-sm text-stone-500 dark:text-stone-400">{t('gaps.none')}</div>
       ) : (
         <>
           <div className="card-surface overflow-hidden">
-            <div className="px-4 sm:px-6 py-4 border-b border-stone-100 flex flex-wrap items-start justify-between gap-2">
+            <div className="px-4 sm:px-6 py-4 border-b border-stone-100 dark:border-stone-800 flex flex-wrap items-start justify-between gap-2">
               <div>
-              <h3 className="text-base font-semibold text-stone-900">{t('gaps.bySubject', { subject: subjectLabel(subject), year: data?.year ?? '' })}</h3>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('gaps.bySubject', { subject: subjectLabel(subject), year: data?.year ?? '' })}</h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                 Gap is percentage points from All Students ({formatPct(data?.allStudents)}). Groups under 11 students are suppressed by PDE and do not appear.
               </p>
               </div>
@@ -93,7 +93,7 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-stone-50/80 border-b border-stone-200 text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                  <tr className="bg-stone-50/80 border-b border-stone-200 dark:border-stone-700 text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                     <th className="px-3 sm:px-6 py-3 text-left">Group</th>
                     <th className="px-3 sm:px-6 py-3 text-right whitespace-nowrap">Prof.+</th>
                     <th className="px-3 sm:px-6 py-3 text-left">Gap</th>
@@ -101,30 +101,30 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
                     {hasGrowth && <th className="px-3 sm:px-6 py-3 text-right">Growth</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                   {groups.map((g) => {
                     const isAll = g.group === 'All Students';
                     const band = growthBand(g.growth);
                     const gapWidth = g.gap == null ? 0 : Math.min(50, Math.abs(g.gap));
                     return (
-                      <tr key={g.group} className={isAll ? 'bg-stone-50/60 font-medium' : ''}>
-                        <td className="px-3 sm:px-6 py-2.5 text-sm text-stone-900">{SHORT[g.group] ?? g.group}</td>
-                        <td className="px-3 sm:px-6 py-2.5 text-sm text-right tabular-nums text-stone-900">{formatPct(g.proficiency)}</td>
+                      <tr key={g.group} className={isAll ? 'bg-stone-50/60 dark:bg-stone-800/60 font-medium' : ''}>
+                        <td className="px-3 sm:px-6 py-2.5 text-sm text-stone-900 dark:text-stone-100">{SHORT[g.group] ?? g.group}</td>
+                        <td className="px-3 sm:px-6 py-2.5 text-sm text-right tabular-nums text-stone-900 dark:text-stone-100">{formatPct(g.proficiency)}</td>
                         <td className="px-3 sm:px-6 py-2.5">
-                          {isAll || g.gap == null ? <span className="text-xs text-stone-500">—</span> : (
+                          {isAll || g.gap == null ? <span className="text-xs text-stone-500 dark:text-stone-400">—</span> : (
                             <div className="flex items-center gap-2 min-w-[7rem]">
-                              <div className="relative h-2 w-24 bg-stone-100 rounded-full overflow-hidden" aria-hidden>
+                              <div className="relative h-2 w-24 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden" aria-hidden>
                                 <div className="absolute top-0 bottom-0 left-1/2 w-px bg-stone-300" />
                                 <div
                                   className={`absolute top-0 bottom-0 ${g.gap >= 0 ? 'bg-navy-500 left-1/2' : 'bg-brick-400 right-1/2'}`}
                                   style={{ width: `${gapWidth}%` }}
                                 />
                               </div>
-                              <span className={`text-sm tabular-nums ${g.gap >= 0 ? 'text-navy-700' : 'text-brick-600'}`}>{g.gap > 0 ? '+' : ''}{g.gap.toFixed(1)}</span>
+                              <span className={`text-sm tabular-nums ${g.gap >= 0 ? 'text-navy-700 dark:text-navy-200' : 'text-brick-600 dark:text-brick-400'}`}>{g.gap > 0 ? '+' : ''}{g.gap.toFixed(1)}</span>
                             </div>
                           )}
                         </td>
-                        <td className="hidden sm:table-cell px-6 py-2.5 text-sm text-right tabular-nums text-stone-500">{g.tested ? g.tested.toLocaleString() : '—'}</td>
+                        <td className="hidden sm:table-cell px-6 py-2.5 text-sm text-right tabular-nums text-stone-500 dark:text-stone-400">{g.tested ? g.tested.toLocaleString() : '—'}</td>
                         {hasGrowth && (
                           <td className={`px-3 sm:px-6 py-2.5 text-sm text-right whitespace-nowrap ${band.className}`}>
                             {g.growth == null ? '—' : `${g.growth.toFixed(1)} · ${band.label}`}
@@ -140,8 +140,8 @@ export default function GapsPanel({ level, schoolId, districtId, countyId, exams
 
           {trendRows.length > 1 && trendGroupsPresent.length > 1 && (
             <div className="card-surface p-4 sm:p-6">
-              <h3 className="text-base font-semibold text-stone-900 mb-1">{t('gaps.overTime', { subject: subjectLabel(subject) })}</h3>
-              <p className="text-xs text-stone-500 mb-4">{t('gaps.overTimeSub')}</p>
+              <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">{t('gaps.overTime', { subject: subjectLabel(subject) })}</h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{t('gaps.overTimeSub')}</p>
               <AccessibleChart label={`${subject} proficiency by student group over time`} rows={trendRows.filter((r) => Object.keys(r).length > 1)}>
               <ResponsiveContainer width="100%" height={smUp ? 320 : 260}>
                 <LineChart data={trendRows}>

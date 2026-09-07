@@ -9,6 +9,7 @@ import GapsPanel from '../components/GapsPanel';
 import AccessibleChart from '../components/AccessibleChart';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { fillYearGaps, standardsChangeLine, covidGapArea } from '../lib/chartUtils';
+import { Link } from 'react-router-dom';
 import { useT } from '../i18n';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import {
@@ -120,10 +121,13 @@ export default function StatePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div>
-        <div className="mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.state.title')}</h1>
-            <p className="mt-1 text-sm text-stone-500">{t('pages.state.sub')}</p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.state.title')}</h1>
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('pages.state.sub')}</p>
           </div>
+          <Link to="/state/report" className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-navy-300 hover:text-navy-700 print:hidden">{t('report.title')}</Link>
+        </div>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-8">
           <FilterSelect label={t('common.exam')} value={examType} onChange={(e) => setExamType(e.target.value as 'pssa' | 'keystone')}>
@@ -146,8 +150,8 @@ export default function StatePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="card-surface p-6 animate-pulse">
-                <div className="h-4 bg-stone-200 rounded w-3/4 mb-4" />
-                <div className="h-48 bg-stone-100 rounded" />
+                <div className="h-4 bg-stone-200 dark:bg-stone-700 rounded w-3/4 mb-4" />
+                <div className="h-48 bg-stone-100 dark:bg-stone-800 rounded" />
               </div>
             ))}
           </div>
@@ -155,10 +159,10 @@ export default function StatePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trends Chart */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">
                 {selectedSubject} proficient or above, statewide
               </h2>
-              <p className="text-xs text-stone-500 mb-4">{t('state.allGrades')}</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{t('state.allGrades')}</p>
               <AccessibleChart label={`${selectedSubject} proficient or above statewide, by year`} rows={trendSeries.map((d) => ({ year: d.year, proficiency: d.proficiency }))} columns={[{ key: 'year', label: 'Year' }, { key: 'proficiency', label: '% proficient or above' }]}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <LineChart data={chartData}>
@@ -176,7 +180,7 @@ export default function StatePage() {
 
             {/* Subject Comparison */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">
                 Subject Comparison ({selectedYear})
               </h2>
               <ResponsiveContainer width="100%" height={chartHeight}>
@@ -193,10 +197,10 @@ export default function StatePage() {
 
             {/* Performance levels by grade */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">
                 {selectedSubject} Performance Levels by Grade ({selectedYear})
               </h2>
-              <p className="text-xs text-stone-500 mb-4">{t('state.levels')}</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{t('state.levels')}</p>
               <AccessibleChart label={`${selectedSubject} performance levels by grade, ${selectedYear}`} rows={levelsByGrade}>
               <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={levelsByGrade}>
@@ -217,7 +221,7 @@ export default function StatePage() {
 
             {/* Key Stats */}
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">{t('state.keyStats', { year: selectedYear ?? '' })}</h2>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">{t('state.keyStats', { year: selectedYear ?? '' })}</h2>
               <div className="space-y-4">
                 {[
                   { label: 'Tests scored', value: testsScored ? testsScored.toLocaleString() : '—' },
@@ -232,9 +236,9 @@ export default function StatePage() {
                   { label: 'Highest Subject', value: subjectData[0]?.subject || '—' },
                   { label: 'Lowest Subject', value: subjectData[subjectData.length - 1]?.subject || '—' },
                 ].map((stat, i) => (
-                  <div key={i} className="flex justify-between items-center py-3 border-b border-stone-100 last:border-0">
-                    <span className="text-sm text-stone-500">{stat.label}</span>
-                    <span className={`text-lg font-semibold ${stat.highlight ? 'text-navy-600' : 'text-stone-900'}`}>
+                  <div key={i} className="flex justify-between items-center py-3 border-b border-stone-100 dark:border-stone-800 last:border-0">
+                    <span className="text-sm text-stone-500 dark:text-stone-400">{stat.label}</span>
+                    <span className={`text-lg font-semibold ${stat.highlight ? 'text-navy-600 dark:text-navy-300' : 'text-stone-900 dark:text-stone-100'}`}>
                       {stat.value}
                     </span>
                   </div>
@@ -250,7 +254,7 @@ export default function StatePage() {
       </div>
 
       <div className="mt-8 space-y-4">
-        <h2 className="text-lg font-bold text-stone-900">{t('state.gaps')}</h2>
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">{t('state.gaps')}</h2>
         <GapsPanel level="state" year={selectedYear ?? undefined} />
       </div>
     </div>

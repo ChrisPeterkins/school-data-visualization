@@ -13,8 +13,8 @@ export default function CountiesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.counties.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">{t('pages.counties.sub')}</p>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.counties.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('pages.counties.sub')}</p>
       </div>
       {isLoading ? (
         <div className="card-surface p-8 text-center">
@@ -22,13 +22,13 @@ export default function CountiesPage() {
         </div>
       ) : (
         <div className="card-surface overflow-hidden">
-          <ul className="divide-y divide-stone-100 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:divide-y-0">
+          <ul className="divide-y divide-stone-100 dark:divide-stone-800 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:divide-y-0">
             {counties.map((c) => (
-              <li key={c.id} className="sm:border-b sm:border-stone-100">
-                <Link to={`/counties/${c.id}`} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-stone-50 transition-colors">
+              <li key={c.id} className="sm:border-b sm:border-stone-100 dark:border-stone-800">
+                <Link to={`/counties/${c.id}`} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-stone-900">{c.name}</div>
-                    <div className="text-xs text-stone-500">
+                    <div className="text-sm font-semibold text-stone-900 dark:text-stone-100">{c.name}</div>
+                    <div className="text-xs text-stone-500 dark:text-stone-400">
                       {c.districtCount} {c.districtCount === 1 ? 'district' : 'districts'} · {c.schoolCount} schools
                       {c.enrollment ? ` · ${c.enrollment.toLocaleString()} students` : ''}
                     </div>

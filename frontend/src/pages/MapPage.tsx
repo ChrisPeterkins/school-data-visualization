@@ -316,12 +316,12 @@ export default function MapPage() {
         <option value="">All counties</option>
         {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </FilterSelect>
-      <label className="inline-flex items-center gap-2 text-sm text-stone-600 sm:self-end sm:pb-2 cursor-pointer select-none">
-        <input type="checkbox" checked={boundaries} onChange={(e) => setBoundaries(e.target.checked)} className="rounded border-stone-300 text-navy-600" />
+      <label className="inline-flex items-center gap-2 text-sm text-stone-600 dark:text-stone-400 sm:self-end sm:pb-2 cursor-pointer select-none">
+        <input type="checkbox" checked={boundaries} onChange={(e) => setBoundaries(e.target.checked)} className="rounded border-stone-300 dark:border-stone-600 text-navy-600 dark:text-navy-300" />
         {t('map.districtBoundaries')}
       </label>
-      <label className="inline-flex items-center gap-2 text-sm text-stone-600 sm:self-end sm:pb-2 cursor-pointer select-none">
-        <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="rounded border-stone-300 text-navy-600" />
+      <label className="inline-flex items-center gap-2 text-sm text-stone-600 dark:text-stone-400 sm:self-end sm:pb-2 cursor-pointer select-none">
+        <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="rounded border-stone-300 dark:border-stone-600 text-navy-600 dark:text-navy-300" />
         {t('map.showEmpty')}
       </label>
     </div>
@@ -346,8 +346,8 @@ export default function MapPage() {
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
       <div className="px-4 sm:px-0 pt-6 sm:pt-0 mb-4 sm:mb-6">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.map.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.map.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           {t('map.sub', { subject, year: year ?? '' })}
         </p>
       </div>
@@ -358,32 +358,32 @@ export default function MapPage() {
       <div className="relative card-surface sm:overflow-hidden rounded-none sm:rounded-xl border-x-0 sm:border-x">
         <div className="absolute z-[1000] top-3 left-14 right-3 sm:right-auto sm:w-80 flex gap-2">
           <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 dark:text-stone-400" />
             <input
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('map.find')}
               aria-label={t('map.findAria')}
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-stone-200 bg-white/95 text-sm shadow focus:outline-none focus:ring-2 focus:ring-navy-500/30"
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 text-sm shadow focus:outline-none focus:ring-2 focus:ring-navy-500/30"
             />
             {searchResults && searchTerm.trim().length >= 2 && searchResults.data.length > 0 && (
-              <ul className="absolute mt-1 left-0 right-0 bg-white border border-stone-200 rounded-lg shadow-lg divide-y divide-stone-100 max-h-72 overflow-auto" role="listbox">
+              <ul className="absolute mt-1 left-0 right-0 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg divide-y divide-stone-100 dark:divide-stone-800 max-h-72 overflow-auto" role="listbox">
                 {searchResults.data.map((s: any) => (
                   <li key={s.id}>
-                    <button onClick={() => pickSearchResult(s)} className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50">
-                      <div className="font-medium text-stone-900 truncate">{s.name}</div>
-                      <div className="text-xs text-stone-500 truncate">{s.districtName}{s.type ? ` · ${s.type}` : ''}</div>
+                    <button onClick={() => pickSearchResult(s)} className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800">
+                      <div className="font-medium text-stone-900 dark:text-stone-100 truncate">{s.name}</div>
+                      <div className="text-xs text-stone-500 dark:text-stone-400 truncate">{s.districtName}{s.type ? ` · ${s.type}` : ''}</div>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <button onClick={locateMe} title={t('map.locate')} aria-label={t('map.locate')} className="px-2.5 rounded-lg border border-stone-200 bg-white/95 text-stone-600 shadow hover:text-navy-700">
+          <button onClick={locateMe} title={t('map.locate')} aria-label={t('map.locate')} className="px-2.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 text-stone-600 dark:text-stone-400 shadow hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200">
             <MapPinIcon className="w-5 h-5" />
           </button>
-          <button onClick={() => setFiltersOpen(true)} aria-label="Filters" className="sm:hidden px-2.5 rounded-lg border border-stone-200 bg-white/95 text-stone-600 shadow">
+          <button onClick={() => setFiltersOpen(true)} aria-label="Filters" className="sm:hidden px-2.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 text-stone-600 dark:text-stone-400 shadow">
             <AdjustmentsHorizontalIcon className="w-5 h-5" />
           </button>
         </div>
@@ -424,9 +424,9 @@ export default function MapPage() {
                   {SUBJECTS[exam].map((subj) => {
                     const r = selFor(subj);
                     return (
-                      <div key={subj} className={subj === subject ? 'rounded-md bg-stone-50 p-1.5 -m-1.5' : ''}>
-                        <dt className="text-stone-500 truncate">{subj === 'English Language Arts' ? 'ELA' : subj}</dt>
-                        <dd className="text-base font-semibold text-navy-800 tabular-nums">{formatPct(r?.percentProficientOrAbove)}</dd>
+                      <div key={subj} className={subj === subject ? 'rounded-md bg-stone-50 dark:bg-stone-950 p-1.5 -m-1.5' : ''}>
+                        <dt className="text-stone-500 dark:text-stone-400 truncate">{subj === 'English Language Arts' ? 'ELA' : subj}</dt>
+                        <dd className="text-base font-semibold text-navy-800 dark:text-navy-200 tabular-nums">{formatPct(r?.percentProficientOrAbove)}</dd>
                         {r?.growthScore != null && <dd className={`text-[11px] ${growthBand(r.growthScore).className}`}>growth {r.growthScore.toFixed(1)}</dd>}
                       </div>
                     );
@@ -437,7 +437,7 @@ export default function MapPage() {
                 </div>
                 {spark.length > 1 && (
                   <div className="mt-3">
-                    <div className="text-[11px] text-stone-500 mb-1">{subject} proficient or above, {spark[0].year}-{spark[spark.length - 1].year}</div>
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 mb-1">{subject} proficient or above, {spark[0].year}-{spark[spark.length - 1].year}</div>
                     <ResponsiveContainer width="100%" height={64}>
                       <LineChart data={spark} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                         <XAxis dataKey="year" hide />
@@ -452,7 +452,7 @@ export default function MapPage() {
                   <Link to={`/schools/${sel.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-navy-700 text-white hover:bg-navy-600">
                     Open school <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                   </Link>
-                  <Link to={`/districts/${sel.districtId}`} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50">District</Link>
+                  <Link to={`/districts/${sel.districtId}`} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800">District</Link>
                 </div>
               </>
             )}
@@ -474,9 +474,9 @@ export default function MapPage() {
                   {SUBJECTS[exam].map((subj) => {
                     const r = dFor(subj);
                     return (
-                      <div key={subj} className={subj === subject ? 'rounded-md bg-stone-50 p-1.5 -m-1.5' : ''}>
-                        <dt className="text-stone-500 truncate">{subj === 'English Language Arts' ? 'ELA' : subj}</dt>
-                        <dd className="text-base font-semibold text-navy-800 tabular-nums">{formatPct(r?.percentProficientOrAbove)}</dd>
+                      <div key={subj} className={subj === subject ? 'rounded-md bg-stone-50 dark:bg-stone-950 p-1.5 -m-1.5' : ''}>
+                        <dt className="text-stone-500 dark:text-stone-400 truncate">{subj === 'English Language Arts' ? 'ELA' : subj}</dt>
+                        <dd className="text-base font-semibold text-navy-800 dark:text-navy-200 tabular-nums">{formatPct(r?.percentProficientOrAbove)}</dd>
                         {r?.growthScore != null && <dd className={`text-[11px] ${growthBand(r.growthScore).className}`}>growth {r.growthScore.toFixed(1)}</dd>}
                       </div>
                     );
@@ -484,7 +484,7 @@ export default function MapPage() {
                 </dl>
                 {dSpark.length > 1 && (
                   <div className="mt-3">
-                    <div className="text-[11px] text-stone-500 mb-1">{subject} proficient or above, {dSpark[0].year}-{dSpark[dSpark.length - 1].year}</div>
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 mb-1">{subject} proficient or above, {dSpark[0].year}-{dSpark[dSpark.length - 1].year}</div>
                     <ResponsiveContainer width="100%" height={64}>
                       <LineChart data={dSpark} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                         <XAxis dataKey="year" hide />
@@ -497,7 +497,7 @@ export default function MapPage() {
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {districtSchoolPoints.length > 0 && (
-                    <button onClick={() => setFitTarget(`district:${dsel.id}`)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50">
+                    <button onClick={() => setFitTarget(`district:${dsel.id}`)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800">
                       Zoom to its {districtSchoolPoints.length} schools
                     </button>
                   )}
@@ -512,13 +512,13 @@ export default function MapPage() {
 
         </div>
 
-        <div className="px-4 sm:px-6 py-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
+        <div className="px-4 sm:px-6 py-3 border-t border-stone-100 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500 dark:text-stone-400">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-medium text-stone-700">{metric === 'growth' ? 'Growth index' : metric === 'quadrant' ? `Vs. state average${stateAvg != null ? ` (${formatPct(stateAvg)})` : ''}` : metric === 'attendance' ? '% regular attendance' : metric === 'graduation' ? '% graduating in 4 years' : metric === 'lowincome' ? '% low-income' : '% proficient or above'}</span>
+            <span className="font-medium text-stone-700 dark:text-stone-300">{metric === 'growth' ? 'Growth index' : metric === 'quadrant' ? `Vs. state average${stateAvg != null ? ` (${formatPct(stateAvg)})` : ''}` : metric === 'attendance' ? '% regular attendance' : metric === 'graduation' ? '% graduating in 4 years' : metric === 'lowincome' ? '% low-income' : '% proficient or above'}</span>
             {legend.map(([label, color]) => (
               <span key={label} className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: color }} />{label}</span>
             ))}
-            <span className="inline-flex items-center gap-1 pl-2 border-l border-stone-200"><span className="w-2 h-2 rounded-full bg-stone-400 inline-block" /><span className="w-3.5 h-3.5 rounded-full bg-stone-400 inline-block" /> size = enrollment</span>
+            <span className="inline-flex items-center gap-1 pl-2 border-l border-stone-200 dark:border-stone-700"><span className="w-2 h-2 rounded-full bg-stone-400 inline-block" /><span className="w-3.5 h-3.5 rounded-full bg-stone-400 inline-block" /> size = enrollment</span>
           </div>
           <span>{isLoading ? 'Loading…' : `${withValue.length.toLocaleString()} schools with a result${showEmpty ? ` of ${shown.length.toLocaleString()} shown` : ''}`}</span>
         </div>
@@ -528,10 +528,10 @@ export default function MapPage() {
       {filtersOpen && (
         <div className="fixed inset-0 z-[1100] sm:hidden" role="dialog" aria-modal="true" aria-label="Map filters">
           <div className="absolute inset-0 bg-navy-950/40" onClick={() => setFiltersOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto">
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-stone-900 rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-stone-900">{t('common.filters')}</h2>
-              <button onClick={() => setFiltersOpen(false)} aria-label={t('map.closeFilters')} className="text-stone-500"><XMarkIcon className="w-5 h-5" /></button>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('common.filters')}</h2>
+              <button onClick={() => setFiltersOpen(false)} aria-label={t('map.closeFilters')} className="text-stone-500 dark:text-stone-400"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             {filters}
             <button onClick={() => setFiltersOpen(false)} className="mt-4 w-full py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium">{t('map.showN', { n: withValue.length.toLocaleString() })}</button>
@@ -541,9 +541,9 @@ export default function MapPage() {
 
       {sorted.length > 0 && (
         <section className="card-surface mt-4 mx-4 sm:mx-0 overflow-hidden" aria-label={`Schools on the map, ${sorted.length} with a ${metric} value, sorted highest first`}>
-          <div className="px-4 sm:px-6 py-3 border-b border-stone-100">
-            <h2 className="text-base font-semibold text-stone-900">{t('map.shownTitle', { n: sorted.length.toLocaleString() })}</h2>
-            <p className="text-xs text-stone-500">{t('map.shownSub', { metric: t(`map.m.${metric === 'quadrant' ? 'proficiency' : metric}`).toLowerCase() })}</p>
+          <div className="px-4 sm:px-6 py-3 border-b border-stone-100 dark:border-stone-800">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('map.shownTitle', { n: sorted.length.toLocaleString() })}</h2>
+            <p className="text-xs text-stone-500 dark:text-stone-400">{t('map.shownSub', { metric: t(`map.m.${metric === 'quadrant' ? 'proficiency' : metric}`).toLowerCase() })}</p>
           </div>
           <div ref={listRef} className="overflow-y-auto" style={{ height: ROW * VISIBLE }} onScroll={(e) => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
             <ul style={{ height: sorted.length * ROW, position: 'relative' }} onKeyDown={moveFocus}>
@@ -554,7 +554,7 @@ export default function MapPage() {
                     <div
                       onMouseEnter={() => setHighlightedId(p.id)}
                       onMouseLeave={() => setHighlightedId(null)}
-                      className={`flex items-center justify-between gap-2 px-4 sm:px-6 h-full border-b border-stone-100 hover:bg-stone-50 ${p.id === selectedId ? 'bg-gold-50/60' : ''}`}
+                      className={`flex items-center justify-between gap-2 px-4 sm:px-6 h-full border-b border-stone-100 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 ${p.id === selectedId ? 'bg-gold-50/60 dark:bg-gold-900/30' : ''}`}
                     >
                       <button
                         onClick={() => { setSelectedId(p.id); setFitTarget(`point:${p.lat}:${p.lng}`); }}
@@ -565,13 +565,13 @@ export default function MapPage() {
                       >
                         <span className="min-w-0 flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorOf(p) }} aria-hidden />
-                          <span className="text-sm font-medium text-stone-900 truncate">{p.name}</span>
+                          <span className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{p.name}</span>
                         </span>
-                        <span className="text-sm tabular-nums text-stone-700 whitespace-nowrap">
-                          {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-500"> · g {p.growth.toFixed(1)}</span> : null}
+                        <span className="text-sm tabular-nums text-stone-700 dark:text-stone-300 whitespace-nowrap">
+                          {metric === 'growth' ? v?.toFixed(1) : formatPct(v)}{metric !== 'growth' && p.growth != null ? <span className="text-xs text-stone-500 dark:text-stone-400"> · g {p.growth.toFixed(1)}</span> : null}
                         </span>
                       </button>
-                      <Link to={`/schools/${p.id}`} aria-label={`Open ${p.name}`} className="flex-shrink-0 p-1 text-stone-500 hover:text-navy-600">
+                      <Link to={`/schools/${p.id}`} aria-label={`Open ${p.name}`} className="flex-shrink-0 p-1 text-stone-500 dark:text-stone-400 hover:text-navy-600 dark:text-navy-300">
                         <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                       </Link>
                     </div>

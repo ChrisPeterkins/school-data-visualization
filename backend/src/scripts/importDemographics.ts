@@ -3,14 +3,16 @@
  * the Urban Institute Education Data API, into school_demographics. One row
  * per school and year with shares of enrollment; the latest CCD year is 2023.
  *
- *   npx tsx src/scripts/importDemographics.ts [ccdYear=2023]
+ *   npx tsx src/scripts/importDemographics.ts [ccdYear=2023 | 2019-2023 | 2019 2020 2021]
  */
 import { sqliteDb } from '../db';
 import { logger } from '../utils/logger';
 
 const API = 'https://educationdata.urban.org/api/v1';
 const UA = 'paschools-metadata-import/1.0 (+https://chrispeterkins.com/paschools)';
-const ccdYear = Number(process.argv[2] || 2023);
+const yearArgs = process.argv.slice(2).length ? process.argv.slice(2) : ['2023'];
+const ccdYears = yearArgs.flatMap((a) => { const m = a.match(/^(\d{4})-(\d{4})$/); return m ? Array.from({ length: Number(m[2]) - Number(m[1]) + 1 }, (_, i) => Number(m[1]) + i) : [Number(a)]; });
+let ccdYear = ccdYears[0];
 // CCD race codes: 1 White, 2 Black, 3 Hispanic, 4 Asian, 5 American Indian/Alaska Native, 6 Native Hawaiian/Pacific Islander, 7 Two or more, 9 Unknown, 99 Total.
 const RACE: Record<number, string> = { 1: 'white', 2: 'black', 3: 'hispanic', 4: 'asian', 5: 'aian', 6: 'nhpi', 7: 'multi', 9: 'unknown', 99: 'total' };
 
@@ -61,4 +63,4 @@ async function main() {
   })();
   logger.info({ ccdYear, directory: dir.length, matched: ncesToId.size, raceRows: rows.length, written }, 'demographics imported');
 }
-main().catch((e) => { logger.error(e); process.exit(1); });
+(async () => { for (const y of ccdYears) { ccdYear = y; await main(); } })().catch((e) => { logger.error(e); process.exit(1); });

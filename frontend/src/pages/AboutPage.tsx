@@ -6,8 +6,8 @@ import AboutPageEs from './AboutPageEs';
 
 const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
   <section id={id} className="card-surface p-5 sm:p-7 space-y-3">
-    <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
-    <div className="text-sm text-stone-600 leading-relaxed space-y-3">{children}</div>
+    <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+    <div className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed space-y-3">{children}</div>
   </section>
 );
 
@@ -22,11 +22,11 @@ export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">About the data</h1>
-        <p className="mt-1 text-sm text-stone-500">Every number on this site traces back to a public file. This page explains which files, what was done to them, and where to be careful.</p>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">About the data</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Every number on this site traces back to a public file. This page explains which files, what was done to them, and where to be careful.</p>
       </div>
 
-      <nav className="text-sm text-navy-700 flex flex-wrap gap-x-4 gap-y-1" aria-label="On this page">
+      <nav className="text-sm text-navy-700 dark:text-navy-200 flex flex-wrap gap-x-4 gap-y-1" aria-label="On this page">
         {[['sources', 'Sources'], ['measures', 'What the measures mean'], ['indicators', 'Beyond test scores'], ['methods', 'How figures are computed'], ['caveats', 'Caveats by year'], ['updates', 'Updates'], ['privacy', 'Privacy']].map(([id, label]) => (
           <a key={id} href={`#${id}`} className="hover:underline">{label}</a>
         ))}
@@ -36,7 +36,7 @@ export default function AboutPage() {
         <p>
           <strong>Assessment results</strong> come from the Pennsylvania Department of Education's public spreadsheets for the
           PSSA (grades 3 to 8) and Keystone Exams (grade 11), published each year at school, district, and state level on the{' '}
-          <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/assessment-reporting" target="_blank" rel="noreferrer">PDE Assessment Reporting page</a>.
+          <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/assessment-reporting" target="_blank" rel="noreferrer">PDE Assessment Reporting page</a>.
           Currently loaded: {range || '2015-2025'} for PSSA and Keystone, plus 2013 and 2014 Keystone results recovered from PDE's archived site.
         </p>
         <p>
@@ -57,18 +57,18 @@ export default function AboutPage() {
 
       <Section id="indicators" title="Beyond test scores">
         <p>
-          <strong>Attendance and readiness</strong> come from PDE's <a className="text-navy-700 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">Future Ready PA Index data files</a> (2017-18 onward).
+          <strong>Attendance and readiness</strong> come from PDE's <a className="text-navy-700 dark:text-navy-200 underline" href="https://futurereadypa.org/Home/DataFiles" target="_blank" rel="noreferrer">Future Ready PA Index data files</a> (2017-18 onward).
           Regular attendance is the share of students who were not chronically absent (missed more than 10% of enrolled days). Career standards benchmark, rigorous courses of study (AP, IB, dual enrollment, or CTE), industry-based learning, and post-secondary transition are the Index's college-and-career measures; English learner proficiency and grade 3 reading / grade 7 math are its on-track measures.
           PDE stopped publishing the industry-based learning percentage after 2020-21. Values suppressed by PDE (fewer than 20 students) are omitted.
         </p>
         <p>
-          <strong>Graduation rates</strong> are PDE's 4-year cohort rates from the <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">cohort graduation files</a> (2016-17 onward), by school, district, and statewide, with the cohort size shown. The economically disadvantaged rate is also loaded where published.
+          <strong>Graduation rates</strong> are PDE's 4-year cohort rates from the <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/high-school-graduation" target="_blank" rel="noreferrer">cohort graduation files</a> (2016-17 onward), by school, district, and statewide, with the cohort size shown. The economically disadvantaged rate is also loaded where published.
         </p>
         <p>
-          <strong>Enrollment</strong> is PDE's October 1 count from the <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">public school enrollment reports</a> for 2015-16 through 2025-26, by school and district. The newest count also sizes the dots on the map and drives the enrollment filters.
+          <strong>Enrollment</strong> is PDE's October 1 count from the <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/data-and-reporting/enrollment" target="_blank" rel="noreferrer">public school enrollment reports</a> for 2015-16 through 2025-26, by school and district. The newest count also sizes the dots on the map and drives the enrollment filters.
         </p>
         <p>
-          <strong>Spending per pupil</strong> is total expenditures divided by average daily membership (ADM), both from PDE's <a className="text-navy-700 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">Annual Financial Report summaries</a> (2015-16 onward). Charter school ADM is available from 2019-20, so charters have no per-pupil figure before then. Career and technical centers report expenditures but no ADM. Spending buys many things besides test scores; the scatter on the districts page is a starting point, not a verdict.
+          <strong>Spending per pupil</strong> is total expenditures divided by average daily membership (ADM), both from PDE's <a className="text-navy-700 dark:text-navy-200 underline" href="https://www.pa.gov/agencies/education/programs-and-services/schools/grants-and-funding/school-finances/financial-data/summary-of-annual-financial-report-data" target="_blank" rel="noreferrer">Annual Financial Report summaries</a> (2015-16 onward). Charter school ADM is available from 2019-20, so charters have no per-pupil figure before then. Career and technical centers report expenditures but no ADM. Spending buys many things besides test scores; the scatter on the districts page is a starting point, not a verdict.
         </p>
         <p>
           <strong>Low-income share</strong> is PDE's percent of enrollment from low-income families (the loan-cancellation reports, 2016-17 onward). "Beating the odds" on the rankings page fits a straight line of Math + ELA proficiency against that share across every school (or district) in the year and ranks by the distance above or below the line; the r² shown is how much of the variation the poverty share alone explains.
@@ -116,7 +116,7 @@ export default function AboutPage() {
         </p>
         <p>
           The source code, import scripts, and a full description of each file's layout are on{' '}
-          <a className="text-navy-700 underline" href="https://github.com/ChrisPeterkins/school-data-visualization" target="_blank" rel="noreferrer">GitHub</a>.
+          <a className="text-navy-700 dark:text-navy-200 underline" href="https://github.com/ChrisPeterkins/school-data-visualization" target="_blank" rel="noreferrer">GitHub</a>.
         </p>
       </Section>
 
@@ -124,8 +124,8 @@ export default function AboutPage() {
         <p>The site shows only aggregate figures PDE has already published; it holds no individual student data. It sets no tracking cookies. Map tiles load from OpenStreetMap.</p>
       </Section>
 
-      <p className="text-sm text-stone-500">
-        Questions about a specific number? Start from the <Link to="/state" className="text-navy-700 underline">statewide view</Link>, then the school or district page, where each table shows the year, group, and students tested behind the figure.
+      <p className="text-sm text-stone-500 dark:text-stone-400">
+        Questions about a specific number? Start from the <Link to="/state" className="text-navy-700 dark:text-navy-200 underline">statewide view</Link>, then the school or district page, where each table shows the year, group, and students tested behind the figure.
       </p>
     </div>
   );

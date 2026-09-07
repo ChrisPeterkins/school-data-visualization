@@ -156,6 +156,7 @@ export const districtApi = {
     return data;
   },
 
+  getSimilarDistricts: async (id: string, limit = 4) => (await api.get<{ districtId: number; lowIncome: number | null; perPupil: number | null; similar: SimilarDistrict[] }>(`/api/districts/${id}/similar`, { params: { limit } })).data,
   getMapValues: async (params: { year: number; exam: 'pssa' | 'keystone'; subject: string; metric?: string }) => {
     const { data } = await api.get<{ districts: DistrictMapValue[] }>('/api/districts/map-values', { params });
     return data.districts;
@@ -306,6 +307,11 @@ export default api;
 
 export interface IndicatorPoint { year: number; value: number | null; stateValue: number | null; n: number | null }
 export interface IndicatorSeries { indicator: string; label: string; series: IndicatorPoint[] }
+export interface SafetyPoint { year: number; enrollment: number | null; incidents: number; offenders: number; arrests: number; lawEnforcement: number; assaults: number; harassment: number; fighting: number; weapons: number; drugsAlcohol: number; tobaccoVaping: number; threats: number; property: number; truant: number | null; truancyRate: number | null; securityStaff: number | null; incidentsPer100: number | null; arrestsPer100: number | null; stateIncidentsPer100: number | null; stateArrestsPer100: number | null; stateTruancyRate: number | null }
+export interface PermitPoint { year: number; total: number; dayToDay: number; longTerm: number; waiver: number; other: number; teachers: number | null; per100Teachers: number | null; statePer100Teachers: number | null; stateTotal: number | null }
+export interface DemographicsRow { year: number; total: number; white: number | null; black: number | null; hispanic: number | null; asian: number | null; aian: number | null; nhpi: number | null; multi: number | null; unknown: number | null }
+export interface Demographics extends DemographicsRow { history: DemographicsRow[] }
+export interface SimilarDistrict { id: number; name: string; type: string | null; city: string | null; enrollment: number | null; countyId: number; countyName: string; lowIncome: number | null; perPupil: number | null; distanceKm: number | null }
 export interface EnrollmentPoint { year: number; total: number }
 export interface FinancePoint {
   year: number; total: number | null; instruction: number | null; supportServices: number | null; adm: number | null;
@@ -324,8 +330,8 @@ export interface SpendingResponse {
 }
 
 export const indicatorApi = {
-  getSchool: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; groups: IndicatorGroupRow[] }>(`/api/indicators/school/${id}`)).data,
-  getDistrict: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: FinancePoint[]; staff: StaffPoint[]; groups: IndicatorGroupRow[] }>(`/api/indicators/district/${id}`)).data,
-  getState: async () => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: Array<{ year: number; perPupil: number; instructionPerPupil: number; districts: number }> }>('/api/indicators/state')).data,
+  getSchool: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; groups: IndicatorGroupRow[]; demographics: Demographics | null; safety: SafetyPoint[] }>(`/api/indicators/school/${id}`)).data,
+  getDistrict: async (id: number) => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: FinancePoint[]; staff: StaffPoint[]; groups: IndicatorGroupRow[]; demographics: Demographics | null; safety: SafetyPoint[]; permits: PermitPoint[] }>(`/api/indicators/district/${id}`)).data,
+  getState: async () => (await api.get<{ indicators: IndicatorSeries[]; enrollment: EnrollmentPoint[]; finance: Array<{ year: number; perPupil: number; instructionPerPupil: number; districts: number }>; safety: SafetyPoint[]; permits: PermitPoint[] }>('/api/indicators/state')).data,
   getSpending: async (params: { year?: number; exam?: 'pssa' | 'keystone' }) => (await api.get<SpendingResponse>('/api/indicators/spending', { params })).data,
 };

@@ -121,7 +121,7 @@ export default function ExcelViewerNew() {
   };
 
   return (
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-stone-900 shadow-lg rounded-lg overflow-hidden">
       <div className="p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Excel File Viewer</h2>
         <p className="text-sm text-gray-600 mb-4">

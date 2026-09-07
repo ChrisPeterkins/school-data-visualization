@@ -5,6 +5,8 @@ import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import GlobalSearch from './GlobalSearch';
 import ErrorBoundary from './ErrorBoundary';
 import LanguageToggle from './LanguageToggle';
+import ThemeToggle from './ThemeToggle';
+import OfflineBanner from './OfflineBanner';
 import { useI18n } from '../i18n';
 import {
   BuildingLibraryIcon,
@@ -60,8 +62,8 @@ export default function Layout() {
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[2000] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-gold-400 focus:text-navy-900 focus:text-sm focus:font-medium">{t('nav.skip')}</a>
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[2000] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-gold-400 focus:text-navy-900 dark:text-stone-100 focus:text-sm focus:font-medium">{t('nav.skip')}</a>
       {/* Navbar */}
       <nav className="bg-navy-900 border-b border-navy-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,7 +71,7 @@ export default function Layout() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gold-500/90 group-hover:bg-gold-400 transition-colors">
-                <BuildingLibraryIcon className="w-5 h-5 text-navy-900" />
+                <BuildingLibraryIcon className="w-5 h-5 text-navy-900 dark:text-stone-100" />
               </div>
               <div>
                 <span className="font-bold text-lg text-white tracking-tight">PA School Data</span>
@@ -97,8 +99,9 @@ export default function Layout() {
                   {t(key)}
                 </Link>
               ))}
-              <div className="ml-2 pl-2 border-l border-navy-700/60">
+              <div className="ml-2 pl-2 border-l border-navy-700/60 flex items-center gap-2">
                 <LanguageToggle />
+                <ThemeToggle />
               </div>
             </div>
 
@@ -146,6 +149,7 @@ export default function Layout() {
                 <div className="px-3 pt-2 flex items-center justify-between text-xs text-navy-400">
                   <span>{t('nav.language')}</span>
                   <LanguageToggle />
+                  <ThemeToggle />
                 </div>
               </div>
             </motion.div>
@@ -154,6 +158,7 @@ export default function Layout() {
       </nav>
 
       {/* Page Content */}
+      <OfflineBanner />
       <main id="main" ref={mainRef} className="outline-none">
         <AnimatePresence mode="wait">
           <motion.div
@@ -186,6 +191,8 @@ export default function Layout() {
               </p>
               <Link to="/about" className="text-navy-300 hover:text-white transition-colors">{t('nav.about')}</Link>
               <Link to="/updates" className="text-navy-300 hover:text-white transition-colors">{t('updates.title')}</Link>
+              <Link to="/data" className="text-navy-300 hover:text-white transition-colors">{t('data.title')}</Link>
+              <Link to="/status" className="text-navy-300 hover:text-white transition-colors">{t('status.title')}</Link>
               <a href="/paschools/api/docs/" className="text-navy-300 hover:text-white transition-colors">API</a>
               {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
               <Link to="/import" className="text-navy-300 hover:text-white transition-colors">{t('nav.admin')}</Link>

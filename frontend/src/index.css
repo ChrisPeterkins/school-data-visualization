@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply antialiased bg-stone-50 text-stone-900;
+    @apply antialiased bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
   }
 
   /* Tremor overrides for the navy/gold theme */
@@ -20,7 +20,7 @@
 
 @layer components {
   .card-surface {
-    @apply bg-white rounded-xl border border-stone-200/60 shadow-sm;
+    @apply bg-white rounded-xl border border-stone-200/60 shadow-sm dark:bg-stone-900 dark:border-stone-800;
   }
 
   .badge-gold {
@@ -51,12 +51,28 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-stone-100;
+  @apply bg-stone-100 dark:bg-stone-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-stone-300 rounded-full;
+  @apply bg-stone-300 rounded-full dark:bg-stone-700;
 }
+
+/* Honour the OS reduced-motion setting for CSS transitions; framer-motion follows it via MotionConfig. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Recharts and Leaflet draw their own colours; keep tooltips and popups readable in the dark. */
+.dark .recharts-default-tooltip { background-color: #1c1917 !important; border-color: #44403c !important; color: #f5f5f4; }
+.dark .recharts-cartesian-grid line { stroke: #44403c; }
+.dark .recharts-legend-item-text, .dark .recharts-text { fill: #a8a29e; }
+.dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip { background: #1c1917; color: #f5f5f4; }
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-stone-400;

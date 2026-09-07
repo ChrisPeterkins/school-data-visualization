@@ -79,8 +79,8 @@ export default function TrendsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.trends.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.trends.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           Share of students proficient or above{earliest && latest ? `, ${earliest} to ${latest}` : ''}, weighted by students tested
         </p>
       </div>
@@ -111,33 +111,33 @@ export default function TrendsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">Proficient or above, {latestPoint.year}</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1">{formatPct(latestPoint.proficiency)}</p>
-              <p className={`mt-2 inline-flex items-center gap-1 text-sm ${trend === 'up' ? 'text-teal-700' : trend === 'down' ? 'text-brick-600' : 'text-stone-500'}`}>
+              <p className="text-sm text-stone-500 dark:text-stone-400">Proficient or above, {latestPoint.year}</p>
+              <p className="text-2xl font-bold text-stone-900 dark:text-stone-100 mt-1">{formatPct(latestPoint.proficiency)}</p>
+              <p className={`mt-2 inline-flex items-center gap-1 text-sm ${trend === 'up' ? 'text-teal-700 dark:text-teal-400' : trend === 'down' ? 'text-brick-600 dark:text-brick-400' : 'text-stone-500 dark:text-stone-400'}`}>
                 {trend === 'up' ? <ArrowUpIcon className="h-3.5 w-3.5" /> : trend === 'down' ? <ArrowDownIcon className="h-3.5 w-3.5" /> : <MinusIcon className="h-3.5 w-3.5" />}
                 {change == null ? 'No prior year' : `${Math.abs(change).toFixed(1)} pts vs ${previousPoint.year}`}
               </p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">Students tested, {latestPoint.year}</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1 tabular-nums">{latestPoint.tested.toLocaleString()}</p>
-              <p className="mt-2 text-sm text-stone-500">
+              <p className="text-sm text-stone-500 dark:text-stone-400">Students tested, {latestPoint.year}</p>
+              <p className="text-2xl font-bold text-stone-900 dark:text-stone-100 mt-1 tabular-nums">{latestPoint.tested.toLocaleString()}</p>
+              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
                 {level === 'state' ? 'Statewide' : `Across ${latestPoint.entities.toLocaleString()} ${LEVEL_NOUN[level]}`}
               </p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{yearRange ? `Average, ${yearRange}` : 'Average, all years'}</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1">
+              <p className="text-sm text-stone-500 dark:text-stone-400">{yearRange ? `Average, ${yearRange}` : 'Average, all years'}</p>
+              <p className="text-2xl font-bold text-stone-900 dark:text-stone-100 mt-1">
                 {formatPct(series.filter((d) => d.proficiency != null).reduce((s, d) => s + (d.proficiency ?? 0), 0) / (series.filter((d) => d.proficiency != null).length || 1))}
               </p>
-              <p className="mt-2 text-sm text-stone-500">Mean of the yearly rates</p>
+              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">Mean of the yearly rates</p>
             </div>
           </div>
 
           <DataNotes subject={subject} exam={examType} years={years} latestAvailable={latest} />
 
           <div className="card-surface p-4 sm:p-6">
-            <h2 className="text-base font-semibold text-stone-900 mb-4">Proficient or above{yearRange ? ` (${yearRange})` : ''}</h2>
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">Proficient or above{yearRange ? ` (${yearRange})` : ''}</h2>
             <AccessibleChart label={`${subject} proficient or above, ${LEVEL_NOUN[level]}, by year`} rows={series.map((d) => ({ year: d.year, proficiency: d.proficiency, tested: d.tested }))} columns={[{ key: 'year', label: 'Year' }, { key: 'proficiency', label: '% proficient or above' }, { key: 'tested', label: 'Students tested' }]}>
             <ResponsiveContainer width="100%" height={bigChartHeight}>
               <LineChart data={chartData}>
@@ -155,7 +155,7 @@ export default function TrendsPage() {
 
           {hasLevels && (
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-4">Performance levels</h2>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">Performance levels</h2>
               <ResponsiveContainer width="100%" height={bigChartHeight}>
                 <AreaChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -176,8 +176,8 @@ export default function TrendsPage() {
 
           {yoy.length > 0 && (
             <div className="card-surface p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-stone-900 mb-1">Change from the previous results</h2>
-              <p className="text-xs text-stone-500 mb-4">Percentage points. The 2019 to 2021 bar spans the year with no testing.</p>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">Change from the previous results</h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">Percentage points. The 2019 to 2021 bar spans the year with no testing.</p>
               <ResponsiveContainer width="100%" height={smUp ? 300 : 260}>
                 <BarChart data={yoy}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />

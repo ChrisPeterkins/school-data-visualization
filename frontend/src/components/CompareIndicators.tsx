@@ -38,21 +38,21 @@ export default function CompareIndicators({ entity, ids, names }: { entity: 'sch
   if (!rows.length) return null;
   return (
     <div className="card-surface p-4 sm:p-6">
-      <h2 className="text-base font-semibold text-stone-900 mb-1">{t('ind.title')}</h2>
-      <p className="text-xs text-stone-500 mb-4">{t('cmp.indSub')} <Link to="/about#indicators" className="text-navy-600 underline">{t('notes.about')}</Link></p>
+      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">{t('ind.title')}</h2>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{t('cmp.indSub')} <Link to="/about#indicators" className="text-navy-600 dark:text-navy-300 underline">{t('notes.about')}</Link></p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-stone-200">
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('cmp.measure')}</th>
-              {ids.map((id) => <th key={id} className="text-right py-2 px-3 text-xs font-semibold text-stone-700 max-w-[10rem] truncate">{names[id] ?? id}</th>)}
+            <tr className="border-b border-stone-200 dark:border-stone-700">
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">{t('cmp.measure')}</th>
+              {ids.map((id) => <th key={id} className="text-right py-2 px-3 text-xs font-semibold text-stone-700 dark:text-stone-300 max-w-[10rem] truncate">{names[id] ?? id}</th>)}
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
             {rows.map((row) => (
               <tr key={row.key}>
-                <td className="py-2 pr-3 text-stone-600">{t(`ind.${row.key}`)}</td>
-                {ids.map((id, i) => { const c = cell(i, row); return <td key={id} className="py-2 px-3 text-right tabular-nums text-stone-900">{c.text}{c.year ? <span className="text-[10px] text-stone-500 ml-1">{c.year}</span> : null}</td>; })}
+                <td className="py-2 pr-3 text-stone-600 dark:text-stone-400">{t(`ind.${row.key}`)}</td>
+                {ids.map((id, i) => { const c = cell(i, row); return <td key={id} className="py-2 px-3 text-right tabular-nums text-stone-900 dark:text-stone-100">{c.text}{c.year ? <span className="text-[10px] text-stone-500 dark:text-stone-400 ml-1">{c.year}</span> : null}</td>; })}
               </tr>
             ))}
           </tbody>

@@ -733,6 +733,26 @@
               "minimum": 0,
               "maximum": 100
             }
+          },
+          {
+            "name": "pocMin",
+            "in": "query",
+            "description": "Schools only: at least this share of students of color (100 - white %, latest NCES CCD year)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "pocMax",
+            "in": "query",
+            "description": "Schools only: at most this share of students of color",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
           }
         ],
         "responses": {
@@ -771,7 +791,8 @@
               }
             }
           }
-        }
+        },
+        "description": "measure=beating_odds fits proficiency = a + b1*lowIncome + b2*ellShare + b3*iepShare by least squares statewide; each row carries expectedProficiency and residual, and fit.model holds the coefficients (fit.slope/intercept describe the low-income line at average ELL/IEP shares for the scatter)."
       }
     },
     "/performance/growth-achievement": {
@@ -1430,7 +1451,7 @@
         "tags": [
           "indicators"
         ],
-        "summary": "Future Ready PA Index indicators, graduation rate, and enrollment history for one school (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent)",
+        "summary": "Future Ready PA Index indicators, graduation rate, and enrollment history for one school (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent); safety: PDE Safe Schools incidents per 100 students by year with the statewide rate",
         "parameters": [
           {
             "name": "id",
@@ -1453,7 +1474,7 @@
         "tags": [
           "indicators"
         ],
-        "summary": "District graduation rate, enrollment-weighted school indicators, enrollment, and AFR spending per pupil by year (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent)",
+        "summary": "District graduation rate, enrollment-weighted school indicators, enrollment, and AFR spending per pupil by year (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent); safety: PDE Safe Schools incidents per 100 students by year with the statewide rate; permits: emergency teaching permits per 100 teachers",
         "parameters": [
           {
             "name": "id",
@@ -1476,7 +1497,7 @@
         "tags": [
           "indicators"
         ],
-        "summary": "Statewide indicator series, enrollment, and spending per pupil",
+        "summary": "Statewide indicator series, enrollment, and spending per pupil; safety: PDE Safe Schools incidents per 100 students by year with the statewide rate; permits: emergency teaching permits per 100 teachers",
         "responses": {
           "200": {
             "description": "OK"
@@ -1616,6 +1637,149 @@
         "responses": {
           "200": {
             "description": "application/atom+xml"
+          }
+        }
+      }
+    },
+    "/districts/{id}/similar": {
+      "get": {
+        "tags": [
+          "entities"
+        ],
+        "summary": "Peer districts: same type, closest in enrollment, low-income share, spending per pupil, and distance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 4,
+              "maximum": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK: { districtId, lowIncome, perPupil, similar: [{ id, name, enrollment, lowIncome, perPupil, distanceKm, ... }] }"
+          }
+        }
+      }
+    },
+    "/data": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Bulk download index: tables, row counts, years, and CSV URLs",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/data/{table}.csv": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "One table as CSV (gzip-encoded when accepted); year is required for yearly tables",
+        "parameters": [
+          {
+            "name": "table",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "schools",
+                "districts",
+                "counties",
+                "pssa_results",
+                "keystone_results",
+                "pvaas_results",
+                "entity_indicators",
+                "indicator_groups",
+                "enrollments",
+                "district_finance",
+                "district_staff",
+                "school_demographics"
+              ]
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/csv"
+          },
+          "400": {
+            "description": "year missing"
+          },
+          "404": {
+            "description": "unknown table"
+          }
+        }
+      }
+    },
+    "/data/{kind}/{id}.csv": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Everything published about one school or district, long format (source, year, measure, subject, grade, student_group, value, n, ...)",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "schools",
+                "districts"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/csv"
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Operational status: last import, backup, restore drill, release check, 30-day uptime and incidents, running build",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

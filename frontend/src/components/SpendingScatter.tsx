@@ -37,8 +37,8 @@ export default function SpendingScatter() {
     <section className="card-surface p-4 sm:p-6 space-y-4" aria-labelledby="spending-heading">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>
-          <h2 id="spending-heading" className="text-lg font-bold text-stone-900">{t('spend.title')}</h2>
-          <p className="mt-1 text-sm text-stone-500">{t('spend.sub')}</p>
+          <h2 id="spending-heading" className="text-lg font-bold text-stone-900 dark:text-stone-100">{t('spend.title')}</h2>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('spend.sub')}</p>
         </div>
         <div className="flex gap-3">
           <FilterSelect label={t('common.year')} value={data?.year ?? ''} onChange={(e) => setYear(Number(e.target.value))} fluid={false}>
@@ -66,9 +66,9 @@ export default function SpendingScatter() {
                   const d = payload?.[0]?.payload as (SpendingDistrict & { clipped: boolean }) | undefined;
                   if (!d) return null;
                   return (
-                    <div className="bg-white border border-stone-200 rounded-lg shadow-lg px-3 py-2 text-xs space-y-0.5">
-                      <div className="font-semibold text-stone-900">{d.name}</div>
-                      <div className="text-stone-500">{d.county}{d.type && d.type !== 'Public' ? ` · ${d.type}` : ''}</div>
+                    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg px-3 py-2 text-xs space-y-0.5">
+                      <div className="font-semibold text-stone-900 dark:text-stone-100">{d.name}</div>
+                      <div className="text-stone-500 dark:text-stone-400">{d.county}{d.type && d.type !== 'Public' ? ` · ${d.type}` : ''}</div>
                       <div className="tabular-nums">{t('ind.perPupil')}: ${d.perPupil.toLocaleString()}{d.clipped ? ` (${t('spend.offScale')})` : ''}</div>
                       <div className="tabular-nums">{t('common.proficient')}: {d.proficiency}% · {d.tested.toLocaleString()} {t('results.tested').toLowerCase()}</div>
                     </div>
@@ -81,7 +81,7 @@ export default function SpendingScatter() {
         </AccessibleChart>
         </ChartActions>
       )}
-      <p className="text-xs text-stone-500">{t('spend.note')}</p>
+      <p className="text-xs text-stone-500 dark:text-stone-400">{t('spend.note')}</p>
     </section>
   );
 }

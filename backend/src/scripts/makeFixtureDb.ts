@@ -44,6 +44,8 @@ for (const t of ['entity_indicators', 'enrollments', 'indicator_groups']) {
 db.exec(`INSERT INTO district_finance SELECT * FROM prod.district_finance WHERE district_id IN (SELECT id FROM districts)`);
 db.exec(`INSERT INTO district_staff SELECT * FROM prod.district_staff WHERE district_id IN (SELECT id FROM districts)`);
 db.exec(`INSERT INTO school_demographics SELECT * FROM prod.school_demographics WHERE school_id IN (SELECT id FROM schools)`);
+db.exec(`INSERT INTO school_safety SELECT * FROM prod.school_safety WHERE entity_type = 'state' OR (entity_type = 'district' AND entity_id IN (SELECT id FROM districts)) OR (entity_type = 'school' AND entity_id IN (SELECT id FROM schools))`);
+db.exec(`INSERT INTO district_permits SELECT * FROM prod.district_permits WHERE district_id = 0 OR district_id IN (SELECT id FROM districts)`);
 db.exec(`DETACH DATABASE prod`);
 db.exec('VACUUM');
 

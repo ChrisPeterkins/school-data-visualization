@@ -27,8 +27,8 @@ export default function TrendCard({ title, subtitle, data, series, years, exam, 
   const rows = data.filter((r) => Object.keys(r).length > 1);
   return (
     <div className="card-surface p-4 sm:p-6">
-      <h3 className="text-base font-semibold text-stone-900 mb-1">{title}</h3>
-      <p className="text-xs text-stone-500 mb-4">{subtitle ?? t('trend.defaultSub')}</p>
+      <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">{title}</h3>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">{subtitle ?? t('trend.defaultSub')}</p>
       <ChartActions filename={title} title={title}>
       <AccessibleChart label={`${title}, ${years[0]} to ${years[years.length - 1]}`} rows={rows} columns={[{ key: 'year', label: 'Year' }, ...series.map((s) => ({ key: s, label: `${s} % proficient or above` }))]}>
         <ResponsiveContainer width="100%" height={height ?? (smUp ? 300 : 240)}>

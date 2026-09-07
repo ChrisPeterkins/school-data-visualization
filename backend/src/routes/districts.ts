@@ -307,6 +307,49 @@ const districtRoutes: FastifyPluginAsync = async (fastify) => {
     await cache.set(cacheKey, stats, 3600); // Cache for 1 hour
     return stats;
   });
+
+  /**
+   * Peer districts: same district type, closest in enrollment, low-income share,
+   * spending per pupil, and distance (centroid of the district's schools).
+   */
+  fastify.get('/:id/similar', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const limit = Math.min(8, Math.max(1, parseInt((request.query as any).limit ?? '4', 10) || 4));
+    const cacheKey = cache.generateKey('similar-districts', id, String(limit));
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+    const liYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE indicator = 'low_income' AND entity_type = 'district'`).get() as { y: number | null }).y ?? 0;
+    const finYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM district_finance`).get() as { y: number | null }).y ?? 0;
+    const rows = sqliteDb.prepare(`
+      SELECT d.id, d.name, d.district_type AS type, d.city, d.total_enrollment AS enrollment, d.county_id AS countyId, c.name AS countyName,
+        (SELECT AVG(latitude) FROM schools s WHERE s.district_id = d.id AND s.latitude IS NOT NULL) AS lat,
+        (SELECT AVG(longitude) FROM schools s WHERE s.district_id = d.id AND s.longitude IS NOT NULL) AS lng,
+        (SELECT value FROM entity_indicators i WHERE i.entity_type = 'district' AND i.entity_id = d.id AND i.indicator = 'low_income' AND i.year = ?) AS lowIncome,
+        (SELECT per_pupil FROM district_finance f WHERE f.district_id = d.id AND f.year = ?) AS perPupil
+      FROM districts d JOIN counties c ON c.id = d.county_id WHERE d.is_active = 1
+    `).all(liYear, finYear) as any[];
+    const me = rows.find((r) => r.id === parseInt(id, 10));
+    if (!me) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'District not found' });
+    const km = (a: any, b: any) => {
+      if (a.lat == null || b.lat == null) return null;
+      const r = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return 2 * r * Math.asin(Math.sqrt(h));
+    };
+    const scored = rows.filter((r) => r.id !== me.id && (r.type ?? 'Public') === (me.type ?? 'Public')).map((c) => {
+      const distance = km(me, c);
+      const sizeGap = me.enrollment && c.enrollment ? Math.abs(Math.log(c.enrollment / me.enrollment)) : 1;
+      const povertyGap = me.lowIncome != null && c.lowIncome != null ? Math.abs(c.lowIncome - me.lowIncome) : 25;
+      const spendGap = me.perPupil && c.perPupil ? Math.abs(Math.log(c.perPupil / me.perPupil)) : 0.3;
+      // Distance in km, plus: double the size ≈ 50 km, 10 points of poverty ≈ 30 km, 30% more spending ≈ 25 km.
+      const score = (distance ?? (c.countyId === me.countyId ? 40 : 250)) * 0.5 + sizeGap * 70 + povertyGap * 3 + spendGap * 100;
+      return { ...c, distanceKm: distance == null ? null : Math.round(distance), score };
+    }).sort((a, b) => a.score - b.score).slice(0, limit);
+    const strip = ({ score: _s, lat: _a, lng: _b, ...rest }: any) => rest;
+    const response = { districtId: me.id, lowIncome: me.lowIncome ?? null, perPupil: me.perPupil ?? null, similar: scored.map(strip) };
+    await cache.set(cacheKey, response, 3600);
+    return response;
+  });
 };
 
 export default districtRoutes;

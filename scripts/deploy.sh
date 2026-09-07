@@ -20,6 +20,8 @@ npm test --workspaces --if-present
 
 echo "== backend"
 npm run build -w backend
+# Build stamp shown on /status.
+printf '{"sha":"%s","at":"%s"}\n' "$(git rev-parse --short HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > backend/dist/build.json
 
 echo "== frontend (built beside the live one, then swapped)"
 ( cd frontend && rm -rf dist-new && npx vite build --outDir dist-new \

@@ -13,7 +13,7 @@ export default function ChartActions({ filename, title, children, className = ''
       <button
         type="button"
         onClick={async () => { if (!ref.current) return; setBusy(true); try { await downloadChartPng(ref.current, filename, title); } finally { setBusy(false); } }}
-        className="absolute right-0 -top-8 sm:-top-9 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-stone-500 hover:text-navy-700 hover:bg-stone-100 print:hidden"
+        className="absolute right-0 -top-8 sm:-top-9 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-stone-500 dark:text-stone-400 hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200 hover:bg-stone-100 dark:hover:bg-stone-700 dark:bg-stone-800 print:hidden"
         title={t('chart.png')}
         disabled={busy}
       >

@@ -13,7 +13,7 @@ export default function PinButton({ pin, className = '' }: { pin: Pin; className
       type="button"
       onClick={() => toggle(pin)}
       aria-pressed={on}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${on ? 'border-gold-400 bg-gold-50 text-gold-800 hover:bg-gold-100' : 'border-stone-200 bg-white text-stone-600 hover:border-navy-300 hover:text-navy-700'} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${on ? 'border-gold-400 bg-gold-50 dark:bg-gold-900/30 text-gold-800 dark:text-gold-200 hover:bg-gold-100 dark:bg-gold-900/50' : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:border-navy-300 dark:hover:border-navy-500 hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200'} ${className}`}
       title={t(on ? 'pin.remove' : 'pin.add')}
     >
       {on ? <BookmarkSolid className="w-4 h-4" /> : <BookmarkIcon className="w-4 h-4" />}

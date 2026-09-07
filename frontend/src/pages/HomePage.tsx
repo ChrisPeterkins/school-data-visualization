@@ -26,18 +26,18 @@ function Headline({ label, exam, subject, latest }: { label: string; exam: 'pssa
   const stale = cur && cur.year < latest;
   const { t } = useI18n();
   return (
-    <Link to={`/state?exam=${exam}&subject=${encodeURIComponent(subject)}`} className="card-surface p-4 sm:p-5 hover:border-navy-300 transition-colors block">
-      <div className="text-xs font-medium text-stone-500 uppercase tracking-wide">{label}</div>
+    <Link to={`/state?exam=${exam}&subject=${encodeURIComponent(subject)}`} className="card-surface p-4 sm:p-5 hover:border-navy-300 dark:hover:border-navy-500 transition-colors block">
+      <div className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">{label}</div>
       <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl sm:text-3xl font-bold text-navy-900 tabular-nums">{cur ? formatPct(cur.proficiency) : '…'}</span>
+        <span className="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-stone-100 tabular-nums">{cur ? formatPct(cur.proficiency) : '…'}</span>
         {change != null && (
-          <span className={`inline-flex items-center gap-0.5 text-sm font-semibold tabular-nums ${change >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>
+          <span className={`inline-flex items-center gap-0.5 text-sm font-semibold tabular-nums ${change >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-brick-600 dark:text-brick-400'}`}>
             {change >= 0 ? <ArrowTrendingUpIcon className="w-4 h-4" /> : <ArrowTrendingDownIcon className="w-4 h-4" />}
             {change > 0 ? '+' : ''}{change}
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-xs text-stone-500 tabular-nums">{cur ? (prev ? `${prev.year} → ${cur.year}` : String(cur.year)) : ''}{stale ? ` · ${t('home.noNewer')}` : ''}</div>
+      <div className="mt-0.5 text-xs text-stone-500 dark:text-stone-400 tabular-nums">{cur ? (prev ? `${prev.year} → ${cur.year}` : String(cur.year)) : ''}{stale ? ` · ${t('home.noNewer')}` : ''}</div>
     </Link>
   );
 }
@@ -68,12 +68,12 @@ export default function HomePage() {
   const compareYear: number | undefined = movers.data?.filters?.compareYear;
   const moverRow = (r: any) => (
     <li key={r.schoolId}>
-      <Link to={`/districts/${r.schoolId}`} className="flex items-center justify-between gap-3 py-2 hover:bg-stone-50 -mx-2 px-2 rounded-md">
+      <Link to={`/districts/${r.schoolId}`} className="flex items-center justify-between gap-3 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 -mx-2 px-2 rounded-md">
         <span className="min-w-0">
-          <span className="block text-sm font-medium text-stone-900 truncate">{r.schoolName}</span>
-          <span className="block text-xs text-stone-500 truncate">{r.countyName} · {formatPct(r.previousProficiency)} → {formatPct(r.avgProficiency)}</span>
+          <span className="block text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{r.schoolName}</span>
+          <span className="block text-xs text-stone-500 dark:text-stone-400 truncate">{r.countyName} · {formatPct(r.previousProficiency)} → {formatPct(r.avgProficiency)}</span>
         </span>
-        <span className={`text-sm font-semibold tabular-nums flex-shrink-0 ${r.change >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>{r.change > 0 ? '+' : ''}{r.change} pts</span>
+        <span className={`text-sm font-semibold tabular-nums flex-shrink-0 ${r.change >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-brick-600 dark:text-brick-400'}`}>{r.change > 0 ? '+' : ''}{r.change} pts</span>
       </Link>
     </li>
   );
@@ -102,12 +102,12 @@ export default function HomePage() {
       </div>
 
       {/* Stats strip */}
-      <div className="bg-white border-b border-stone-200">
+      <div className="bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-700">
         <dl className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 lg:grid-cols-4 gap-y-6 py-6 sm:py-8">
           {stats.map((stat) => (
-            <div key={stat.label} className="lg:border-l lg:border-stone-200 lg:first:border-l-0 lg:pl-6 lg:first:pl-0">
-              <dd className="text-2xl sm:text-3xl font-bold text-navy-900 tabular-nums whitespace-nowrap">{stat.value}</dd>
-              <dt className="mt-1 text-sm text-stone-500">{stat.label}</dt>
+            <div key={stat.label} className="lg:border-l lg:border-stone-200 dark:border-stone-700 lg:first:border-l-0 lg:pl-6 lg:first:pl-0">
+              <dd className="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-stone-100 tabular-nums whitespace-nowrap">{stat.value}</dd>
+              <dt className="mt-1 text-sm text-stone-500 dark:text-stone-400">{stat.label}</dt>
             </div>
           ))}
         </dl>
@@ -118,10 +118,10 @@ export default function HomePage() {
         <div className="mb-10 empty:hidden"><WatchlistPanel /></div>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">{t('home.glance')}{latest ? <span className="text-stone-500 font-semibold"> · {latest}</span> : null}</h2>
-            <p className="mt-2 text-base text-stone-500 max-w-2xl">{t('home.glanceSub')}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('home.glance')}{latest ? <span className="text-stone-500 dark:text-stone-400 font-semibold"> · {latest}</span> : null}</h2>
+            <p className="mt-2 text-base text-stone-500 dark:text-stone-400 max-w-2xl">{t('home.glanceSub')}</p>
           </div>
-          {updated && <p className="text-xs text-stone-500">{t('home.updated', { date: updated })}</p>}
+          {updated && <p className="text-xs text-stone-500 dark:text-stone-400">{t('home.updated', { date: updated })}</p>}
         </div>
 
         {latest != null && (
@@ -133,19 +133,19 @@ export default function HomePage() {
 
         {movers.data && movers.data.top.length > 0 && (
           <div className="mt-8 card-surface p-5 sm:p-6">
-            <h3 className="text-lg font-semibold text-stone-900">{t('home.movers')}</h3>
-            <p className="mt-1 text-sm text-stone-500">{t('home.moversSub', { year: compareYear ?? '' })}</p>
+            <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('home.movers')}</h3>
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('home.moversSub', { year: compareYear ?? '' })}</p>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-teal-700">{t('home.improved')}</div>
-                <ul className="mt-1 divide-y divide-stone-100">{movers.data.top.slice(0, 3).map(moverRow)}</ul>
+                <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-400">{t('home.improved')}</div>
+                <ul className="mt-1 divide-y divide-stone-100 dark:divide-stone-800">{movers.data.top.slice(0, 3).map(moverRow)}</ul>
               </div>
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-brick-600">{t('home.declined')}</div>
-                <ul className="mt-1 divide-y divide-stone-100">{movers.data.bottom.slice(0, 3).map(moverRow)}</ul>
+                <div className="text-xs font-semibold uppercase tracking-wide text-brick-600 dark:text-brick-400">{t('home.declined')}</div>
+                <ul className="mt-1 divide-y divide-stone-100 dark:divide-stone-800">{movers.data.bottom.slice(0, 3).map(moverRow)}</ul>
               </div>
             </div>
-            <Link to={`/rankings?entity=district&mode=change&subject=${encodeURIComponent('Mathematics')}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-navy-600 hover:text-navy-800">
+            <Link to={`/rankings?entity=district&mode=change&subject=${encodeURIComponent('Mathematics')}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-navy-600 dark:text-navy-300 hover:text-navy-800 dark:hover:text-navy-100 dark:text-navy-200">
               {t('nav.rankings')} <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
@@ -154,14 +154,14 @@ export default function HomePage() {
 
       {/* Features */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14 sm:pb-20">
-        <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">{t('home.explore')}</h2>
-        <p className="mt-2 text-base text-stone-500 max-w-2xl">{t('home.exploreSub')}</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('home.explore')}</h2>
+        <p className="mt-2 text-base text-stone-500 dark:text-stone-400 max-w-2xl">{t('home.exploreSub')}</p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {features.map((f) => (
-            <Link key={f.key} to={f.link} className="group card-surface p-6 flex flex-col hover:border-navy-300 transition-colors">
-              <h3 className="text-lg font-semibold text-stone-900 group-hover:text-navy-700 transition-colors">{t(`home.f.${f.key}`)}</h3>
-              <p className="mt-2 text-sm text-stone-500 leading-relaxed flex-1">{t(`home.f.${f.key}Desc`)}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-navy-600">
+            <Link key={f.key} to={f.link} className="group card-surface p-6 flex flex-col hover:border-navy-300 dark:hover:border-navy-500 transition-colors">
+              <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 group-hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200 transition-colors">{t(`home.f.${f.key}`)}</h3>
+              <p className="mt-2 text-sm text-stone-500 dark:text-stone-400 leading-relaxed flex-1">{t(`home.f.${f.key}Desc`)}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-navy-600 dark:text-navy-300">
                 {t('home.explore.cta')}
                 <ArrowRightIcon className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </span>

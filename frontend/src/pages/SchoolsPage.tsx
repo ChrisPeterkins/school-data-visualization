@@ -88,8 +88,8 @@ export default function SchoolsPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.schools.title')}</h1>
-            <p className="mt-1 text-sm text-stone-500">
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.schools.title')}</h1>
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
               {t('pages.schools.sub', { n: data?.meta?.total?.toLocaleString() || '...' })}
             </p>
           </div>
@@ -105,11 +105,11 @@ export default function SchoolsPage() {
 
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[10rem] sm:flex-none">
-              <label className="block text-xs font-medium text-stone-500 mb-1">County</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">County</label>
               <select
                 value={countyName}
                 onChange={(e) => handleFilterChange('county', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">All Counties</option>
                 {filters.counties.map(county => (
@@ -119,11 +119,11 @@ export default function SchoolsPage() {
             </div>
 
             <div className="flex-1 min-w-[10rem] sm:flex-none">
-              <label className="block text-xs font-medium text-stone-500 mb-1">School Type</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">School Type</label>
               <select
                 value={schoolType}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">All Types</option>
                 {filters.schoolTypes.map(type => (
@@ -133,7 +133,7 @@ export default function SchoolsPage() {
             </div>
 
             <div className="flex-1 min-w-[10rem] sm:flex-none">
-              <label className="block text-xs font-medium text-stone-500 mb-1">District</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">District</label>
               <input
                 type="text"
                 defaultValue={districtName}
@@ -141,16 +141,16 @@ export default function SchoolsPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') handleFilterChange('district', (e.target as HTMLInputElement).value.trim()); }}
                 onBlur={(e) => { if (e.target.value.trim() !== districtName) handleFilterChange('district', e.target.value.trim()); }}
                 placeholder="Any district"
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               />
             </div>
 
             <div className="flex-1 min-w-[9rem] sm:flex-none">
-              <label className="block text-xs font-medium text-stone-500 mb-1">Size</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Size</label>
               <select
                 value={size}
                 onChange={(e) => handleFilterChange('size', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">Any size</option>
                 {Object.entries(SIZE_BANDS).map(([k, b]) => <option key={k} value={k}>{b.label}</option>)}
@@ -158,11 +158,11 @@ export default function SchoolsPage() {
             </div>
 
             <div className="flex-1 min-w-[9rem] sm:flex-none">
-              <label className="block text-xs font-medium text-stone-500 mb-1">Charter</label>
+              <label className="block text-xs font-medium text-stone-500 dark:text-stone-400 mb-1">Charter</label>
               <select
                 value={charter}
                 onChange={(e) => handleFilterChange('charter', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+                className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
               >
                 <option value="">Charter and district</option>
                 <option value="1">Charter only</option>
@@ -170,12 +170,12 @@ export default function SchoolsPage() {
               </select>
             </div>
 
-            <label className="inline-flex items-center gap-2 text-sm text-stone-600 py-2 cursor-pointer select-none">
+            <label className="inline-flex items-center gap-2 text-sm text-stone-600 dark:text-stone-400 py-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={includeInactive}
                 onChange={(e) => handleFilterChange('closed', e.target.checked ? '1' : '')}
-                className="rounded border-stone-300 text-navy-600 focus:ring-navy-500/30"
+                className="rounded border-stone-300 dark:border-stone-600 text-navy-600 dark:text-navy-300 focus:ring-navy-500/30"
               />
               Include closed schools
             </label>
@@ -183,7 +183,7 @@ export default function SchoolsPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-brick-600 hover:text-brick-700 rounded-lg hover:bg-brick-50 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-brick-600 dark:text-brick-400 hover:text-brick-700 rounded-lg hover:bg-brick-50 dark:bg-brick-900/30 transition-colors"
               >
                 <XMarkIcon className="w-4 h-4" />
                 Clear All
@@ -196,12 +196,12 @@ export default function SchoolsPage() {
         {isLoading && (
           <div className="card-surface p-12 text-center">
             <div className="inline-block w-8 h-8 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
-            <p className="mt-3 text-sm text-stone-500">Loading schools...</p>
+            <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">Loading schools...</p>
           </div>
         )}
 
         {error && (
-          <div className="card-surface border-brick-200 bg-brick-50 p-4">
+          <div className="card-surface border-brick-200 bg-brick-50 dark:bg-brick-900/30 p-4">
             <p className="text-sm text-brick-700">Error loading schools. Please try again later.</p>
           </div>
         )}

@@ -11,9 +11,9 @@ export default function ShareButton({ title, text }: { title: string; text?: str
     <button
       type="button"
       onClick={async () => { const r = await sharePage(title, text); setState(r === 'copied' ? 'copied' : r === 'failed' ? 'failed' : 'idle'); if (r !== 'shared') setTimeout(() => setState('idle'), 2000); }}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-600 hover:border-navy-300 hover:text-navy-700 transition-colors print:hidden"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-navy-300 dark:hover:border-navy-500 hover:text-navy-700 dark:hover:text-navy-100 dark:text-navy-200 transition-colors print:hidden"
     >
-      {state === 'copied' ? <CheckIcon className="w-4 h-4 text-teal-700" /> : <ShareIcon className="w-4 h-4" />}
+      {state === 'copied' ? <CheckIcon className="w-4 h-4 text-teal-700 dark:text-teal-400" /> : <ShareIcon className="w-4 h-4" />}
       <span>{state === 'copied' ? t('share.copied') : state === 'failed' ? t('share.failed') : t('share.share')}</span>
     </button>
   );

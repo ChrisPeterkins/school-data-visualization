@@ -46,8 +46,8 @@ export default function DistrictsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.districts.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{t('pages.districts.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           {t('pages.districts.sub', { n: districtsData?.meta?.total?.toLocaleString() || '...' })}
         </p>
       </div>
@@ -58,14 +58,14 @@ export default function DistrictsPage() {
 
       <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-xl">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 dark:text-stone-400" />
           <input
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Search by district or county"
             aria-label="Search districts"
-            className="w-full pl-10 pr-4 py-2.5 border border-stone-200 rounded-lg text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-stone-200 dark:border-stone-700 rounded-lg text-sm bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500"
           />
         </div>
         <button type="submit" className="px-5 py-2.5 bg-navy-700 text-white text-sm font-medium rounded-lg hover:bg-navy-600 transition-colors">
@@ -104,16 +104,16 @@ export default function DistrictsPage() {
       ) : (
         <>
           <div className="card-surface overflow-hidden">
-            <ul className="divide-y divide-stone-100">
+            <ul className="divide-y divide-stone-100 dark:divide-stone-800">
               {districtsData?.data.map((district: any) => (
                 <li key={district.id}>
                   <Link
                     to={`/districts/${district.id}`}
-                    className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4 hover:bg-stone-50 transition-colors"
+                    className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-stone-900">{district.name}</h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-stone-500">
+                      <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{district.name}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-stone-500 dark:text-stone-400">
                         <span>{district.countyName} County</span>
                         {district.districtType && district.districtType !== 'Public' && <span>{district.districtType}</span>}
                         {district.schoolCount > 0 && <span>{district.schoolCount} {district.schoolCount === 1 ? 'school' : 'schools'}</span>}
@@ -122,8 +122,8 @@ export default function DistrictsPage() {
                     </div>
                     {district.proficiency != null && (
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm font-semibold text-navy-900 tabular-nums">{district.proficiency}%</div>
-                        <div className="text-[10px] uppercase tracking-wide text-stone-500">{t('districts.mathEla', { year: district.proficiencyYear })}</div>
+                        <div className="text-sm font-semibold text-navy-900 dark:text-stone-100 tabular-nums">{district.proficiency}%</div>
+                        <div className="text-[10px] uppercase tracking-wide text-stone-500 dark:text-stone-400">{t('districts.mathEla', { year: district.proficiencyYear })}</div>
                       </div>
                     )}
                     <ChevronRightIcon className="w-4 h-4 text-stone-300 flex-shrink-0" />
@@ -131,7 +131,7 @@ export default function DistrictsPage() {
                 </li>
               ))}
               {districtsData?.data.length === 0 && (
-                <li className="px-5 py-12 text-center text-sm text-stone-500">No districts match that search</li>
+                <li className="px-5 py-12 text-center text-sm text-stone-500 dark:text-stone-400">No districts match that search</li>
               )}
             </ul>
           </div>
