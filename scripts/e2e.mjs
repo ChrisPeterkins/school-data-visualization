@@ -89,7 +89,7 @@ check('compare indicators table', (await page.locator('table th:has-text("Measur
 // 8c. Round D: updates page + feed, report card, low-income band on rankings, skip link, indicator trends.
 await page.goto(`${BASE}/updates`, { waitUntil: 'load' }); await page.waitForTimeout(2500);
 check('updates page', (await page.locator('h1').textContent()) === 'Data updates' && (await page.locator('main li, main article').count()) >= 1);
-const feed = await page.request.get(`${BASE}/feed.xml`);
+const feed = await page.request.get(`${BASE}/api/feed`); // /paschools/feed.xml is an nginx rewrite to this, absent under vite preview
 check('atom feed', feed.ok() && (feed.headers()['content-type'] || '').includes('atom') && (await feed.text()).includes('<entry>'));
 await page.goto(`${BASE}/schools/${process.env.SCHOOL_ID || '1'}/report`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('report card', (await page.locator('text=Report card').count()) >= 1 && (await page.locator('h1').count()) === 1);
