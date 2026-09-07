@@ -75,8 +75,8 @@ export const schoolApi = {
   },
 
   getSimilar: async (id: string, limit = 4) => {
-    const { data } = await api.get<{ schoolId: number; similar: SimilarSchool[] }>(`/api/schools/${id}/similar`, { params: { limit } });
-    return data.similar;
+    const { data } = await api.get<{ schoolId: number; lowIncome: number | null; lowIncomeYear: number | null; similar: SimilarSchool[] }>(`/api/schools/${id}/similar`, { params: { limit } });
+    return data;
   },
 
   getNearby: async (params: { lat: number; lng: number; limit?: number; type?: string }) => {
@@ -100,7 +100,7 @@ export interface GapsResponse {
 }
 export interface SimilarSchool {
   id: number; name: string; type: string | null; city: string | null; districtName: string; countyName: string;
-  enrollment: number | null; distanceKm: number | null; lat: number | null; lng: number | null;
+  enrollment: number | null; distanceKm: number | null; lat: number | null; lng: number | null; lowIncome: number | null;
 }
 export interface MapPoint {
   id: number; name: string; lat: number; lng: number; type: string | null; enrollment: number | null;

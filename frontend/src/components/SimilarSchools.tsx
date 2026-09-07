@@ -5,11 +5,12 @@ import { schoolApi } from '../services/api';
 
 /** Nearest schools of the same level and similar size, with a one-click comparison. */
 export default function SimilarSchools({ schoolId, schoolName }: { schoolId: number; schoolName: string }) {
-  const { data: similar } = useQuery({
+  const { data } = useQuery({
     queryKey: ['similar', schoolId],
     queryFn: () => schoolApi.getSimilar(String(schoolId), 4),
     staleTime: 60 * 60 * 1000,
   });
+  const similar = data?.similar;
   if (!similar || similar.length === 0) return null;
   const compareHref = `/compare?schools=${[schoolId, ...similar.map((s) => s.id)].join(',')}`;
 
@@ -18,7 +19,7 @@ export default function SimilarSchools({ schoolId, schoolName }: { schoolId: num
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
           <h2 className="text-base font-semibold text-stone-900">Similar schools</h2>
-          <p className="text-xs text-stone-500">Same level, nearest and closest in size to {schoolName}</p>
+          <p className="text-xs text-stone-500">Same level, closest in low-income share and size, and nearby{data?.lowIncome != null ? ` (${schoolName}: ${data.lowIncome}% low-income)` : ''}</p>
         </div>
         <Link to={compareHref} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-navy-700 text-white hover:bg-navy-600 transition-colors">
           <ArrowsRightLeftIcon className="w-4 h-4" />
@@ -36,6 +37,7 @@ export default function SimilarSchools({ schoolId, schoolName }: { schoolId: num
               <div className="text-xs text-stone-500 text-right whitespace-nowrap">
                 {s.distanceKm != null ? `${s.distanceKm} km` : s.countyName}
                 {s.enrollment ? <div>{s.enrollment.toLocaleString()} students</div> : null}
+                {s.lowIncome != null ? <div>{s.lowIncome}% low-income</div> : null}
               </div>
             </Link>
           </li>

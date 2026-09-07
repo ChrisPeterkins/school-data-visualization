@@ -10,6 +10,7 @@ import ResultsTable from '../components/ResultsTable';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import PinButton from '../components/PinButton';
 import ShareButton from '../components/ShareButton';
+import { useT } from '../i18n';
 import SchoolMap from '../components/SchoolMap';
 import DataNotes from '../components/DataNotes';
 import GapsPanel from '../components/GapsPanel';
@@ -22,6 +23,7 @@ import CohortChart from '../components/CohortChart';
 import { formatPct, growthBand } from '../lib/chartUtils';
 
 export default function SchoolDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { latest } = useAvailableYears();
   // null = "latest year this school has data for"; set once the user picks a year.
@@ -102,6 +104,7 @@ export default function SchoolDetailPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{s.name}</h1>
               <PinButton pin={{ kind: 'school', id: Number(s.id), name: s.name, detail: s.districtName }} />
               <ShareButton title={`${s.name} · PA School Data`} />
+              <Link to={`/schools/${s.id}/report`} className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-600 hover:border-navy-300 hover:text-navy-700 print:hidden">{t('report.title')}</Link>
               <PrintButton />
             </div>
             <p className="text-sm text-stone-500 mt-0.5">

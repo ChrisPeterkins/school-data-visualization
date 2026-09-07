@@ -53,6 +53,11 @@ export function ensureIndicatorTables() {
       n INTEGER,
       PRIMARY KEY (year, entity_type, entity_id, indicator, student_group)
     );
+    CREATE TABLE IF NOT EXISTS school_demographics (
+      year INTEGER NOT NULL, school_id INTEGER NOT NULL, total INTEGER,
+      white REAL, black REAL, hispanic REAL, asian REAL, aian REAL, nhpi REAL, multi REAL, unknown REAL,
+      source TEXT, PRIMARY KEY (year, school_id)
+    );
     CREATE TABLE IF NOT EXISTS district_staff (
       year INTEGER NOT NULL,
       district_id INTEGER NOT NULL,

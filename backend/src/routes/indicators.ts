@@ -79,7 +79,8 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
     const key = cache.generateKey('indicators-school', String(id));
     const cached = await cache.get(key);
     if (cached) return cached;
-    const response = { indicators: percentiles('school', groupSeries(entityRows('school', id))), enrollment: enrollmentRows('school', id), groups: groupRows('school', id) };
+    const demographics = sqliteDb.prepare(`SELECT year, total, white, black, hispanic, asian, aian, nhpi, multi, unknown FROM school_demographics WHERE school_id = ? ORDER BY year DESC LIMIT 1`).get(id) ?? null;
+    const response = { indicators: percentiles('school', groupSeries(entityRows('school', id))), enrollment: enrollmentRows('school', id), groups: groupRows('school', id), demographics };
     await cache.set(key, response, 3600);
     return response;
   });
@@ -110,10 +111,18 @@ const indicatorRoutes: FastifyPluginAsync = async (fastify) => {
       FROM district_finance WHERE adm > 0 AND total_expenditures IS NOT NULL GROUP BY year ORDER BY year
     `).all() as Array<{ year: number; perPupil: number; instructionPerPupil: number }>;
     const st = stateStaff();
+    // District composition: enrollment-weighted across its schools' latest CCD year.
+    const demographics = sqliteDb.prepare(`
+      SELECT MAX(year) AS year, SUM(total) AS total,
+        ROUND(SUM(white * total) / SUM(total), 1) AS white, ROUND(SUM(black * total) / SUM(total), 1) AS black, ROUND(SUM(hispanic * total) / SUM(total), 1) AS hispanic,
+        ROUND(SUM(asian * total) / SUM(total), 1) AS asian, ROUND(SUM(aian * total) / SUM(total), 1) AS aian, ROUND(SUM(nhpi * total) / SUM(total), 1) AS nhpi, ROUND(SUM(multi * total) / SUM(total), 1) AS multi, ROUND(SUM(unknown * total) / SUM(total), 1) AS unknown
+      FROM school_demographics d JOIN schools s ON s.id = d.school_id WHERE s.district_id = ? AND d.year = (SELECT MAX(year) FROM school_demographics)
+    `).get(id) as { total: number | null } | undefined;
     const response = {
       indicators: percentiles('district', groupSeries([...entityRows('district', id), ...schoolRows])),
       enrollment: enrollmentRows('district', id),
       finance: finance.map((f) => ({ ...f, statePerPupil: stateFinance.find((s) => s.year === f.year)?.perPupil ?? null, stateInstructionPerPupil: stateFinance.find((s) => s.year === f.year)?.instructionPerPupil ?? null })),
+      demographics: demographics?.total ? demographics : null,
       staff: staffRows(id).map((r) => { const s = st.find((x) => x.year === r.year); return { ...r, stateAvgTeacherSalary: s?.avgTeacherSalary ?? null, stateAvgTeacherExperience: s?.avgTeacherExperience ?? null, stateStudentsPerTeacher: s?.studentsPerTeacher ?? null }; }),
       groups: groupRows('district', id),
     };

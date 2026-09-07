@@ -113,6 +113,26 @@ function FinanceCard({ rows, t }: { rows: FinancePoint[]; t: (k: string, v?: Rec
   );
 }
 
+const RACE_KEYS: Array<[string, string]> = [['white', '#1e3a5f'], ['black', '#8a6d1c'], ['hispanic', '#0f766e'], ['asian', '#5b5f97'], ['multi', '#b45309'], ['aian', '#7c3aed'], ['nhpi', '#0891b2'], ['unknown', '#a8a29e']];
+function DemographicsStrip({ d, t }: { d: Record<string, number | null> & { year: number; total: number }; t: (k: string, v?: Record<string, string | number>) => string }) {
+  const parts = RACE_KEYS.map(([k, color]) => ({ k, color, v: d[k] ?? 0 })).filter((p) => p.v > 0);
+  if (!parts.length) return null;
+  return (
+    <div className="card-surface p-4 col-span-2 md:col-span-3 lg:col-span-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-xs font-medium text-stone-500">{t('ind.demographics')}</div>
+        <div className="text-[11px] text-stone-500">{t('ind.demoSub', { year: d.year - 1, n: d.total.toLocaleString() })}</div>
+      </div>
+      <div className="mt-2 flex h-3 rounded-full overflow-hidden" role="img" aria-label={parts.map((p) => `${t(`ind.race.${p.k}`)} ${p.v}%`).join(', ')}>
+        {parts.map((p) => <div key={p.k} style={{ width: `${p.v}%`, backgroundColor: p.color }} title={`${t(`ind.race.${p.k}`)} ${p.v}%`} />)}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
+        {parts.map((p) => <span key={p.k} className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: p.color }} />{t(`ind.race.${p.k}`)} <span className="tabular-nums text-stone-900">{p.v}%</span></span>)}
+      </div>
+    </div>
+  );
+}
+
 function StaffCards({ rows, t }: { rows: StaffPoint[]; t: (k: string, v?: Record<string, string | number>) => string }) {
   const pts = rows.filter((r) => r.teachers);
   const cur = pts[pts.length - 1];
@@ -195,6 +215,7 @@ export default function IndicatorsPanel({ entity, id }: IndicatorsPanelProps) {
   const finance = entity === 'district' ? ((data.finance ?? []) as FinancePoint[]) : [];
   const staff = entity === 'district' ? (data.staff ?? []) : [];
   const groups = data.groups ?? [];
+  const demographics = (data as any).demographics as (Record<string, number | null> & { year: number; total: number }) | null | undefined;
   if (shown.length === 0 && data.enrollment.length === 0 && finance.length === 0) return null;
   return (
     <section className="space-y-3" aria-labelledby="indicators-heading">
@@ -207,6 +228,7 @@ export default function IndicatorsPanel({ entity, id }: IndicatorsPanelProps) {
         {finance.length > 0 && <FinanceCard rows={finance} t={t} />}
         {shown.map((s) => <IndicatorCard key={s.indicator} s={s} t={t} entity={entity} />)}
         {staff.length > 0 && <StaffCards rows={staff} t={t} />}
+        {demographics && <DemographicsStrip d={demographics} t={t} />}
       </div>
       {groups.length > 0 && <GroupTable groups={groups} t={t} />}
     </section>

@@ -235,7 +235,7 @@ export default function ComparePage() {
         trendRows.length > 1 ? (
           <TrendCard
             title={`${trendSubject} proficient or above, ${labelFor(group)}`}
-            subtitle={`Each line is one ${entity}, all grades, weighted by students tested`}
+            subtitle={t('cmp.lineSub', { entity })}
             data={trendRows}
             series={figures.map((f) => f.name)}
             years={trendYears}

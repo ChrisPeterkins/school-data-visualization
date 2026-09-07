@@ -67,12 +67,39 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Coverage report (row counts, growth coverage, flags) for the admin page.
+  /** Completed imports, newest first, for the updates page and the feed. */
+  fastify.get('/imports', async () => {
+    const key = cache.generateKey('imports-log');
+    const cached = await cache.get(key);
+    if (cached) return cached;
+    const rows = sqliteDb.prepare(`
+      SELECT file_name AS fileName, file_type AS fileType, level, year, inserted_rows AS inserted, completed_at AS completedAt
+      FROM data_imports WHERE status = 'completed' AND completed_at IS NOT NULL ORDER BY completed_at DESC, id DESC LIMIT 400
+    `).all() as Array<{ fileName: string; fileType: string | null; level: string | null; year: number | null; inserted: number | null; completedAt: number }>;
+    // Group files imported within the same hour into one "release".
+    const groups: Array<{ at: string; years: number[]; files: string[]; inserted: number; kinds: string[] }> = [];
+    for (const r of rows) {
+      const ms = r.completedAt < 1e12 ? r.completedAt * 1000 : r.completedAt;
+      const last = groups[groups.length - 1];
+      if (last && Math.abs(new Date(last.at).getTime() - ms) < 3600 * 1000) {
+        last.files.push(r.fileName); last.inserted += r.inserted ?? 0;
+        if (r.year && !last.years.includes(r.year)) last.years.push(r.year);
+        const k = `${r.fileType ?? ''} ${r.level ?? ''}`.trim(); if (k && !last.kinds.includes(k)) last.kinds.push(k);
+      } else {
+        groups.push({ at: new Date(ms).toISOString(), years: r.year ? [r.year] : [], files: [r.fileName], inserted: r.inserted ?? 0, kinds: [`${r.fileType ?? ''} ${r.level ?? ''}`.trim()].filter(Boolean) });
+      }
+    }
+    const response = { releases: groups.slice(0, 60) };
+    await cache.set(key, response, 3600);
+    return response;
+  });
+
   fastify.get('/data-status', async () => {
     const cacheKey = cache.generateKey('data-status');
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
     const status = buildDataStatus();
-    await cache.set(cacheKey, status, 600);
+    await cache.set(cacheKey, status, 24 * 3600); // refreshed by a restart (every import restarts) or the daily warm
     return status;
   });
 
@@ -737,7 +764,16 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     minTested: z.coerce.number().min(1).optional().default(40),
     /** What to rank by: assessment proficiency (default) or a non-assessment measure. */
     measure: z.enum(['proficiency', 'grad_rate_4yr', 'regular_attendance', 'low_income', 'per_pupil', 'students_per_teacher', 'beating_odds']).optional().default('proficiency'),
+    /** Only entities whose latest low-income share falls in this band (peer-group rankings). */
+    lowIncomeMin: z.coerce.number().min(0).max(100).optional(),
+    lowIncomeMax: z.coerce.number().min(0).max(100).optional(),
   });
+  /** SQL fragment restricting an entity id expression to the requested low-income band. */
+  function lowIncomeClause(query: { lowIncomeMin?: number; lowIncomeMax?: number }, entity: 'school' | 'district', idExpr: string): { sql: string; args: number[] } {
+    if (query.lowIncomeMin == null && query.lowIncomeMax == null) return { sql: '', args: [] };
+    const y = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE indicator = 'low_income' AND entity_type = ?`).get(entity) as { y: number | null }).y ?? 0;
+    return { sql: `AND EXISTS (SELECT 1 FROM entity_indicators li WHERE li.entity_type = '${entity}' AND li.entity_id = ${idExpr} AND li.indicator = 'low_income' AND li.year = ? AND li.value >= ? AND li.value <= ?)`, args: [y, query.lowIncomeMin ?? 0, query.lowIncomeMax ?? 100] };
+  }
 
   /**
    * Rank by a non-assessment measure. Indicators (graduation, attendance,
@@ -759,6 +795,8 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     if (query.countyId) { where.push('d.county_id = ?'); args.push(query.countyId); }
     if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
     if (entity === 'school') where.push('s.is_active = 1');
+    const band = lowIncomeClause(query, entity, entity === 'school' ? 's.id' : 'd.id');
+    if (band.sql) { where.push(band.sql.replace(/^AND /, '')); args.push(...band.args); }
     const extra = where.length ? `AND ${where.join(' AND ')}` : '';
     const measureYear = (table: string, yearCol = 'year', filter = '') => (sqliteDb.prepare(`SELECT MAX(${yearCol}) AS y FROM ${table} WHERE ${yearCol} <= ? ${filter}`).get(query.year) as { y: number | null }).y;
     let rows: any[] = []; let year: number | null = null;
@@ -806,6 +844,7 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     if (query.countyId) { where.push('d.county_id = ?'); args.push(query.countyId); }
     if (entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
     if (entity === 'school') where.push('s.is_active = 1');
+    if (query.lowIncomeMin != null || query.lowIncomeMax != null) { where.push('li.value >= ? AND li.value <= ?'); args.push(query.lowIncomeMin ?? 0, query.lowIncomeMax ?? 100); }
     const all = sqliteDb.prepare(`
       SELECT ${nameSql}, li.value AS lowIncome,
         ROUND(SUM(r.proficient_or_above_percent * r.total_tested) * 1.0 / SUM(r.total_tested), 1) AS avgProficiency,
@@ -835,6 +874,37 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
     });
     return { rows, year: liYear, fit: { slope: Math.round(slope * 1000) / 1000, intercept: Math.round(intercept * 10) / 10, r2: sst ? Math.round((1 - sse / sst) * 100) / 100 : null, n } };
   }
+
+  /**
+   * Every subject's student-weighted series for one entity in one call, so a
+   * detail page needs one request instead of six. Same maths as /summary.
+   */
+  fastify.get('/summary-bundle', async (request, reply) => {
+    const q = z.object({ level: z.enum(['school', 'district', 'county', 'state']), id: z.coerce.number().optional() }).safeParse(request.query);
+    if (!q.success) return reply.status(400).send({ error: 'Bad query' });
+    const { level, id } = q.data;
+    if (level !== 'state' && id == null) return reply.status(400).send({ error: 'id is required' });
+    const key = cache.generateKey('summary-bundle', level, String(id ?? 0));
+    const cached = await cache.get(key);
+    if (cached) return cached;
+    const out: Record<'pssa' | 'keystone', Record<string, Array<{ year: number; proficiency: number | null; tested: number; growth: number | null }>>> = { pssa: {}, keystone: {} };
+    for (const exam of ['pssa', 'keystone'] as const) {
+      const table = exam === 'pssa' ? 'pssa_results' : 'keystone_results';
+      const gradeClause = exam === 'pssa' ? 'AND r.grade = 0' : '';
+      const scope = level === 'school' ? 'r.level = ? AND r.school_id = ?' : level === 'district' ? 'r.level = ? AND r.district_id = ?' : level === 'county' ? "r.level = 'district' AND r.district_id IN (SELECT id FROM districts WHERE county_id = ?)" : "r.level = 'state'";
+      const args: (string | number)[] = level === 'school' || level === 'district' ? [level, id!] : level === 'county' ? [id!] : [];
+      const rows = sqliteDb.prepare(`
+        SELECT r.subject, r.year,
+          ROUND(SUM(r.proficient_or_above_percent * CASE WHEN r.total_tested > 0 THEN r.total_tested ELSE 1 END) * 1.0 / SUM(CASE WHEN r.total_tested > 0 THEN r.total_tested ELSE 1 END), 1) AS proficiency,
+          SUM(CASE WHEN r.total_tested > 0 THEN r.total_tested ELSE 0 END) AS tested, ROUND(AVG(r.growth_score), 2) AS growth
+        FROM ${table} r WHERE ${scope} AND r.demographic_group = 'All Students' AND r.proficient_or_above_percent IS NOT NULL ${gradeClause}
+        GROUP BY r.subject, r.year ORDER BY r.subject, r.year
+      `).all(...args) as Array<{ subject: string; year: number; proficiency: number | null; tested: number; growth: number | null }>;
+      for (const r of rows) (out[exam][r.subject] ??= []).push({ year: r.year, proficiency: r.proficiency, tested: r.tested, growth: r.growth });
+    }
+    await cache.set(key, out, 3600);
+    return out;
+  });
 
   fastify.get('/rankings', async (request, _reply) => {
     const query = rankingsQuerySchema.parse(request.query);
@@ -878,6 +948,8 @@ const performanceRoutes: FastifyPluginAsync = async (fastify) => {
       if (query.entity === 'school' && query.schoolType) { where.push('s.school_type = ?'); args.push(query.schoolType); }
       if (query.entity === 'school') where.push('s.is_active = 1');
       const idExpr = query.entity === 'school' ? 's.id' : query.entity === 'district' ? 'd.id' : 'd.county_id';
+      const band = query.entity === 'county' ? { sql: '', args: [] as number[] } : lowIncomeClause(query, query.entity, idExpr);
+      if (band.sql) { where.push(band.sql.replace(/^AND /, '')); args.push(...band.args); }
       const nameSql = query.entity === 'school'
         ? 's.name AS name, s.school_type AS schoolType, d.name AS districtName, c.name AS countyName, s.city AS city'
         : query.entity === 'district'

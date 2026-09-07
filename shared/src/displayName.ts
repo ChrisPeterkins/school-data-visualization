@@ -10,6 +10,7 @@ const EXPAND: Record<string, string> = {
   'SCH': 'School', 'SCHS': 'Schools', 'CS': 'Charter School', 'CTC': 'Career and Technology Center', 'AVTS': 'Area Vocational Technical School',
   'CTR': 'Center', 'INST': 'Institute', 'INTRMD': 'Intermediate', 'INTERMED': 'Intermediate', 'INT': 'Intermediate', 'PRI': 'Primary', 'PRIM': 'Primary', 'KDG': 'Kindergarten',
   'ACAD': 'Academy', 'TWP': 'Township', 'JR': 'Jr.', 'SR': 'Sr.', 'MT': 'Mt.', 'ST': 'St.', 'FT': 'Ft.', 'CO': 'County', 'CTY': 'City', 'VOC': 'Vocational', 'TECH': 'Technical',
+  'MS/HS': 'Middle/High School', 'M/S': 'Middle/Senior', 'EL/MS': 'Elementary/Middle School', 'JR/SR': 'Jr./Sr.', 'JR-SR': 'Jr.-Sr.', 'K-8': 'K-8', 'K-12': 'K-12',
   'SD': 'SD', 'IU': 'IU', 'AREA': 'Area', 'JT': 'Joint', 'REG': 'Regional', 'ED': 'Education', 'EDUC': 'Education', 'LRNG': 'Learning', 'ALT': 'Alternative',
 };
 /** Names whose capitalisation the simple rules get wrong. */
@@ -41,7 +42,7 @@ export function displayName(raw: string | null | undefined): string {
   }
   const words = s.split(' ').map((w, i) => {
     // Expand a token only when it is the abbreviation on its own ("HS", "HS,"), never inside "21ST" or "MS."
-    const m = w.match(/^([A-Za-z]+)([,)]?)$/);
+    const m = w.match(/^([A-Za-z]+(?:[/-][A-Za-z0-9]+)?)([,)]?)$/);
     if (m && EXPAND[m[1].toUpperCase()] && (allCaps || m[1] === m[1].toUpperCase())) return EXPAND[m[1].toUpperCase()] + m[2];
     if (!allCaps) return w;
     if (PROPER[w.toUpperCase()]) return PROPER[w.toUpperCase()];

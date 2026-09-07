@@ -134,12 +134,15 @@ async function main() {
         WHERE s.latitude IS NULL
           AND NOT EXISTS (SELECT 1 FROM pssa_results p WHERE p.school_id = s.id AND p.year = ?)
           AND NOT EXISTS (SELECT 1 FROM keystone_results k WHERE k.school_id = s.id AND k.year = ?)
+          AND NOT EXISTS (SELECT 1 FROM enrollments e WHERE e.entity_type = 'school' AND e.entity_id = s.id AND e.year = (SELECT MAX(year) FROM enrollments))
       )
     `).run(latest, latest);
+    // A school still enrolling students in PDE's newest October count is open whatever NCES says.
     const reopened = sqliteDb.prepare(`
       UPDATE schools SET is_active = 1 WHERE is_active = 0 AND (latitude IS NOT NULL
         OR EXISTS (SELECT 1 FROM pssa_results p WHERE p.school_id = schools.id AND p.year = ?)
-        OR EXISTS (SELECT 1 FROM keystone_results k WHERE k.school_id = schools.id AND k.year = ?))
+        OR EXISTS (SELECT 1 FROM keystone_results k WHERE k.school_id = schools.id AND k.year = ?)
+        OR EXISTS (SELECT 1 FROM enrollments e WHERE e.entity_type = 'school' AND e.entity_id = schools.id AND e.year = (SELECT MAX(year) FROM enrollments)))
     `).run(latest, latest);
     logger.info(`Closed schools: ${closed.changes} marked inactive, ${reopened.changes} reactivated`);
   }

@@ -19,6 +19,7 @@ import {
 import { SUBJECTS, isExam, type Exam } from '../lib/constants';
 import AccessibleChart from '../components/AccessibleChart';
 import QueryState from '../components/QueryState';
+import IndicatorTrends from '../components/IndicatorTrends';
 
 type Level = 'state' | 'district' | 'school';
 
@@ -193,6 +194,9 @@ export default function TrendsPage() {
         </div>
       )}
       </QueryState>
+
+      <div className="mt-8"><IndicatorTrends /></div>
+
     </div>
   );
 }

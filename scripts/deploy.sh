@@ -35,6 +35,8 @@ supervisorctl restart paschools
 sleep 3
 # Drop nginx's API cache so the deploy is visible immediately.
 rm -rf /var/cache/nginx/paschools/* 2>/dev/null || true
+# Refill the edge cache and the backend memo caches for the pages people land on first.
+bash "$ROOT/scripts/warm-cache.sh" || echo 'cache warm failed (non-fatal)'
 
 echo "== smoke"
 for u in "" "api/health" "api/performance/years" "api/schools?limit=1" "sitemap.xml" "robots.txt"; do

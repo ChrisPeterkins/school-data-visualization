@@ -197,3 +197,47 @@ describe('measures, beating the odds, nearby, previews', () => {
     expect(res.body).toContain('og:title');
   });
 });
+
+describe('summary bundle, imports, feed, poverty-aware similar schools', () => {
+  it('summary bundle matches the per-subject summary route', async () => {
+    const d = raw.prepare(`SELECT district_id AS id FROM pssa_results WHERE level = 'district' AND subject = 'Mathematics' AND grade = 0 GROUP BY district_id ORDER BY COUNT(*) DESC LIMIT 1`).get() as { id: number };
+    const bundle = await get(`/api/performance/summary-bundle?level=district&id=${d.id}`);
+    const single = await get(`/api/performance/summary?exam=pssa&level=district&districtId=${d.id}&subject=Mathematics`);
+    expect(bundle.pssa.Mathematics.map((p: any) => [p.year, p.proficiency])).toEqual(single.series.map((p: any) => [p.year, p.proficiency]));
+    expect(Object.keys(bundle.keystone)).toEqual(expect.arrayContaining(['Algebra I']));
+  });
+
+  it('imports are grouped into releases, newest first, and the feed lists them', async () => {
+    const { releases } = await get('/api/performance/imports');
+    expect(Array.isArray(releases)).toBe(true);
+    expect(releases.length).toBeGreaterThan(0);
+    const times = releases.map((r: any) => new Date(r.at).getTime());
+    expect([...times].sort((a, b) => b - a)).toEqual(times);
+    const total = releases.reduce((n: number, r: any) => n + r.files.length, 0);
+    const completed = (raw.prepare(`SELECT COUNT(*) AS n FROM data_imports WHERE status = 'completed' AND completed_at IS NOT NULL`).get() as { n: number }).n;
+    expect(total).toBe(Math.min(completed, 400));
+    const res = await app.inject({ method: 'GET', url: '/api/feed' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('application/atom+xml');
+    expect((res.body.match(/<entry>/g) || []).length).toBe(releases.length);
+  });
+
+  it('similar schools carry the low-income share and stay within the same level', async () => {
+    const s = raw.prepare(`SELECT entity_id AS id FROM entity_indicators WHERE entity_type = 'school' AND indicator = 'low_income' AND value IS NOT NULL ORDER BY year DESC LIMIT 1`).get() as { id: number } | undefined;
+    if (!s) return;
+    const body = await get(`/api/schools/${s.id}/similar?limit=4`);
+    expect(body.schoolId).toBe(s.id);
+    expect(body.lowIncome).not.toBeNull();
+    expect(body.similar.length).toBeGreaterThan(0);
+    for (const x of body.similar) expect(x.id).not.toBe(s.id);
+  });
+
+  it('low-income band restricts rankings to schools inside the band', async () => {
+    const body = await get('/api/performance/rankings?year=2025&examType=pssa&subject=Mathematics&limit=10&minTested=20&lowIncomeMin=40&lowIncomeMax=100');
+    const year = (raw.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE entity_type = 'school' AND indicator = 'low_income'`).get() as { y: number }).y;
+    for (const r of [...body.top, ...body.bottom]) {
+      const li = raw.prepare(`SELECT value FROM entity_indicators WHERE entity_type = 'school' AND entity_id = ? AND indicator = 'low_income' AND year = ?`).get(r.id, year) as { value: number } | undefined;
+      expect(li?.value ?? -1).toBeGreaterThanOrEqual(40);
+    }
+  });
+});

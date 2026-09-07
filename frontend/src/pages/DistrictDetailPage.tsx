@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { districtApi, performanceApi } from '../services/api';
+import { districtApi } from '../services/api';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import ResultsTable from '../components/ResultsTable';
 import IndicatorsPanel from '../components/IndicatorsPanel';
 import PinButton from '../components/PinButton';
 import ShareButton from '../components/ShareButton';
+import { useT } from '../i18n';
+import { useSummaryBundle, bundleAsQueries } from '../hooks/useSummaryBundle';
 import DataNotes from '../components/DataNotes';
 import TrendCard from '../components/TrendCard';
 import CohortChart from '../components/CohortChart';
@@ -20,6 +22,7 @@ import ExportCsvButton from '../components/ExportCsvButton';
 import { fillYearGaps, formatPct } from '../lib/chartUtils';
 
 export default function DistrictDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { latest } = useAvailableYears();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -33,17 +36,9 @@ export default function DistrictDetailPage() {
   const districtId = district ? Number(district.id) : undefined;
   const dName = district?.name;
   useDocumentTitle(dName ?? null, dName ? `PSSA and Keystone results, trends, and achievement gaps for ${dName}, Pennsylvania.` : null);
-  const trendQuery = (exam: 'pssa' | 'keystone', subject: string) => ({
-    queryKey: ['summary', exam, 'district', districtId, subject],
-    queryFn: () => performanceApi.getSummary({ exam, level: 'district', subject, districtId }),
-    enabled: !!districtId,
-  });
-  const pssaMath = useQuery(trendQuery('pssa', 'Mathematics'));
-  const pssaEla = useQuery(trendQuery('pssa', 'English Language Arts'));
-  const pssaSci = useQuery(trendQuery('pssa', 'Science'));
-  const keyAlg = useQuery(trendQuery('keystone', 'Algebra I'));
-  const keyBio = useQuery(trendQuery('keystone', 'Biology'));
-  const keyLit = useQuery(trendQuery('keystone', 'Literature'));
+  const bundle = useSummaryBundle('district', districtId);
+  const [pssaMath, pssaEla, pssaSci] = bundleAsQueries(bundle.data, 'pssa', ['Mathematics', 'English Language Arts', 'Science']);
+  const [keyAlg, keyBio, keyLit] = bundleAsQueries(bundle.data, 'keystone', ['Algebra I', 'Biology', 'Literature']);
 
   if (isLoading) {
     return (
@@ -102,6 +97,7 @@ export default function DistrictDetailPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-stone-900 break-words">{d.name}</h1>
           <PinButton pin={{ kind: 'district', id: Number(d.id), name: d.name, detail: `${d.countyName} County` }} />
           <ShareButton title={`${d.name} · PA School Data`} />
+          <Link to={`/districts/${d.id}/report`} className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-600 hover:border-navy-300 hover:text-navy-700 print:hidden">{t('report.title')}</Link>
           <PrintButton />
         </div>
         <p className="text-sm text-stone-500 mt-0.5">AUN {d.aun} · {d.countyName} County{d.city ? ` · ${d.city}` : ''}</p>

@@ -1,12 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { countyApi, performanceApi } from '../services/api';
+import { countyApi } from '../services/api';
 import { useAvailableYears } from '../hooks/useAvailableYears';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import GapsPanel from '../components/GapsPanel';
 import DataNotes from '../components/DataNotes';
 import CountyMapInset from '../components/CountyMapInset';
+import { useSummaryBundle, bundleAsQueries } from '../hooks/useSummaryBundle';
 import TrendCard from '../components/TrendCard';
 import { fillYearGaps, formatPct } from '../lib/chartUtils';
 
@@ -18,17 +19,9 @@ export default function CountyDetailPage() {
   const countyId = county?.id;
   useDocumentTitle(county ? `${county.name} County` : null, county ? `PSSA and Keystone results, trends, and achievement gaps for ${county.name} County, Pennsylvania.` : null);
 
-  const trend = (exam: 'pssa' | 'keystone', subject: string) => ({
-    queryKey: ['summary', exam, 'district', 'county', countyId, subject],
-    queryFn: () => performanceApi.getSummary({ exam, level: 'district', subject, countyId }),
-    enabled: !!countyId,
-  });
-  const pssaMath = useQuery(trend('pssa', 'Mathematics'));
-  const pssaEla = useQuery(trend('pssa', 'English Language Arts'));
-  const pssaSci = useQuery(trend('pssa', 'Science'));
-  const keyAlg = useQuery(trend('keystone', 'Algebra I'));
-  const keyBio = useQuery(trend('keystone', 'Biology'));
-  const keyLit = useQuery(trend('keystone', 'Literature'));
+  const bundle = useSummaryBundle('county', countyId);
+  const [pssaMath, pssaEla, pssaSci] = bundleAsQueries(bundle.data, 'pssa', ['Mathematics', 'English Language Arts', 'Science']);
+  const [keyAlg, keyBio, keyLit] = bundleAsQueries(bundle.data, 'keystone', ['Algebra I', 'Biology', 'Literature']);
 
   if (isLoading) {
     return (

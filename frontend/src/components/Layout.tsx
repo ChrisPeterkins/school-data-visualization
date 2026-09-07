@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvailableYears, formatYearRange } from '../hooks/useAvailableYears';
 import GlobalSearch from './GlobalSearch';
@@ -45,12 +45,23 @@ export default function Layout() {
   const yearRange = formatYearRange(availableYears);
   const { t, lang } = useI18n();
   const asOf = formatAsOf(availableYears.lastImportAt, lang);
+  // Route changes move focus to the main region so screen readers announce the new page.
+  const mainRef = useRef<HTMLElement>(null);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    if (window.location.hash) return;
+    const h = mainRef.current?.querySelector('h1');
+    (h ?? mainRef.current)?.setAttribute('tabindex', '-1');
+    (h ?? mainRef.current)?.focus({ preventScroll: false });
+  }, [location.pathname]);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <div className="min-h-screen bg-stone-50">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[2000] focus:px-3 focus:py-2 focus:rounded-lg focus:bg-gold-400 focus:text-navy-900 focus:text-sm focus:font-medium">{t('nav.skip')}</a>
       {/* Navbar */}
       <nav className="bg-navy-900 border-b border-navy-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -143,7 +154,7 @@ export default function Layout() {
       </nav>
 
       {/* Page Content */}
-      <main>
+      <main id="main" ref={mainRef} className="outline-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -174,6 +185,7 @@ export default function Layout() {
                 {asOf ? ` ${t('footer.asOf', { date: asOf })}` : ''}
               </p>
               <Link to="/about" className="text-navy-300 hover:text-white transition-colors">{t('nav.about')}</Link>
+              <Link to="/updates" className="text-navy-300 hover:text-white transition-colors">{t('updates.title')}</Link>
               <a href="/paschools/api/docs/" className="text-navy-300 hover:text-white transition-colors">API</a>
               {/* Admin tools (import, verify, database, upload) sit behind HTTP basic auth in nginx. */}
               <Link to="/import" className="text-navy-300 hover:text-white transition-colors">{t('nav.admin')}</Link>

@@ -43,9 +43,10 @@ for (const t of ['entity_indicators', 'enrollments', 'indicator_groups']) {
 }
 db.exec(`INSERT INTO district_finance SELECT * FROM prod.district_finance WHERE district_id IN (SELECT id FROM districts)`);
 db.exec(`INSERT INTO district_staff SELECT * FROM prod.district_staff WHERE district_id IN (SELECT id FROM districts)`);
+db.exec(`INSERT INTO school_demographics SELECT * FROM prod.school_demographics WHERE school_id IN (SELECT id FROM schools)`);
 db.exec(`DETACH DATABASE prod`);
 db.exec('VACUUM');
 
-const counts = Object.fromEntries(['counties', 'districts', 'schools', 'pssa_results', 'keystone_results', 'pvaas_results', 'entity_indicators', 'enrollments', 'district_finance'].map((t) => [t, (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as any).n]));
+const counts = Object.fromEntries(['counties', 'districts', 'schools', 'pssa_results', 'keystone_results', 'pvaas_results', 'entity_indicators', 'enrollments', 'district_finance', 'school_demographics'].map((t) => [t, (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as any).n]));
 db.close();
 logger.info(`fixture written to ${out} (${Math.round(fs.statSync(out).size / 1024 / 1024)} MB): ${JSON.stringify(counts)}`);

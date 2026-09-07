@@ -17,6 +17,9 @@ import sitemapRoutes from './routes/sitemap';
 import searchRoutes from './routes/search';
 import indicatorRoutes from './routes/indicators';
 import previewRoutes from './routes/preview';
+import feedRoutes from './routes/feed';
+import { buildDataStatus } from './services/dataStatus';
+import { cache } from './cache';
 import { sqliteDb } from './db';
 import { ensureSearchIndex, refreshSearchIndex } from './services/searchIndex';
 import { ensureIndicatorTables } from './services/indicators';
@@ -120,6 +123,7 @@ const buildApp = async () => {
   await fastify.register(searchRoutes, { prefix: '/api/search' });
   await fastify.register(indicatorRoutes, { prefix: '/api/indicators' });
   await fastify.register(previewRoutes, { prefix: '/api/preview' });
+  await fastify.register(feedRoutes, { prefix: '/api/feed' });
   await fastify.register(performanceRoutes, { prefix: '/api/performance' });
   await fastify.register(importRoutes, { prefix: '/api/import' });
   await fastify.register(verifyRoutes, { prefix: '/api/verify' });
@@ -140,6 +144,8 @@ const start = async () => {
       port: config.PORT,
       host: '127.0.0.1',
     });
+    // Warm the coverage report (several seconds cold) so the admin page and the alerting cron never wait on it.
+    setTimeout(() => { try { cache.set(cache.generateKey('data-status'), buildDataStatus(), 24 * 3600); } catch (e) { app.log.warn({ err: e }, 'data-status warm failed'); } }, 2000);
 
     logger.info(`Server running on port ${config.PORT}`);
   } catch (err) {

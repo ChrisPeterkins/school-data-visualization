@@ -87,7 +87,7 @@ export default function ImportProgressPage() {
     queryKey: ['release-status'],
     queryFn: async () => {
       const { data } = await axios.get('/paschools/api/import/release-status');
-      return data as { checkedAt: string; latestYearOnPage: number; newYears: number[]; downloaded: string[]; imported: number[]; note: string | null };
+      return data as { checkedAt: string; latestYearOnPage: number; newYears: number[]; downloaded: string[]; imported: number[]; otherFiles?: Array<{ key: string; file: string }>; note: string | null };
     },
     retry: false,
   });
@@ -202,6 +202,7 @@ export default function ImportProgressPage() {
             ) : (
               <p>No new files since the last import. The check runs weekly and imports new years automatically.</p>
             )}
+            {releaseStatus.otherFiles?.length ? <p className="text-gold-800">Non-assessment files downloaded: {releaseStatus.otherFiles.map((f) => f.file).join(', ')}.</p> : <p className="text-stone-500">Graduation, enrollment, low-income, finance, staff, and Future Ready pages are checked at the same time.</p>}
             {releaseStatus.note && <p className="text-stone-500">{releaseStatus.note}</p>}
           </div>
         ) : (

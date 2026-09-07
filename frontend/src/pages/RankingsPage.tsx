@@ -46,6 +46,9 @@ export default function RankingsPage() {
   type Measure = typeof MEASURES[number];
   const [measure, setMeasure] = useUrlState<Measure>('measure', 'proficiency', (r) => (MEASURES.includes(r as Measure) ? (r as Measure) : null));
   const districtOnly = measure === 'per_pupil' || measure === 'students_per_teacher';
+  const BANDS: Array<[string, number | null, number | null]> = [['all', null, null], ['0-20', 0, 20], ['20-40', 20, 40], ['40-60', 40, 60], ['60-80', 60, 80], ['80-100', 80, 100]];
+  const [band, setBand] = useUrlState<string>('band', 'all', (r) => (BANDS.some(([k]) => k === r) ? r : null));
+  const bandRange = BANDS.find(([k]) => k === band) ?? BANDS[0];
   const isIndicator = measure !== 'proficiency' && measure !== 'beating_odds';
   const isOdds = measure === 'beating_odds';
   const fmtMeasure = (v: number | null | undefined) => (v == null ? 'N/A' : measure === 'per_pupil' ? `$${Math.round(v).toLocaleString()}` : measure === 'students_per_teacher' ? `${v.toFixed(1)}:1` : `${v}%`);
@@ -66,6 +69,7 @@ export default function RankingsPage() {
     countyId: countyId || undefined,
     schoolType: entity === 'school' && schoolType ? schoolType : undefined,
     minTested,
+    ...(bandRange[1] != null ? { lowIncomeMin: bandRange[1], lowIncomeMax: bandRange[2] } : {}),
   };
 
   const { data: rankings, isLoading, error, refetch } = useQuery({
@@ -221,11 +225,16 @@ export default function RankingsPage() {
             <option value="">{t('common.allCounties')}</option>
             {filterOptions?.counties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </FilterSelect>
+          {entity !== 'county' && (
+            <FilterSelect label={t('rank.band')} value={band} onChange={(e) => setBand(e.target.value)}>
+              {BANDS.map(([k]) => <option key={k} value={k}>{k === 'all' ? t('rank.bandAll') : t('rank.bandRange', { range: k.replace('-', '–') })}</option>)}
+            </FilterSelect>
+          )}
           <FilterSelect label={t('rank.minTested')} value={minTested} onChange={(e) => setMinTested(Number(e.target.value))}>
-            {[20, 40, 100, 250].map((n) => <option key={n} value={n}>{n} students</option>)}
+            {[20, 40, 100, 250].map((n) => <option key={n} value={n}>{t('rank.nStudents', { n })}</option>)}
           </FilterSelect>
           <FilterSelect label={t('rank.show')} value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
-            {[5, 10, 15, 25].map((n) => <option key={n} value={n}>Top/Bottom {n}</option>)}
+            {[5, 10, 15, 25].map((n) => <option key={n} value={n}>{t('rank.topBottom', { n })}</option>)}
           </FilterSelect>
         </div>
       </div>
@@ -235,12 +244,12 @@ export default function RankingsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? 'Most improved' : isOdds ? t('rank.odds.above') : 'Highest'}</p>
+              <p className="text-sm text-stone-500">{isChange ? t('rank.mostImproved') : isOdds ? t('rank.odds.above') : t('rank.highestShort')}</p>
               <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange || isOdds ? `${metricOf(rankings.top[0]) > 0 ? '+' : ''}${metricOf(rankings.top[0])} pts` : fmtMeasure(rankings.top[0]?.avgProficiency)}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.top[0]?.schoolName || 'N/A'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? `Statewide change${compareYear ? ` since ${compareYear}` : ''}` : isOdds ? 'Poverty and proficiency' : 'State average'}</p>
+              <p className="text-sm text-stone-500">{isChange ? t('rank.statewideChange', { since: compareYear ? ` ${t('rank.since').toLowerCase()} ${compareYear}` : '' }) : isOdds ? t('rank.povProf') : t('rank.stateAvg')}</p>
               <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">
                 {isChange
                   ? ((rankings as any).stateChange != null ? `${(rankings as any).stateChange > 0 ? '+' : ''}${(rankings as any).stateChange} pts` : 'N/A')
@@ -250,7 +259,7 @@ export default function RankingsPage() {
               <p className="text-sm text-stone-700 mt-0.5">{isChange ? `Now ${rankings.stateAverage ?? '—'}% proficient` : isOdds ? t('rank.odds.fit', { r2: Math.round(((rankings as any).fit?.r2 ?? 0) * 100), n: (rankings as any).fit?.n ?? 0, entity: entityNoun }) : isIndicator ? t('rank.measureYear', { year: (rankings as any).filters?.measureYear ?? '' }) : 'All students, same subject and grade'}</p>
             </div>
             <div className="card-surface p-5">
-              <p className="text-sm text-stone-500">{isChange ? 'Most declined' : isOdds ? t('rank.odds.below') : 'Lowest'}</p>
+              <p className="text-sm text-stone-500">{isChange ? t('rank.mostDeclined') : isOdds ? t('rank.odds.below') : t('rank.lowestShort')}</p>
               <p className="text-2xl font-bold text-navy-800 mt-1 tabular-nums">{isChange || isOdds ? `${metricOf(rankings.bottom[0]) > 0 ? '+' : ''}${metricOf(rankings.bottom[0])} pts` : fmtMeasure(rankings.bottom[0]?.avgProficiency)}</p>
               <p className="text-sm text-stone-700 mt-0.5 truncate">{rankings.bottom[0]?.schoolName || 'N/A'}</p>
             </div>
@@ -266,7 +275,7 @@ export default function RankingsPage() {
               />
             </div>
             <p className="text-xs text-stone-500 mb-4">
-              {isChange ? `Most improved ${rankings.top.length} and most declined ${rankings.bottom.length} ${entityNoun}, percentage points` : isOdds ? t('rank.oddsSub') : t('rank.chartSub', { top: rankings.top.length, bottom: rankings.bottom.length, entity: entityNoun, measure: measure === 'proficiency' ? '% proficient or above' : t(`rank.m.${measure}`).toLowerCase() })}
+              {isChange ? t('rank.changeChartSub', { top: rankings.top.length, bottom: rankings.bottom.length, entity: entityNoun }) : isOdds ? t('rank.oddsSub') : t('rank.chartSub', { top: rankings.top.length, bottom: rankings.bottom.length, entity: entityNoun, measure: measure === 'proficiency' ? '% proficient or above' : t(`rank.m.${measure}`).toLowerCase() })}
             </p>
             <div aria-hidden="true"><ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart layout="vertical" data={chartData} margin={{ left: smUp ? 10 : 0, right: smUp ? 30 : 16, top: 5, bottom: 5 }}>

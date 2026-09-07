@@ -86,6 +86,20 @@ check('nearby schools', (await page.locator('ul.divide-y li').count()) >= 5);
 await page.goto(`${BASE}/compare?schools=${process.env.SCHOOL_ID || '1'}`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
 check('compare indicators table', (await page.locator('table th:has-text("Measure")').count()) === 1);
 
+// 8c. Round D: updates page + feed, report card, low-income band on rankings, skip link, indicator trends.
+await page.goto(`${BASE}/updates`, { waitUntil: 'load' }); await page.waitForTimeout(2500);
+check('updates page', (await page.locator('h1').textContent()) === 'Data updates' && (await page.locator('main li, main article').count()) >= 1);
+const feed = await page.request.get(`${BASE}/feed.xml`);
+check('atom feed', feed.ok() && (feed.headers()['content-type'] || '').includes('atom') && (await feed.text()).includes('<entry>'));
+await page.goto(`${BASE}/schools/${process.env.SCHOOL_ID || '1'}/report`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('report card', (await page.locator('text=Report card').count()) >= 1 && (await page.locator('h1').count()) === 1);
+await page.goto(`${BASE}/rankings?entity=school&band=60-80`, { waitUntil: 'load' }); await page.waitForTimeout(3000);
+check('rankings low-income band', (await page.locator('select').filter({ has: page.locator('option[value="60-80"]') }).inputValue()) === '60-80' && (await page.locator('main a[href*="/schools/"]').count()) >= 1);
+await page.keyboard.press('Tab');
+check('skip link focusable', ((await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('href'))) || '') === '#main');
+await page.goto(`${BASE}/trends`, { waitUntil: 'load' }); await page.waitForTimeout(3500);
+check('indicator trends on trends page', (await page.locator('#ind-trends-heading').count()) === 1 && (await page.locator('.recharts-line').count()) >= 1);
+
 // 9. Accessibility: axe-core on three representative pages; serious and critical violations fail.
 const axePath = ['frontend/node_modules/axe-core/axe.min.js', 'node_modules/axe-core/axe.min.js'].map((p) => new URL('../' + p, import.meta.url).pathname).find((p) => fs.existsSync(p));
 if (axePath) {

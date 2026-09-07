@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState , type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
@@ -281,19 +281,19 @@ export default function MapPage() {
 
   const filters = (
     <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-      <FilterSelect label="Color by" value={metric} onChange={(e) => setMetric(e.target.value as Metric)}>
-        <option value="proficiency">Proficiency</option>
-        <option value="growth" disabled={group !== 'All Students'}>Growth{group !== 'All Students' ? ' (All Students only)' : ''}</option>
-        <option value="quadrant" disabled={group !== 'All Students'}>Growth vs. achievement</option>
-        <option value="attendance">Regular attendance</option>
-        <option value="graduation">4-year graduation rate</option>
-        <option value="lowincome">Low-income share</option>
+      <FilterSelect label={t('map.colorBy')} value={metric} onChange={(e) => setMetric(e.target.value as Metric)}>
+        <option value="proficiency">{t('map.m.proficiency')}</option>
+        <option value="growth" disabled={group !== 'All Students'}>{t('map.m.growth')}{group !== 'All Students' ? ' (All Students only)' : ''}</option>
+        <option value="quadrant" disabled={group !== 'All Students'}>{t('map.m.quadrant')}</option>
+        <option value="attendance">{t('map.m.attendance')}</option>
+        <option value="graduation">{t('map.m.graduation')}</option>
+        <option value="lowincome">{t('map.m.lowincome')}</option>
       </FilterSelect>
-      <FilterSelect label="Boundaries by" value={boundaryMetric} onChange={(e) => setBoundaryMetric(e.target.value as Boundary)}>
-        <option value="proficiency">Same as schools</option>
-        <option value="spending">Spending per pupil</option>
-        <option value="grad_rate_4yr">4-year graduation rate</option>
-        <option value="low_income">Low-income share</option>
+      <FilterSelect label={t('map.boundariesBy')} value={boundaryMetric} onChange={(e) => setBoundaryMetric(e.target.value as Boundary)}>
+        <option value="proficiency">{t('map.sameAsSchools')}</option>
+        <option value="spending">{t('map.m.spending')}</option>
+        <option value="grad_rate_4yr">{t('map.m.graduation')}</option>
+        <option value="low_income">{t('map.m.lowincome')}</option>
       </FilterSelect>
       <FilterSelect label={t('common.year')} value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -318,14 +318,24 @@ export default function MapPage() {
       </FilterSelect>
       <label className="inline-flex items-center gap-2 text-sm text-stone-600 sm:self-end sm:pb-2 cursor-pointer select-none">
         <input type="checkbox" checked={boundaries} onChange={(e) => setBoundaries(e.target.checked)} className="rounded border-stone-300 text-navy-600" />
-        District boundaries
+        {t('map.districtBoundaries')}
       </label>
       <label className="inline-flex items-center gap-2 text-sm text-stone-600 sm:self-end sm:pb-2 cursor-pointer select-none">
         <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="rounded border-stone-300 text-navy-600" />
-        Show schools without a result
+        {t('map.showEmpty')}
       </label>
     </div>
   );
+
+  // Arrow keys walk the visible rows of the schools list; Tab still works row by row.
+  const moveFocus = (e: KeyboardEvent<HTMLUListElement>) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('li button, li a'));
+    const idx = buttons.indexOf(document.activeElement as HTMLElement);
+    if (idx < 0) return;
+    const next = buttons[idx + (e.key === 'ArrowDown' ? 2 : -2)];
+    if (next) { e.preventDefault(); next.focus(); }
+  };
 
   const legend = metric === 'quadrant'
     ? QUADRANTS.map(([color, label]) => [label, color] as const)
@@ -338,7 +348,7 @@ export default function MapPage() {
       <div className="px-4 sm:px-0 pt-6 sm:pt-0 mb-4 sm:mb-6">
         <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{t('pages.map.title')}</h1>
         <p className="mt-1 text-sm text-stone-500">
-          {subject}, {year}. Dots are schools sized by enrollment; shaded areas are districts. Zoom in to separate clusters, click a school for details.
+          {t('map.sub', { subject, year: year ?? '' })}
         </p>
       </div>
 
@@ -353,8 +363,8 @@ export default function MapPage() {
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Find a school"
-              aria-label="Find a school on the map"
+              placeholder={t('map.find')}
+              aria-label={t('map.findAria')}
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-stone-200 bg-white/95 text-sm shadow focus:outline-none focus:ring-2 focus:ring-navy-500/30"
             />
             {searchResults && searchTerm.trim().length >= 2 && searchResults.data.length > 0 && (
@@ -370,7 +380,7 @@ export default function MapPage() {
               </ul>
             )}
           </div>
-          <button onClick={locateMe} title="Zoom to my location" aria-label="Zoom to my location" className="px-2.5 rounded-lg border border-stone-200 bg-white/95 text-stone-600 shadow hover:text-navy-700">
+          <button onClick={locateMe} title={t('map.locate')} aria-label={t('map.locate')} className="px-2.5 rounded-lg border border-stone-200 bg-white/95 text-stone-600 shadow hover:text-navy-700">
             <MapPinIcon className="w-5 h-5" />
           </button>
           <button onClick={() => setFiltersOpen(true)} aria-label="Filters" className="sm:hidden px-2.5 rounded-lg border border-stone-200 bg-white/95 text-stone-600 shadow">
@@ -520,11 +530,11 @@ export default function MapPage() {
           <div className="absolute inset-0 bg-navy-950/40" onClick={() => setFiltersOpen(false)} />
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-stone-900">Filters</h2>
-              <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="text-stone-500"><XMarkIcon className="w-5 h-5" /></button>
+              <h2 className="text-base font-semibold text-stone-900">{t('common.filters')}</h2>
+              <button onClick={() => setFiltersOpen(false)} aria-label={t('map.closeFilters')} className="text-stone-500"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             {filters}
-            <button onClick={() => setFiltersOpen(false)} className="mt-4 w-full py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium">Show {withValue.length.toLocaleString()} schools</button>
+            <button onClick={() => setFiltersOpen(false)} className="mt-4 w-full py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium">{t('map.showN', { n: withValue.length.toLocaleString() })}</button>
           </div>
         </div>
       )}
@@ -532,11 +542,11 @@ export default function MapPage() {
       {sorted.length > 0 && (
         <section className="card-surface mt-4 mx-4 sm:mx-0 overflow-hidden" aria-label={`Schools on the map, ${sorted.length} with a ${metric} value, sorted highest first`}>
           <div className="px-4 sm:px-6 py-3 border-b border-stone-100">
-            <h2 className="text-base font-semibold text-stone-900">Schools shown ({sorted.length.toLocaleString()})</h2>
-            <p className="text-xs text-stone-500">Sorted by {metric === 'quadrant' ? 'proficiency' : metric}. Click a row to show it on the map; the arrow opens the school page.</p>
+            <h2 className="text-base font-semibold text-stone-900">{t('map.shownTitle', { n: sorted.length.toLocaleString() })}</h2>
+            <p className="text-xs text-stone-500">{t('map.shownSub', { metric: t(`map.m.${metric === 'quadrant' ? 'proficiency' : metric}`).toLowerCase() })}</p>
           </div>
           <div ref={listRef} className="overflow-y-auto" style={{ height: ROW * VISIBLE }} onScroll={(e) => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
-            <ul style={{ height: sorted.length * ROW, position: 'relative' }}>
+            <ul style={{ height: sorted.length * ROW, position: 'relative' }} onKeyDown={moveFocus}>
               {sorted.slice(start, end).map((p, i) => {
                 const v = valueOf(p);
                 return (

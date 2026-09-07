@@ -713,6 +713,26 @@
               ]
             },
             "description": "Rank by assessment proficiency (default), by the residual of proficiency against the low-income share (beating_odds; adds fit and points), or by a non-assessment measure (per_pupil and students_per_teacher are district-only). measureYear in filters says which year was used."
+          },
+          {
+            "name": "lowIncomeMin",
+            "in": "query",
+            "description": "Only schools/districts whose low-income share is at least this percent (latest low-income year)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "lowIncomeMax",
+            "in": "query",
+            "description": "Only schools/districts whose low-income share is at most this percent",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
           }
         ],
         "responses": {
@@ -1117,7 +1137,7 @@
         "tags": [
           "entities"
         ],
-        "summary": "Nearest schools of the same level and similar size",
+        "summary": "Schools of the same level closest in low-income share, size, and distance",
         "parameters": [
           {
             "name": "id",
@@ -1139,7 +1159,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK: { schoolId, lowIncome, lowIncomeYear, similar: [{ id, name, enrollment, lowIncome, distanceKm, ... }] }"
           }
         }
       }
@@ -1410,7 +1430,7 @@
         "tags": [
           "indicators"
         ],
-        "summary": "Future Ready PA Index indicators, graduation rate, and enrollment history for one school",
+        "summary": "Future Ready PA Index indicators, graduation rate, and enrollment history for one school (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent)",
         "parameters": [
           {
             "name": "id",
@@ -1433,7 +1453,7 @@
         "tags": [
           "indicators"
         ],
-        "summary": "District graduation rate, enrollment-weighted school indicators, enrollment, and AFR spending per pupil by year",
+        "summary": "District graduation rate, enrollment-weighted school indicators, enrollment, and AFR spending per pupil by year (includes demographics: latest NCES CCD enrollment by race/ethnicity, percent)",
         "parameters": [
           {
             "name": "id",
@@ -1533,6 +1553,69 @@
         "responses": {
           "200": {
             "description": "year, origin, schools[{id,name,type,city,districtName,lat,lng,km,math,ela,algebra,literature}]"
+          }
+        }
+      }
+    },
+    "/performance/summary-bundle": {
+      "get": {
+        "tags": [
+          "performance"
+        ],
+        "summary": "Every subject series for one entity in a single request (what the detail pages use)",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "school",
+                "district",
+                "county",
+                "state"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Entity id; omitted for level=state",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK: { pssa: { [subject]: SummaryPoint[] }, keystone: { [subject]: SummaryPoint[] } }"
+          }
+        }
+      }
+    },
+    "/performance/imports": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Data loads grouped into releases (files completed within the same hour), newest first",
+        "responses": {
+          "200": {
+            "description": "OK: [{ at, years, files, inserted, kinds }]"
+          }
+        }
+      }
+    },
+    "/feed": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Atom feed of data loads (also served at /paschools/feed.xml)",
+        "responses": {
+          "200": {
+            "description": "application/atom+xml"
           }
         }
       }

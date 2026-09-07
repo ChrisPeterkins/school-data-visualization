@@ -284,18 +284,21 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
+    const liYear = (sqliteDb.prepare(`SELECT MAX(year) AS y FROM entity_indicators WHERE indicator = 'low_income' AND entity_type = 'school'`).get() as { y: number | null }).y ?? 0;
     const me = sqliteDb.prepare(`
-      SELECT s.id, s.school_type AS type, s.latitude AS lat, s.longitude AS lng, s.enrollment, d.county_id AS countyId
+      SELECT s.id, s.school_type AS type, s.latitude AS lat, s.longitude AS lng, s.enrollment, d.county_id AS countyId,
+        (SELECT value FROM entity_indicators i WHERE i.entity_type = 'school' AND i.entity_id = s.id AND i.indicator = 'low_income' AND i.year = ?) AS lowIncome
       FROM schools s JOIN districts d ON d.id = s.district_id WHERE s.id = ?
-    `).get(parseInt(id, 10)) as any;
+    `).get(liYear, parseInt(id, 10)) as any;
     if (!me) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'School not found' });
 
     const candidates = sqliteDb.prepare(`
       SELECT s.id, s.name, s.school_type AS type, s.latitude AS lat, s.longitude AS lng, s.enrollment, s.city,
-             d.name AS districtName, d.county_id AS countyId, c.name AS countyName
+             d.name AS districtName, d.county_id AS countyId, c.name AS countyName,
+             (SELECT value FROM entity_indicators i WHERE i.entity_type = 'school' AND i.entity_id = s.id AND i.indicator = 'low_income' AND i.year = ?) AS lowIncome
       FROM schools s JOIN districts d ON d.id = s.district_id JOIN counties c ON c.id = d.county_id
       WHERE s.id != ? AND s.is_active = 1 AND COALESCE(s.school_type, '') = COALESCE(?, '')
-    `).all(me.id, me.type) as any[];
+    `).all(liYear, me.id, me.type) as any[];
 
     const km = (a: any, b: any) => {
       if (a.lat == null || b.lat == null) return null;
@@ -306,12 +309,15 @@ const schoolRoutes: FastifyPluginAsync = async (fastify) => {
     const scored = candidates.map((c) => {
       const distance = km(me, c);
       const sizeRatio = me.enrollment && c.enrollment ? Math.abs(Math.log(c.enrollment / me.enrollment)) : 1;
-      // Distance in km plus a size penalty; a school twice the size costs about 35 km.
-      const score = (distance ?? (c.countyId === me.countyId ? 40 : 200)) + sizeRatio * 50;
+      // Distance in km plus a size penalty (a school twice the size costs about 35 km) and a
+      // poverty penalty: every 10 points of low-income share apart costs 30 km, so peers are
+      // schools serving similar students, not just the nearest building.
+      const povertyGap = me.lowIncome != null && c.lowIncome != null ? Math.abs(c.lowIncome - me.lowIncome) : 25;
+      const score = (distance ?? (c.countyId === me.countyId ? 40 : 200)) + sizeRatio * 50 + povertyGap * 3;
       return { ...c, distanceKm: distance == null ? null : Math.round(distance * 10) / 10, score };
     }).sort((a, b) => a.score - b.score).slice(0, limit);
 
-    const response = { schoolId: me.id, similar: scored.map(({ score: _s, ...rest }) => rest) };
+    const response = { schoolId: me.id, lowIncome: me.lowIncome ?? null, lowIncomeYear: liYear || null, similar: scored.map(({ score: _s, ...rest }) => rest) };
     await cache.set(cacheKey, response, 3600);
     return response;
   });
