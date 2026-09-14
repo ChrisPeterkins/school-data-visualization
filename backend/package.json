@@ -28,7 +28,7 @@
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/multer": "^2.0.0",
+    "@types/multer": "^2.2.0",
     "axios": "^1.6.2",
     "better-sqlite3": "^12.2.0",
     "dotenv": "^16.3.1",
@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "@types/pg": "^8.10.9",
+    "@types/pg": "^8.23.1",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "drizzle-kit": "^0.31.10",
